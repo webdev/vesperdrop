@@ -2,40 +2,65 @@ import Link from "next/link";
 
 export function SiteNav() {
   return (
-    <header className="sticky top-0 z-30 border-b border-[var(--color-line)] bg-[var(--color-paper)]/85 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        <Link
-          href="/"
-          className="font-serif text-2xl italic font-light tracking-tight text-[var(--color-ink)]"
-        >
-          Darkroom
-        </Link>
-        <nav className="hidden items-center gap-8 md:flex">
+    <header className="border-b border-[var(--color-ink)] bg-[var(--color-paper)]">
+      <div className="flex items-center justify-between gap-4 border-b border-[var(--color-line)] px-6 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-ink-3)] md:px-8">
+        <span className="hidden sm:inline">THU &middot; APRIL &middot; 25 &middot; MMXXVI</span>
+        <span className="text-center">LIFESTYLE PHOTOGRAPHY &middot; GENERATED &middot; ON DEMAND</span>
+        <span className="hidden sm:inline">VOL&middot;02 &middot; NO&middot;14</span>
+      </div>
+
+      <div className="grid grid-cols-1 items-center gap-6 px-6 py-5 md:grid-cols-[1fr_auto_1fr] md:px-8">
+        <nav className="hidden items-center gap-6 md:flex">
           <a
-            href="#how-it-works"
-            className="text-sm text-[var(--color-ink-2)] transition-colors hover:text-[var(--color-ink)]"
+            href="#how"
+            className="text-sm text-[var(--color-ink-2)] transition-colors hover:text-[var(--color-ember)]"
           >
             How it works
           </a>
+          <a
+            href="#gallery"
+            className="text-sm text-[var(--color-ink-2)] transition-colors hover:text-[var(--color-ember)]"
+          >
+            Gallery
+          </a>
+          <a
+            href="#discover"
+            className="text-sm text-[var(--color-ink-2)] transition-colors hover:text-[var(--color-ember)]"
+          >
+            Discover
+          </a>
           <Link
             href="/pricing"
-            className="text-sm text-[var(--color-ink-2)] transition-colors hover:text-[var(--color-ink)]"
+            className="text-sm text-[var(--color-ink-2)] transition-colors hover:text-[var(--color-ember)]"
           >
             Pricing
           </Link>
         </nav>
-        <div className="flex items-center gap-3">
+
+        <div className="text-center">
+          <Link
+            href="/"
+            className="block font-serif text-4xl font-light italic leading-none tracking-tight text-[var(--color-ink)] md:text-5xl"
+          >
+            Darkroom
+          </Link>
+          <div className="mt-2 font-mono text-[9px] tracking-[0.3em] text-[var(--color-ink-3)]">
+            &mdash; EST. 2026 &middot; BROOKLYN NY &mdash;
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3">
           <Link
             href="/sign-in"
-            className="text-sm text-[var(--color-ink-2)] transition-colors hover:text-[var(--color-ink)]"
+            className="text-sm text-[var(--color-ink-2)] transition-colors hover:text-[var(--color-ember)]"
           >
             Sign in
           </Link>
           <Link
             href="/sign-up"
-            className="inline-flex items-center rounded-full bg-[var(--color-ink)] px-4 py-2 text-sm font-medium text-[var(--color-cream)] transition-colors hover:bg-[var(--color-ink-2)]"
+            className="inline-flex items-center rounded-full bg-[var(--color-ink)] px-4 py-2 text-sm font-medium text-[var(--color-cream)] transition-colors hover:bg-[var(--color-ember)]"
           >
-            Get started
+            Open account &rarr;
           </Link>
         </div>
       </div>

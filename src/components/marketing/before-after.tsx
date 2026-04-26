@@ -1,0 +1,113 @@
+/* eslint-disable @next/next/no-img-element */
+"use client";
+import { useRef, useState } from "react";
+
+export type Pair = {
+  sku: string;
+  name: string;
+  surface: string;
+  scene: string;
+  before: string;
+  after: string;
+};
+
+export function BeforeAfter({ pairs }: { pairs: Pair[] }) {
+  const [pos, setPos] = useState(48);
+  const [idx, setIdx] = useState(0);
+  const dragging = useRef(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const pair = pairs[idx];
+
+  function update(clientX: number) {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = clientX - rect.left;
+    setPos(Math.max(3, Math.min(97, (x / rect.width) * 100)));
+  }
+
+  return (
+    <div className="relative aspect-[4/5] w-full overflow-hidden bg-[var(--color-ink)]">
+      <div
+        ref={containerRef}
+        onMouseMove={(e) => dragging.current && update(e.clientX)}
+        onTouchMove={(e) => dragging.current && update(e.touches[0].clientX)}
+        onMouseUp={() => (dragging.current = false)}
+        onMouseLeave={() => (dragging.current = false)}
+        onTouchEnd={() => (dragging.current = false)}
+        className="absolute inset-0 cursor-ew-resize select-none overflow-hidden bg-[var(--color-ink)]"
+      >
+        <img
+          src={pair.after}
+          alt=""
+          draggable={false}
+          className="absolute inset-0 block h-full w-full object-cover"
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            clipPath: `polygon(0 0, ${pos}% 0, ${pos}% 100%, 0 100%)`,
+          }}
+        >
+          <img
+            src={pair.before}
+            alt=""
+            draggable={false}
+            className="absolute inset-0 block h-full w-full bg-[var(--color-paper)] object-cover"
+          />
+        </div>
+        <div
+          className="absolute top-0 bottom-0 w-px -translate-x-1/2 bg-[var(--color-cream)]"
+          style={{ left: `${pos}%` }}
+        >
+          <button
+            aria-label="Drag to compare"
+            onMouseDown={(e) => {
+              dragging.current = true;
+              e.preventDefault();
+            }}
+            onTouchStart={() => (dragging.current = true)}
+            className="absolute top-1/2 left-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize items-center justify-center border border-[var(--color-ink)] bg-[var(--color-cream)] shadow-lg"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--color-ink)"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            >
+              <path d="M8 8l-4 4 4 4M16 8l4 4-4 4" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div className="absolute top-3 left-3 inline-flex items-center border border-white/30 bg-black/40 px-2 py-1 font-mono text-[10px] tracking-[0.2em] text-[var(--color-cream)] backdrop-blur-sm">
+        INPUT &middot; YOUR PHOTO
+      </div>
+      <div className="absolute top-3 right-3 inline-flex items-center bg-[var(--color-ember)] px-2 py-1 font-mono text-[10px] tracking-[0.2em] text-[var(--color-cream)]">
+        OUTPUT &middot; DARKROOM
+      </div>
+
+      <div className="absolute right-3 bottom-3 flex gap-1 border border-white/15 bg-black/55 p-1 backdrop-blur">
+        {pairs.map((p, i) => (
+          <button
+            key={p.sku}
+            onClick={() => {
+              setIdx(i);
+              setPos(48);
+            }}
+            className={`px-2.5 py-1.5 font-mono text-[10px] tracking-[0.14em] transition-colors ${
+              idx === i
+                ? "bg-[var(--color-cream)] text-[var(--color-ink)]"
+                : "text-[var(--color-cream)] hover:bg-white/10"
+            }`}
+          >
+            {p.sku}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
