@@ -117,14 +117,41 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+@theme {
+  --color-paper: #f4f0e8;
+  --color-paper-2: #ebe6dc;
+  --color-paper-3: #ddd6c6;
+  --color-ink: #1b1915;
+  --color-ink-2: #3d3830;
+  --color-ink-3: #6b6458;
+  --color-ink-4: #a59e8f;
+  --color-ember: #c2451c;
+  --color-ember-soft: #e8a58b;
+  --color-cream: #faf7f0;
+  --color-line: rgba(27, 25, 21, 0.12);
+
+  --font-serif: "Newsreader", "Times New Roman", serif;
+  --font-sans: "Geist", -apple-system, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
   html {
     @apply font-sans;
   }
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background: var(--color-paper);
+  -webkit-font-smoothing: antialiased;
+  background-image:
+    radial-gradient(rgba(27, 25, 21, 0.035) 1px, transparent 1px),
+    radial-gradient(rgba(27, 25, 21, 0.02) 1px, transparent 1px);
+  background-size: 3px 3px, 7px 7px;
+  background-position: 0 0, 1px 1px;
 }
