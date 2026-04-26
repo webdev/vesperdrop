@@ -35,6 +35,32 @@
    ```
 6. (First run only) `pnpm stripe:listen` in a separate terminal — it prints a `whsec_...` value. Paste that into `.env.local` as `STRIPE_WEBHOOK_SECRET`, then restart `pnpm dev`.
 
+## Google OAuth (optional)
+
+Sign-in with Google is wired up in the auth form, but it only works once you've
+configured Google credentials on your Supabase project.
+
+1. Create OAuth credentials in [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
+   - Application type: **Web application**
+   - Authorized redirect URI: your Supabase project's auth callback, which is
+     `https://<project-ref>.supabase.co/auth/v1/callback` for hosted projects, or
+     `http://127.0.0.1:54321/auth/v1/callback` for the local stack.
+2. Local dev: add the keys to `supabase/config.toml` under `[auth.external.google]`:
+   ```toml
+   [auth.external.google]
+   enabled = true
+   client_id = "env(GOOGLE_CLIENT_ID)"
+   secret    = "env(GOOGLE_CLIENT_SECRET)"
+   redirect_uri = "http://127.0.0.1:54321/auth/v1/callback"
+   ```
+   Put `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env.local`, then
+   restart the local stack: `pnpm db:stop && pnpm db:start`.
+3. Hosted: paste the same client id / secret into Supabase Studio under
+   **Auth → Providers → Google**. No code changes needed.
+
+The app's `/api/auth/callback` route exchanges the OAuth code for a session and
+redirects to `?next=...` (defaults to `/app`).
+
 ## Daily
 
 ```
