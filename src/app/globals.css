@@ -129,10 +129,6 @@
   --color-ember-soft: #e8a58b;
   --color-cream: #faf7f0;
   --color-line: rgba(27, 25, 21, 0.12);
-
-  --font-serif: "Newsreader", "Times New Roman", serif;
-  --font-sans: "Geist", -apple-system, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
 }
 
 @layer base {
