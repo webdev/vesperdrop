@@ -23,12 +23,6 @@ export function SiteNav() {
           >
             Gallery
           </a>
-          <a
-            href="#discover"
-            className="text-sm text-[var(--color-ink-2)] transition-colors hover:text-[var(--color-ember)]"
-          >
-            Discover
-          </a>
           <Link
             href="/pricing"
             className="text-sm text-[var(--color-ink-2)] transition-colors hover:text-[var(--color-ember)]"

@@ -1,6 +1,5 @@
 import { Hero } from "@/components/marketing/hero";
 import { Gallery } from "@/components/marketing/gallery";
-import { Discover } from "@/components/marketing/discover";
 import { HowItWorks } from "@/components/marketing/how-it-works";
 import { ClosingCta } from "@/components/marketing/closing-cta";
 import { CtaBand } from "@/components/marketing/cta-band";
@@ -22,7 +21,7 @@ export default function Page() {
         caption="3 FREE SHOTS · NO CARD"
         tone="cream"
       />
-      <Discover />
+      <HowItWorks />
       <CtaBand
         eyebrow="DEVELOP YOUR LIBRARY"
         headline={
@@ -34,7 +33,6 @@ export default function Page() {
         ctaHref="/sign-up"
         tone="ink"
       />
-      <HowItWorks />
       <ClosingCta />
     </>
   );
