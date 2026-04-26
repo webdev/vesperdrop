@@ -96,19 +96,20 @@ async function watermarkOne(row: { id: string; output_url: string | null }, orig
   await updateGeneration(row.id, { outputUrl: url, watermarked: true });
 }
 
-async function incrementUsage(userId: string, runId: string): Promise<void> {
+async function refundFailedUsage(userId: string, runId: string): Promise<void> {
   "use step";
-  const { count } = await supabaseAdmin
+  const { count, error: countErr } = await supabaseAdmin
     .from("generations")
     .select("id", { count: "exact", head: true })
     .eq("run_id", runId)
-    .eq("status", "succeeded");
-  const ym = new Date().toISOString().slice(0, 7);
+    .eq("status", "failed");
+  if (countErr) throw countErr;
   if (count && count > 0) {
+    const ym = new Date().toISOString().slice(0, 7);
     const { error } = await supabaseAdmin.rpc("increment_usage", {
       p_user_id: userId,
       p_year_month: ym,
-      p_delta: count,
+      p_delta: -count,
     });
     if (error) throw error;
   }
@@ -133,5 +134,5 @@ export async function processRun(
     await Promise.all(succeeded.map((row) => watermarkOne(row, origin)));
   }
 
-  await incrementUsage(userId, runId);
+  await refundFailedUsage(userId, runId);
 }

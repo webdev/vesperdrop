@@ -5,8 +5,10 @@ import { z } from "zod";
 import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createRun } from "@/lib/db/runs";
 import { insertPendingGenerations } from "@/lib/db/generations";
+import { tryTakeToken } from "@/lib/db/rate-limit";
 import { processRun } from "@/lib/workflows/process-run";
 import { env } from "@/lib/env";
 
@@ -16,6 +18,19 @@ export async function POST(req: Request) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const allowed = await tryTakeToken(
+    user.id,
+    "runs",
+    env.RUNS_PER_MINUTE_PER_USER,
+    env.RUNS_PER_MINUTE_PER_USER,
+  );
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Rate limit exceeded. Try again in a minute." },
+      { status: 429 },
+    );
+  }
 
   const form = await req.formData();
   const files = form.getAll("files").filter((f): f is File => f instanceof File);
@@ -34,6 +49,28 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { error: `Run exceeds ${env.MAX_RUN_IMAGES} images.` },
       { status: 400 },
+    );
+  }
+
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("plan")
+    .eq("id", user.id)
+    .single();
+
+  const cap = profile?.plan === "pro"
+    ? env.PLAN_PRO_MONTHLY_GENERATIONS
+    : env.PLAN_FREE_MONTHLY_GENERATIONS;
+
+  const { data: ok } = await supabaseAdmin.rpc("try_reserve_quota", {
+    p_user_id: user.id,
+    p_delta: total,
+    p_cap: cap,
+  });
+  if (!ok) {
+    return NextResponse.json(
+      { error: "Monthly limit reached. Upgrade to Pro." },
+      { status: 402 },
     );
   }
 
