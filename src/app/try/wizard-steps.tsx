@@ -1,12 +1,11 @@
 "use client";
 
-export type StepId = "upload" | "style" | "scenes" | "develop";
+export type StepId = "upload" | "scenes" | "develop";
 
 export const STEPS: { id: StepId; n: string; t: string }[] = [
   { id: "upload", n: "I", t: "UPLOAD PRODUCT" },
-  { id: "style", n: "II", t: "PICK STYLE" },
-  { id: "scenes", n: "III", t: "PICK SCENES" },
-  { id: "develop", n: "IV", t: "DEVELOP" },
+  { id: "scenes", n: "II", t: "PICK SCENES" },
+  { id: "develop", n: "III", t: "DEVELOP" },
 ];
 
 export function WizardSteps({ current }: { current: StepId }) {
