@@ -71,7 +71,7 @@ export async function POST(req: Request) {
   }
   await insertPendingGenerations(rows);
 
-  const run = await start(processRun, [runId, user.id, sourceUploads]);
+  const run = await start(processRun, [runId, user.id, sourceUploads, origin]);
 
   return NextResponse.json({ runId, workflowRunId: run.runId });
 }

@@ -2,6 +2,9 @@ import "server-only";
 import { sceneify } from "@/lib/sceneify/client";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { updateGeneration } from "@/lib/db/generations";
+import { applyWatermark } from "@/lib/watermark";
+import { storeWatermarked } from "@/lib/storage";
+import { env } from "@/lib/env";
 
 type SourceUpload = {
   blobUrl: string;
@@ -59,6 +62,40 @@ async function generateOne(row: { id: string; sceneify_source_id: string; preset
   }
 }
 
+async function shouldWatermarkForUser(userId: string): Promise<boolean> {
+  "use step";
+  const { data } = await supabaseAdmin
+    .from("profiles")
+    .select("plan")
+    .eq("id", userId)
+    .single();
+  const plan = (data?.plan as "free" | "pro") ?? "free";
+  return (plan === "free" && env.PLAN_FREE_WATERMARK) ||
+         (plan === "pro" && env.PLAN_PRO_WATERMARK);
+}
+
+async function listSucceededUnwatermarked(runId: string): Promise<Array<{ id: string; output_url: string | null }>> {
+  "use step";
+  const { data, error } = await supabaseAdmin
+    .from("generations")
+    .select("id, output_url")
+    .eq("run_id", runId)
+    .eq("status", "succeeded")
+    .eq("watermarked", false);
+  if (error) throw error;
+  return data ?? [];
+}
+
+async function watermarkOne(row: { id: string; output_url: string | null }, origin: string): Promise<void> {
+  "use step";
+  if (!row.output_url) return;
+  const res = await fetch(row.output_url);
+  const buf = Buffer.from(await res.arrayBuffer());
+  const out = await applyWatermark(buf, "DARKROOM PREVIEW");
+  const url = await storeWatermarked(out, `${row.id}.png`, origin);
+  await updateGeneration(row.id, { outputUrl: url, watermarked: true });
+}
+
 async function incrementUsage(userId: string, runId: string): Promise<void> {
   "use step";
   const { count } = await supabaseAdmin
@@ -81,6 +118,7 @@ export async function processRun(
   runId: string,
   userId: string,
   sourceUploads: SourceUpload[],
+  origin: string,
 ): Promise<void> {
   "use workflow";
 
@@ -89,6 +127,11 @@ export async function processRun(
   const pending = await listPendingForRun(runId);
 
   await Promise.all(pending.map((row) => generateOne(row)));
+
+  if (await shouldWatermarkForUser(userId)) {
+    const succeeded = await listSucceededUnwatermarked(runId);
+    await Promise.all(succeeded.map((row) => watermarkOne(row, origin)));
+  }
 
   await incrementUsage(userId, runId);
 }
