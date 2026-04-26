@@ -9,6 +9,9 @@ export function AppNav({ email }: { email: string }) {
         </Link>
         <div className="flex items-center gap-4 text-sm">
           <span className="text-[var(--color-ink-3)]">{email}</span>
+          <Link href="/app/discover" className="underline">
+            Discover
+          </Link>
           <Link href="/account" className="underline">
             Account
           </Link>
