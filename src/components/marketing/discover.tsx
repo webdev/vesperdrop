@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
-type Scene = {
+export type Scene = {
   slug: string;
   name: string;
   mood: string;
@@ -12,7 +12,7 @@ type Scene = {
   palette: string[];
 };
 
-const SCENES: Scene[] = [
+export const SCENES: Scene[] = [
   {
     slug: "studio_athletic",
     name: "Studio Athletic",
