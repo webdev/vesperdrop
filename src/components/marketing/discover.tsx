@@ -8,11 +8,6 @@ const SCENES = [
     caption: "STUDIO · SOFT STROBE",
   },
   {
-    slug: "sky_athletic",
-    name: "Sky Athletic",
-    caption: "ROOFTOP · GOLDEN HOUR",
-  },
-  {
     slug: "mono_street",
     name: "Mono Street",
     caption: "STREET · OVERCAST CONCRETE",
@@ -57,16 +52,19 @@ export function Discover() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3">
-        {SCENES.map((scene, i) => (
-          <Link
-            key={scene.slug}
-            href="/sign-up"
-            className={`group relative block aspect-[4/5] overflow-hidden bg-[var(--color-ink)] ${
-              (i + 1) % 3 !== 0 ? "md:border-r md:border-[var(--color-line)]" : ""
-            } ${i < 3 ? "border-b border-[var(--color-line)] md:border-b" : ""} ${
-              i % 2 !== 0 ? "border-l border-[var(--color-line)] md:border-l-0" : ""
-            }`}
-          >
+        {SCENES.map((scene, i) => {
+          const isLastInRowMd = (i + 1) % 3 === 0 || i === SCENES.length - 1;
+          const isLastRowMd = i >= Math.floor((SCENES.length - 1) / 3) * 3;
+          return (
+            <Link
+              key={scene.slug}
+              href="/sign-up"
+              className={`group relative block aspect-[4/5] overflow-hidden bg-[var(--color-ink)] ${
+                isLastInRowMd ? "" : "md:border-r md:border-[var(--color-line)]"
+              } ${isLastRowMd ? "md:border-b-0" : "md:border-b md:border-[var(--color-line)]"} ${
+                i < SCENES.length - 1 ? "border-b border-[var(--color-line)] md:border-b-0" : ""
+              } ${i % 2 !== 0 ? "border-l border-[var(--color-line)] md:border-l-0" : ""}`}
+            >
             <img
               src={`/marketing/styles/${scene.slug}.jpg`}
               alt={scene.name}
@@ -83,7 +81,8 @@ export function Discover() {
               </p>
             </div>
           </Link>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
