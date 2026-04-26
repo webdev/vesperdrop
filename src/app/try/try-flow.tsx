@@ -99,6 +99,7 @@ export function TryFlow() {
       if (photo?.isObjectUrl) URL.revokeObjectURL(photo.url);
       const url = URL.createObjectURL(file);
       setPhoto({ url, name: file.name, isObjectUrl: true });
+      setStep("style");
     },
     [photo],
   );
@@ -106,6 +107,7 @@ export function TryFlow() {
   const useSample = useCallback(() => {
     if (photo?.isObjectUrl) URL.revokeObjectURL(photo.url);
     setPhoto({ url: SAMPLE_SRC, name: SAMPLE_NAME, isObjectUrl: false });
+    setStep("style");
   }, [photo]);
 
   const resetPhoto = useCallback(() => {
@@ -244,8 +246,6 @@ export function TryFlow() {
             fileInputRef={fileInputRef}
             onFiles={handleFiles}
             onUseSample={useSample}
-            onReset={resetPhoto}
-            onContinue={() => setStep("style")}
           />
         ) : null}
 
@@ -307,15 +307,11 @@ function UploadStep({
   fileInputRef,
   onFiles,
   onUseSample,
-  onReset,
-  onContinue,
 }: {
   photo: Photo | null;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   onFiles: (files: FileList | null) => void;
   onUseSample: () => void;
-  onReset: () => void;
-  onContinue: () => void;
 }) {
   const [dragging, setDragging] = useState(false);
   return (
@@ -332,18 +328,20 @@ function UploadStep({
           main image is perfect.
         </p>
 
+        {photo ? (
+          <p className="mt-5 font-mono text-[10px] tracking-[0.16em] text-[var(--color-ink-3)] uppercase">
+            ON FILE · {photo.name} · DROP A DIFFERENT ONE TO REPLACE
+          </p>
+        ) : null}
+
         <div className="mt-8">
-          {photo ? (
-            <UploadedThumb photo={photo} onReset={onReset} onContinue={onContinue} />
-          ) : (
-            <Dropzone
-              dragging={dragging}
-              setDragging={setDragging}
-              fileInputRef={fileInputRef}
-              onFiles={onFiles}
-              onUseSample={onUseSample}
-            />
-          )}
+          <Dropzone
+            dragging={dragging}
+            setDragging={setDragging}
+            fileInputRef={fileInputRef}
+            onFiles={onFiles}
+            onUseSample={onUseSample}
+          />
         </div>
       </div>
 
@@ -429,54 +427,6 @@ function Dropzone({
         </button>
       </div>
     </>
-  );
-}
-
-function UploadedThumb({
-  photo,
-  onReset,
-  onContinue,
-}: {
-  photo: Photo;
-  onReset: () => void;
-  onContinue: () => void;
-}) {
-  return (
-    <div className="border border-[var(--color-line)] bg-[var(--color-cream)] p-5">
-      <div className="flex items-center gap-5">
-        <div className="h-24 w-24 flex-shrink-0 overflow-hidden border border-[var(--color-line)] bg-[var(--color-paper-2)]">
-          <img
-            src={photo.url}
-            alt={photo.name}
-            className="h-full w-full object-cover"
-          />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="font-serif text-xl text-[var(--color-ink)]">
-            Got it.
-          </div>
-          <div className="mt-1 truncate font-mono text-[11px] tracking-[0.12em] text-[var(--color-ink-3)] uppercase">
-            {photo.name}
-          </div>
-          <button
-            type="button"
-            onClick={onReset}
-            className="mt-2 font-mono text-[10px] tracking-[0.14em] text-[var(--color-ink-3)] uppercase underline-offset-4 hover:text-[var(--color-ember)] hover:underline"
-          >
-            ← Re-pick
-          </button>
-        </div>
-      </div>
-      <div className="mt-5 flex justify-end">
-        <button
-          type="button"
-          onClick={onContinue}
-          className="inline-flex items-center rounded-full bg-[var(--color-ember)] px-6 py-3 text-sm font-medium text-[var(--color-cream)] transition-transform hover:scale-[1.02] hover:bg-[#a83c18]"
-        >
-          Continue → Pick a style →
-        </button>
-      </div>
-    </div>
   );
 }
 
