@@ -42,8 +42,10 @@ supabase/.branches
 supabase/.temp
 
 # darkroom dev artifacts
-public/uploads
-public/watermarked
+public/uploads/*
+!public/uploads/.gitkeep
+public/watermarked/*
+!public/watermarked/.gitkeep
 
 # design reference (per project CLAUDE.md, gitignored)
 design-reference
@@ -51,4 +53,4 @@ design-reference
 # pre-existing assets that aren't part of the app
 _current.jpg
 screenshots/
-uploads/
+/uploads/
