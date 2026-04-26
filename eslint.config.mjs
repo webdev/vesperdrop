@@ -13,6 +13,7 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "design-reference/**",
+    "src/app/.well-known/**",
   ]),
 ]);
 

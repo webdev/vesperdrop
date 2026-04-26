@@ -7,6 +7,9 @@ node_modules
 out
 next-env.d.ts
 
+# workflow devkit
+.swc
+
 # env
 .env
 .env.local
