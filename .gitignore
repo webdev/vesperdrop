@@ -1,0 +1,51 @@
+# deps
+node_modules
+.pnpm-store
+
+# next
+.next
+out
+next-env.d.ts
+
+# env
+.env
+.env.local
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+
+# os
+.DS_Store
+
+# logs
+npm-debug.log*
+pnpm-debug.log*
+
+# editor
+.vscode
+.idea
+
+# test
+coverage
+playwright-report
+test-results
+
+# supabase local
+supabase/.branches
+supabase/.temp
+
+# darkroom dev artifacts
+public/uploads
+public/watermarked
+
+# design reference (per project CLAUDE.md, gitignored)
+design-reference
+
+# pre-existing assets that aren't part of the app
+_current.jpg
+screenshots/
+uploads/
