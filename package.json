@@ -15,7 +15,8 @@
     "db:migrate": "pnpm exec supabase migration up",
     "db:reset": "pnpm exec supabase db reset",
     "db:diff": "pnpm exec supabase db diff",
-    "stripe:listen": "stripe listen --forward-to localhost:3000/api/stripe/webhook"
+    "stripe:listen": "stripe listen --forward-to localhost:3000/api/stripe/webhook",
+    "dev:all": "concurrently -n next,stripe -c blue,magenta \"pnpm dev\" \"pnpm stripe:listen\""
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -53,6 +54,7 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/ui": "^4.1.5",
+    "concurrently": "^9.2.1",
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
