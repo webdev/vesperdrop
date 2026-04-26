@@ -63,7 +63,7 @@ export function Hero() {
           <div>
             <div className="mb-6 flex flex-wrap items-center gap-4">
               <Link
-                href="/sign-up"
+                href="/try"
                 className="inline-flex items-center rounded-full bg-[var(--color-ember)] px-7 py-4 text-sm md:text-base font-medium text-[var(--color-cream)] transition-transform hover:scale-[1.02] hover:bg-[#a83c18]"
               >
                 Try with your product &rarr;

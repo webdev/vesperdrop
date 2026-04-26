@@ -18,7 +18,7 @@ export default function Page() {
           </>
         }
         ctaLabel="Try it free"
-        ctaHref="/sign-up"
+        ctaHref="/try"
         caption="3 FREE SHOTS · NO CARD"
         tone="cream"
       />
