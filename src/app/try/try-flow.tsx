@@ -10,7 +10,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 
-import { SCENES } from "@/components/marketing/discover";
+import type { Scene } from "@/lib/db/scenes";
 import { WizardSteps, type StepId } from "./wizard-steps";
 import { ExampleInput } from "./example-input";
 import { DevelopGrid } from "./develop-grid";
@@ -20,26 +20,11 @@ const SAMPLE_NAME = "CAM-BRN-S_SAMPLE.JPG";
 
 type Photo = { url: string; name: string; isObjectUrl: boolean };
 
-type ScenePreset = {
-  id: string;
-  name: string;
-  caption: string;
-  src: string;
-};
-
-const SCENE_PRESETS: ScenePreset[] = SCENES.map((s) => ({
-  id: s.slug,
-  name: s.name,
-  caption: s.mood,
-  src: `/marketing/styles/${s.slug}.jpg`,
-}));
-
-const SCENE_BY_ID: Record<string, ScenePreset> = SCENE_PRESETS.reduce(
-  (acc, s) => ({ ...acc, [s.id]: s }),
-  {} as Record<string, ScenePreset>,
-);
-
-export function TryFlow() {
+export function TryFlow({ scenes }: { scenes: Scene[] }) {
+  const sceneById = scenes.reduce<Record<string, Scene>>(
+    (acc, s) => ({ ...acc, [s.slug]: s }),
+    {},
+  );
   const [step, setStep] = useState<StepId>("upload");
   const [photo, setPhoto] = useState<Photo | null>(null);
   const [pickedScenes, setPickedScenes] = useState<string[]>([]);
@@ -124,6 +109,7 @@ export function TryFlow() {
 
         {step === "scenes" ? (
           <ScenesStep
+            scenes={scenes}
             picked={pickedScenes}
             onToggle={togglePickedScene}
             onBack={() => setStep("upload")}
@@ -139,6 +125,7 @@ export function TryFlow() {
           <DevelopStep
             photo={photo}
             picked={pickedScenes}
+            sceneById={sceneById}
             skip={skipDevelop}
             developDone={developDone}
             onSkip={() => setSkipDevelop(true)}
@@ -280,11 +267,13 @@ function Dropzone({
 }
 
 function ScenesStep({
+  scenes,
   picked,
   onToggle,
   onBack,
   onContinue,
 }: {
+  scenes: Scene[];
   picked: string[];
   onToggle: (id: string) => void;
   onBack: () => void;
@@ -321,14 +310,14 @@ function ScenesStep({
       </div>
 
       <div className="grid grid-cols-2 gap-5 md:grid-cols-3">
-        {SCENE_PRESETS.map((s) => {
-          const on = picked.includes(s.id);
+        {scenes.map((s) => {
+          const on = picked.includes(s.slug);
           return (
             <button
-              key={s.id}
+              key={s.slug}
               type="button"
-              onClick={() => onToggle(s.id)}
-              onKeyDown={(e) => onCardKey(e, s.id)}
+              onClick={() => onToggle(s.slug)}
+              onKeyDown={(e) => onCardKey(e, s.slug)}
               className="group block text-left"
               aria-pressed={on}
             >
@@ -342,7 +331,7 @@ function ScenesStep({
                 }}
               >
                 <img
-                  src={s.src}
+                  src={s.imageUrl}
                   alt={s.name}
                   className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
                   draggable={false}
@@ -358,7 +347,7 @@ function ScenesStep({
                     {s.name}
                   </h3>
                   <p className="mt-1 font-mono text-[10px] tracking-[0.14em] opacity-85 uppercase">
-                    {s.caption}
+                    {s.mood}
                   </p>
                 </div>
               </div>
@@ -387,6 +376,7 @@ function ScenesStep({
 function DevelopStep({
   photo,
   picked,
+  sceneById,
   skip,
   developDone,
   onSkip,
@@ -395,6 +385,7 @@ function DevelopStep({
 }: {
   photo: Photo | null;
   picked: string[];
+  sceneById: Record<string, Scene>;
   skip: boolean;
   developDone: boolean;
   onSkip: () => void;
@@ -452,7 +443,7 @@ function DevelopStep({
                   key={id}
                   className="border border-[var(--color-ember)] bg-[var(--color-ember)]/10 px-2 py-1 font-mono text-[10px] tracking-[0.12em] text-[var(--color-ember)] uppercase"
                 >
-                  {SCENE_BY_ID[id]?.name ?? id}
+                  {sceneById[id]?.name ?? id}
                 </span>
               ))}
             </div>

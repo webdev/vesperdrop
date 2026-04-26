@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { listScenes } from "@/lib/db/scenes";
 import { TryFlow } from "./try-flow";
 
 export const metadata: Metadata = {
@@ -7,6 +8,9 @@ export const metadata: Metadata = {
     "Drop a product photo, pick a style, and watch Darkroom develop a 6-image lifestyle batch — no account, no card.",
 };
 
-export default function Page() {
-  return <TryFlow />;
+export const dynamic = "force-dynamic";
+
+export default async function Page() {
+  const scenes = await listScenes();
+  return <TryFlow scenes={scenes} />;
 }
