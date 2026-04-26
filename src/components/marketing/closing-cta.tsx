@@ -11,7 +11,7 @@ export function ClosingCta() {
       </h2>
       <Link
         href="/sign-up"
-        className="mt-12 inline-flex items-center rounded-full bg-[var(--color-ember)] px-7 py-4 text-sm font-medium text-[var(--color-cream)] transition-colors hover:bg-[#a83c18]"
+        className="mt-12 inline-flex items-center rounded-full bg-[var(--color-ember)] px-9 py-5 text-base md:text-lg font-medium text-[var(--color-cream)] transition-transform hover:scale-[1.02] hover:bg-[#a83c18]"
       >
         Start with 3 free shots &rarr;
       </Link>

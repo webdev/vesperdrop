@@ -64,7 +64,7 @@ export function Hero() {
             <div className="mb-6 flex flex-wrap items-center gap-4">
               <Link
                 href="/sign-up"
-                className="inline-flex items-center rounded-full bg-[var(--color-ember)] px-6 py-3.5 text-sm font-medium text-[var(--color-cream)] transition-colors hover:bg-[#a83c18]"
+                className="inline-flex items-center rounded-full bg-[var(--color-ember)] px-7 py-4 text-sm md:text-base font-medium text-[var(--color-cream)] transition-transform hover:scale-[1.02] hover:bg-[#a83c18]"
               >
                 Try with your product &rarr;
               </Link>

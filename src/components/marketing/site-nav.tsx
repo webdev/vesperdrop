@@ -58,7 +58,7 @@ export function SiteNav() {
           </Link>
           <Link
             href="/sign-up"
-            className="inline-flex items-center rounded-full bg-[var(--color-ink)] px-4 py-2 text-sm font-medium text-[var(--color-cream)] transition-colors hover:bg-[var(--color-ember)]"
+            className="inline-flex items-center rounded-full bg-[var(--color-ember)] px-4 py-2 text-xs font-medium tracking-[0.06em] text-[var(--color-cream)] transition-transform hover:scale-[1.04]"
           >
             Open account &rarr;
           </Link>
