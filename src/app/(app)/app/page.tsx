@@ -3,7 +3,13 @@ import { RunForm } from "@/components/app/run-form";
 
 export const dynamic = "force-dynamic";
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ presets?: string }>;
+}) {
+  const { presets: presetsParam } = await searchParams;
+  const initialSelected = presetsParam?.split(",").filter(Boolean) ?? [];
   const presets = await sceneify().listPresets();
   return (
     <div className="space-y-8">
@@ -13,7 +19,7 @@ export default async function Page() {
           Upload product photos, pick presets, generate.
         </p>
       </header>
-      <RunForm presets={presets} />
+      <RunForm presets={presets} initialPresetIds={initialSelected} />
     </div>
   );
 }

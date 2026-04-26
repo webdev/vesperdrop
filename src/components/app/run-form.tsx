@@ -6,9 +6,15 @@ import { UploadDropzone } from "./upload-dropzone";
 import { PresetPicker } from "./preset-picker";
 import { Button } from "@/components/ui/button";
 
-export function RunForm({ presets }: { presets: SceneifyPreset[] }) {
+export function RunForm({
+  presets,
+  initialPresetIds = [],
+}: {
+  presets: SceneifyPreset[];
+  initialPresetIds?: string[];
+}) {
   const [files, setFiles] = useState<File[]>([]);
-  const [presetIds, setPresetIds] = useState<string[]>([]);
+  const [presetIds, setPresetIds] = useState<string[]>(initialPresetIds);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const router = useRouter();
