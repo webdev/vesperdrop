@@ -14,7 +14,8 @@
     "db:status": "pnpm exec supabase status",
     "db:migrate": "pnpm exec supabase migration up",
     "db:reset": "pnpm exec supabase db reset",
-    "db:diff": "pnpm exec supabase db diff"
+    "db:diff": "pnpm exec supabase db diff",
+    "stripe:listen": "stripe listen --forward-to localhost:3000/api/stripe/webhook"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
