@@ -10,7 +10,7 @@ export async function tryReserveQuota(
   const result = await db.execute<{ ok: boolean }>(
     sql`select public.try_reserve_quota(${userId}::uuid, ${delta}, ${cap}) as ok`,
   );
-  return Boolean(result.rows[0]?.ok);
+  return Boolean(result[0]?.ok);
 }
 
 export async function tryTakeToken(
@@ -22,7 +22,7 @@ export async function tryTakeToken(
   const result = await db.execute<{ ok: boolean }>(
     sql`select public.try_take_token(${userId}::uuid, ${bucket}, ${capacity}, ${refillPerMinute}) as ok`,
   );
-  return Boolean(result.rows[0]?.ok);
+  return Boolean(result[0]?.ok);
 }
 
 export async function incrementUsage(
@@ -42,7 +42,7 @@ export async function tryDeductCredits(
   const result = await db.execute<{ ok: boolean }>(
     sql`select public.try_deduct_credits(${userId}::uuid, ${amount}) as ok`,
   );
-  return Boolean(result.rows[0]?.ok);
+  return Boolean(result[0]?.ok);
 }
 
 export async function refillCredits(

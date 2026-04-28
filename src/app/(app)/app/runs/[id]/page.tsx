@@ -22,7 +22,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     <div className="space-y-6">
       <header>
         <h1 className="font-serif text-3xl">Run</h1>
-        <p className="text-sm text-[var(--color-ink-3)]">{run.total_images} images</p>
+        <p className="text-sm text-[var(--color-ink-3)]">{run.totalImages} images</p>
       </header>
       <RunGrid runId={id} initial={initial} />
     </div>

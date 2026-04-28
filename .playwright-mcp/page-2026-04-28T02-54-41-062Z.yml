@@ -1,0 +1,56 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - link "Darkroom" [ref=e4] [cursor=pointer]:
+      - /url: /
+    - generic [ref=e5]:
+      - paragraph [ref=e6]: Lifestyle photos from a product shot. In 90 seconds.
+      - list [ref=e7]:
+        - listitem [ref=e8]:
+          - generic [ref=e9]: ✓
+          - text: 3 free shots — no card required
+        - listitem [ref=e10]:
+          - generic [ref=e11]: ✓
+          - text: Amazon A+ resolution (2000px)
+        - listitem [ref=e12]:
+          - generic [ref=e13]: ✓
+          - text: First batch ready in ~90 seconds
+        - listitem [ref=e14]:
+          - generic [ref=e15]: ✓
+          - text: Cancel any time
+      - generic [ref=e16]:
+        - generic [ref=e17]:
+          - paragraph [ref=e18]: “Tripled my conversion rate the first week.”
+          - paragraph [ref=e19]: — @oakandlinen
+        - generic [ref=e20]:
+          - paragraph [ref=e21]: “Sold out in three days. Buyers thought I had a real studio.”
+          - paragraph [ref=e22]: — @bloomintimates
+        - generic [ref=e23]:
+          - paragraph [ref=e24]: “I shoot on a bedsheet. Customers see Vogue.”
+          - paragraph [ref=e25]: — @plisséstudio
+    - paragraph [ref=e26]: © 2026 DARKROOM STUDIO
+  - generic [ref=e28]:
+    - heading "Sign in" [level=1] [ref=e29]
+    - generic [ref=e30]:
+      - generic [ref=e31]:
+        - button "Continue with Google" [active] [ref=e32]:
+          - img [ref=e33]
+          - text: Continue with Google
+        - button "Continue with Facebook" [ref=e38]:
+          - img [ref=e39]
+          - text: Continue with Facebook
+        - button "Continue with Apple" [ref=e41]:
+          - img [ref=e42]
+          - text: Continue with Apple
+      - generic [ref=e46]: OR EMAIL
+      - generic [ref=e48]:
+        - generic [ref=e49]:
+          - generic [ref=e50]: Email
+          - textbox "Email" [ref=e51]
+        - generic [ref=e52]:
+          - generic [ref=e53]: Password
+          - textbox "Password" [ref=e54]
+        - button "Sign in" [ref=e55]
+    - paragraph [ref=e56]:
+      - text: No account?
+      - link "Create one" [ref=e57] [cursor=pointer]:
+        - /url: /sign-up

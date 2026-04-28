@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { sceneify } from "@/lib/sceneify/client";
+import { listScenes } from "@/lib/db/scenes";
 import { RunForm } from "@/components/app/run-form";
 
 export const dynamic = "force-dynamic";
@@ -7,17 +7,17 @@ export const dynamic = "force-dynamic";
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ presets?: string }>;
+  searchParams: Promise<{ scenes?: string }>;
 }) {
-  const { presets: presetsParam } = await searchParams;
-  const initialSelected = presetsParam?.split(",").filter(Boolean) ?? [];
-  const presets = await sceneify().listPresets();
+  const { scenes: scenesParam } = await searchParams;
+  const initialSelected = scenesParam?.split(",").filter(Boolean) ?? [];
+  const scenes = await listScenes();
   return (
     <div className="space-y-8">
       <header>
         <h1 className="font-serif text-4xl">New batch</h1>
         <p className="text-[var(--color-ink-3)] mt-2">
-          Upload product photos, pick presets, generate.
+          Upload product photos, pick styles, generate.
         </p>
       </header>
       <Link
@@ -29,14 +29,14 @@ export default async function Page({
         </div>
         <div className="flex items-center justify-between gap-4">
           <p className="font-serif text-lg italic font-light text-[var(--color-ink-2)]">
-            Not sure which presets? Train your eye on a quick swipe deck.
+            Not sure which scenes? Train your eye on a quick swipe deck.
           </p>
           <span className="font-mono text-xs tracking-[0.12em] text-[var(--color-ember)] group-hover:translate-x-0.5 transition-transform shrink-0">
             Try Discover →
           </span>
         </div>
       </Link>
-      <RunForm presets={presets} initialPresetIds={initialSelected} />
+      <RunForm scenes={scenes} initialSceneIds={initialSelected} />
     </div>
   );
 }

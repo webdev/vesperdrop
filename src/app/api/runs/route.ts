@@ -9,6 +9,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createRun } from "@/lib/db/runs";
 import { insertPendingGenerations } from "@/lib/db/generations";
 import { tryTakeToken } from "@/lib/db/rate-limit";
+import { tryDeductCredits } from "@/lib/db/credits";
 import { processRun } from "@/lib/workflows/process-run";
 import { env } from "@/lib/env";
 
@@ -54,24 +55,33 @@ export async function POST(req: Request) {
 
   const { data: profile } = await supabaseAdmin
     .from("profiles")
-    .select("plan")
+    .select("plan, credits_balance")
     .eq("id", user.id)
     .single();
 
-  const cap = profile?.plan === "pro"
-    ? env.PLAN_PRO_MONTHLY_GENERATIONS
-    : env.PLAN_FREE_MONTHLY_GENERATIONS;
+  const plan = profile?.plan ?? "free";
+  const isFreePlan = plan === "free";
 
-  const { data: ok } = await supabaseAdmin.rpc("try_reserve_quota", {
-    p_user_id: user.id,
-    p_delta: total,
-    p_cap: cap,
-  });
-  if (!ok) {
-    return NextResponse.json(
-      { error: "Monthly limit reached. Upgrade to Pro." },
-      { status: 402 },
-    );
+  // Free plan with 0 credits can't generate (except they get 1 free credit on signup)
+  if (isFreePlan) {
+    const creditsAvailable = profile?.credits_balance ?? 0;
+    if (creditsAvailable < total) {
+      return NextResponse.json(
+        { error: "Insufficient credits. Upgrade to Pro or purchase credit packs." },
+        { status: 402 },
+      );
+    }
+  }
+
+  // Deduct credits (only for free plan; paid plans are unlimited by credits)
+  if (isFreePlan) {
+    const ok = await tryDeductCredits(user.id, total);
+    if (!ok) {
+      return NextResponse.json(
+        { error: "Insufficient credits. Upgrade to Pro or purchase credit packs." },
+        { status: 402 },
+      );
+    }
   }
 
   const origin = new URL(req.url).origin;

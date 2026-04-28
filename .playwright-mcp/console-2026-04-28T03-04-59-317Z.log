@@ -1,0 +1,322 @@
+[      94ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[    4994ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3000/_next/webpack-hmr?id=nHlaD5_8BjIbwlGnb_0n0' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_client_016~7bo._.js:13299
+[    9446ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3000/_next/webpack-hmr?id=nHlaD5_8BjIbwlGnb_0n0' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_client_016~7bo._.js:13299
+[   12901ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3000/_next/webpack-hmr?id=nHlaD5_8BjIbwlGnb_0n0' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_client_016~7bo._.js:13299
+[   18256ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3000/_next/webpack-hmr?id=nHlaD5_8BjIbwlGnb_0n0' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_client_016~7bo._.js:13299
+[   22240ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3000/_next/webpack-hmr?id=nHlaD5_8BjIbwlGnb_0n0' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_client_016~7bo._.js:13299
+[   25702ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3000/_next/webpack-hmr?id=nHlaD5_8BjIbwlGnb_0n0' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_client_016~7bo._.js:13299
+[   31848ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3000/_next/webpack-hmr?id=nHlaD5_8BjIbwlGnb_0n0' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_client_016~7bo._.js:13299
+[   38371ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3000/_next/webpack-hmr?id=nHlaD5_8BjIbwlGnb_0n0' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_client_016~7bo._.js:13299
+[   46247ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3000/_next/webpack-hmr?id=nHlaD5_8BjIbwlGnb_0n0' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_client_016~7bo._.js:13299
+[   52267ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3000/_next/webpack-hmr?id=nHlaD5_8BjIbwlGnb_0n0' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_client_016~7bo._.js:13299
+[   59839ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3000/_next/webpack-hmr?id=nHlaD5_8BjIbwlGnb_0n0' failed: Error during WebSocket handshake: net::ERR_INVALID_HTTP_RESPONSE @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_client_016~7bo._.js:13299
+[   68744ms] [LOG] [HMR] connected @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  132511ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3000/_next/webpack-hmr?id=nHlaD5_8BjIbwlGnb_0n0' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_client_016~7bo._.js:13299
+[  133518ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3000/_next/webpack-hmr?id=nHlaD5_8BjIbwlGnb_0n0' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_client_016~7bo._.js:13299
+[  134538ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3000/_next/webpack-hmr?id=nHlaD5_8BjIbwlGnb_0n0' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_client_016~7bo._.js:13299
+[  136354ms] [LOG] [HMR] connected @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  136815ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  136826ms] [LOG] [HMR] connected @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  293515ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  294165ms] [LOG] [Fast Refresh] done in 751ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  303377ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  303557ms] [LOG] [Fast Refresh] done in 282ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  327388ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  327848ms] [LOG] [Fast Refresh] done in 562ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  333251ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  333387ms] [LOG] [Fast Refresh] done in 238ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  335684ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  335769ms] [LOG] [Fast Refresh] done in 186ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  341357ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  341436ms] [LOG] [Fast Refresh] done in 180ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  501215ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  501508ms] [LOG] [Fast Refresh] done in 394ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  510204ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  510392ms] [LOG] [Fast Refresh] done in 224ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  510496ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  510576ms] [LOG] [Fast Refresh] done in 179ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  519238ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  519306ms] [LOG] [Fast Refresh] done in 24ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  525820ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  525881ms] [LOG] [Fast Refresh] done in 27ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  526182ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  526196ms] [LOG] [Fast Refresh] done in 115ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  530619ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  530675ms] [LOG] [Fast Refresh] done in 158ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  531537ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  531670ms] [LOG] [Fast Refresh] done in 68ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  531772ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  531797ms] [LOG] [Fast Refresh] done in 125ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  532037ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  532069ms] [LOG] [Fast Refresh] done in 133ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  532292ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  532310ms] [LOG] [Fast Refresh] done in 119ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  532423ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  532559ms] [LOG] [Fast Refresh] done in 237ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  539533ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  539690ms] [LOG] [Fast Refresh] done in 77ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  539993ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  540051ms] [LOG] [Fast Refresh] done in 157ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  540154ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  540165ms] [LOG] [Fast Refresh] done in 112ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  544087ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  544122ms] [LOG] [Fast Refresh] done in 32ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  550263ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[  550306ms] [LOG] [Fast Refresh] done in 28ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 1071801ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 1071808ms] [LOG] [Fast Refresh] done in 109ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 2950238ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 2950422ms] [LOG] [Fast Refresh] done in 224ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 2950912ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 2951070ms] [LOG] [Fast Refresh] done in 260ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 2989772ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 2989845ms] [LOG] [Fast Refresh] done in 36ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 2990158ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 2990313ms] [LOG] [Fast Refresh] done in 256ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3012298ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3012405ms] [LOG] [Fast Refresh] done in 20ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3016732ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3016793ms] [LOG] [Fast Refresh] done in 22ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3020869ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3020947ms] [LOG] [Fast Refresh] done in 24ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3024337ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3024410ms] [LOG] [Fast Refresh] done in 22ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3024656ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3024667ms] [LOG] [Fast Refresh] done in 111ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3027899ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3027957ms] [LOG] [Fast Refresh] done in 20ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3039889ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3039958ms] [LOG] [Fast Refresh] done in 29ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3047594ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3047666ms] [LOG] [Fast Refresh] done in 21ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3055946ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3056029ms] [LOG] [Fast Refresh] done in 20ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3062899ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3062970ms] [LOG] [Fast Refresh] done in 19ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3067790ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3067865ms] [LOG] [Fast Refresh] done in 23ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3068043ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3068059ms] [LOG] [Fast Refresh] done in 116ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3071362ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3071433ms] [LOG] [Fast Refresh] done in 22ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3081251ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3081315ms] [LOG] [Fast Refresh] done in 25ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3085079ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3085159ms] [LOG] [Fast Refresh] done in 20ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3088475ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3088545ms] [LOG] [Fast Refresh] done in 20ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3096382ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3096420ms] [LOG] [Fast Refresh] done in 26ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3104387ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[ 3104431ms] [LOG] [Fast Refresh] done in 24ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[65419681ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[65419794ms] [LOG] [Fast Refresh] done in 70ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[65419797ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[65419821ms] [WARNING] [Fast Refresh] performing full reload
+
+Fast Refresh will perform a full reload when you edit a file that's imported by modules outside of the React rendering tree.
+You might have a file which exports a React component but also exports a value that is imported by a non-React component file.
+Consider migrating the non-React component export to a separate file and importing it into both files.
+
+It is also possible the parent component of the component you edited is a class component, which disables Fast Refresh.
+Fast Refresh requires at least one parent function component in your React tree. @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[65419832ms] [LOG] [Fast Refresh] done in 22ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[65419933ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[65420097ms] [LOG] [Fast Refresh] done in 265ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[65420199ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[65420335ms] [LOG] [Fast Refresh] done in 237ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[65420335ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://127.0.0.1:3000/sign-in?_rsc=1f344:0
+[65420372ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://127.0.0.1:3000/sign-in?_rsc=1f344:0
+[65420436ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[65420449ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://127.0.0.1:3000/sign-in:0
+[65420750ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://127.0.0.1:3000/_next/static/chunks/0p2h_react-dom_0vsf22y._.js:15305
+[65420781ms] ZodError: [
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "NEXT_PUBLIC_SUPABASE_URL"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  }
+]
+    at module evaluation (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/[root-of-the-server]__0ptk2f.._.js:28:29)
+    at <unknown> (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1307:27)
+    at runModuleExecutionHooks (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1649:9)
+    at instantiateModuleShared (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1305:9)
+    at instantiateModule (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1621:12)
+    at getOrInstantiateModuleFromParent (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1604:12)
+    at DevContext.esmImport [as i] (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:278:20)
+    at module evaluation (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/[root-of-the-server]__0ptk2f.._.js:45:161)
+    at <unknown> (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1307:27)
+    at runModuleExecutionHooks (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1649:9)
+[65420781ms] [LOG] [HMR] connected @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_0-wyemz._.js:1226
+[67198561ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_0-wyemz._.js:1226
+[67198706ms] [LOG] [Fast Refresh] done in 222ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_0-wyemz._.js:1226
+[67198780ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://127.0.0.1:3000/sign-in:0
+[67198889ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://127.0.0.1:3000/_next/static/chunks/0p2h_react-dom_0vsf22y._.js:15305
+[67198895ms] ZodError: [
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "NEXT_PUBLIC_SUPABASE_URL"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  }
+]
+    at module evaluation (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/[root-of-the-server]__0ptk2f.._.js:28:29)
+    at <unknown> (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1307:27)
+    at runModuleExecutionHooks (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1649:9)
+    at instantiateModuleShared (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1305:9)
+    at instantiateModule (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1621:12)
+    at getOrInstantiateModuleFromParent (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1604:12)
+    at DevContext.esmImport [as i] (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:278:20)
+    at module evaluation (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/[root-of-the-server]__0ptk2f.._.js:45:161)
+    at <unknown> (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1307:27)
+    at runModuleExecutionHooks (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1649:9)
+[67198895ms] [LOG] [HMR] connected @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_0-wyemz._.js:1226
+[67208579ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_0-wyemz._.js:1226
+[67208649ms] [WARNING] [Fast Refresh] performing full reload
+
+Fast Refresh will perform a full reload when you edit a file that's imported by modules outside of the React rendering tree.
+You might have a file which exports a React component but also exports a value that is imported by a non-React component file.
+Consider migrating the non-React component export to a separate file and importing it into both files.
+
+It is also possible the parent component of the component you edited is a class component, which disables Fast Refresh.
+Fast Refresh requires at least one parent function component in your React tree. @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_0-wyemz._.js:1226
+[67208658ms] [WARNING] [Fast Refresh] performing full reload because your application had an unrecoverable error @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_0-wyemz._.js:1226
+[67208661ms] [LOG] [Fast Refresh] done in 109ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_0-wyemz._.js:1226
+[67208966ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_0-wyemz._.js:1226
+[67209817ms] [LOG] [Fast Refresh] done in 953ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_0-wyemz._.js:1226
+[67209918ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_0-wyemz._.js:1226
+[67210244ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://127.0.0.1:3000/sign-in:0
+[67210291ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://127.0.0.1:3000/_next/static/chunks/0p2h_react-dom_0vsf22y._.js:15305
+[67210294ms] ZodError: [
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "NEXT_PUBLIC_SUPABASE_URL"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  }
+]
+    at module evaluation (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/[root-of-the-server]__0ptk2f.._.js:28:29)
+    at <unknown> (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1307:27)
+    at runModuleExecutionHooks (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1649:9)
+    at instantiateModuleShared (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1305:9)
+    at instantiateModule (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1621:12)
+    at getOrInstantiateModuleFromParent (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1604:12)
+    at DevContext.esmImport [as i] (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:278:20)
+    at module evaluation (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/[root-of-the-server]__0ptk2f.._.js:45:161)
+    at <unknown> (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1307:27)
+    at runModuleExecutionHooks (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1649:9)
+[67210298ms] [LOG] [HMR] connected @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_0-wyemz._.js:1226
+[67915383ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_0-wyemz._.js:1226
+[67915388ms] [LOG] [Fast Refresh] done in 28ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_0-wyemz._.js:1226
+[67915519ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_0-wyemz._.js:1226
+[67915542ms] [LOG] [Fast Refresh] done in 124ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_0-wyemz._.js:1226
+[67915643ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_0-wyemz._.js:1226
+[67915689ms] [LOG] [Fast Refresh] done in 146ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_0-wyemz._.js:1226
+[67915733ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://127.0.0.1:3000/sign-in:0
+[67915754ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://127.0.0.1:3000/_next/static/chunks/0p2h_react-dom_0vsf22y._.js:15305
+[67915760ms] ZodError: [
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "NEXT_PUBLIC_SUPABASE_URL"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  }
+]
+    at module evaluation (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/[root-of-the-server]__0ptk2f.._.js:28:29)
+    at <unknown> (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1307:27)
+    at runModuleExecutionHooks (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1649:9)
+    at instantiateModuleShared (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1305:9)
+    at instantiateModule (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1621:12)
+    at getOrInstantiateModuleFromParent (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1604:12)
+    at DevContext.esmImport [as i] (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:278:20)
+    at module evaluation (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/[root-of-the-server]__0ptk2f.._.js:45:161)
+    at <unknown> (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1307:27)
+    at runModuleExecutionHooks (file:///Users/gblazer/workspace/darkroom/.next/dev/server/edge/chunks/10uk_next_dist_esm_build_templates_edge-wrapper_05d~jcp.js:1649:9)
+[67915762ms] [LOG] [HMR] connected @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_0-wyemz._.js:1226
+[68172107ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_0-wyemz._.js:1226
+[68172152ms] [LOG] [Fast Refresh] done in 55ms @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_0-wyemz._.js:1226
+[68172566ms] [LOG] [Fast Refresh] rebuilding @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_0-wyemz._.js:1226
+[68172592ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[68172603ms] [LOG] [HMR] connected @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[68175109ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3000/_next/webpack-hmr?id=IFawkXxH-ybnnBp1a3qfM' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_client_016~7bo._.js:13299
+[68176111ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:3000/_next/webpack-hmr?id=IFawkXxH-ybnnBp1a3qfM' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_client_016~7bo._.js:13299
+[68177764ms] [LOG] [HMR] connected @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[68178135ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[68178158ms] [LOG] [HMR] connected @ http://127.0.0.1:3000/_next/static/chunks/0i1f_next_dist_00kn30-._.js:2431
+[68524950ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://accounts.google.com/v3/signin/identifier?opparams=%253Fredirect_to%253Dhttp%25253A%25252F%25252F127.0.0.1%25253A3000%25252Fapi%25252Fauth%25252Fcallback%25253Fnext%25253D%2525252Fapp&dsh=S1477548783%3A1777414023819328&client_id=984766311073-gpfn06s5o6grmiqm75nb7p35svq56klg.apps.googleusercontent.com&o2v=2&redirect_uri=http%3A%2F%2F127.0.0.1%3A54321%2Fauth%2Fv1%2Fcallback&response_type=code&scope=email+profile&service=lso&state=52828f1d-aaf1-453e-aa69-d44b4a2e015c&flowName=GeneralOAuthFlow&continue=https%3A%2F%2Faccounts.google.com%2Fsignin%2Foauth%2Fconsent%3Fauthuser%3Dunknown%26part%3DAJi8hAP24iOtpZZnlne0i_DJwCRLTjLJDXSi2V30Mx_mgnpRBx229r7OSYmceuOY_tluyCGa6r9ckcTFW_UaluxAmwagx2fmGQyqv2E5ALqBdU5rhDuKS5QDKmWze4wk1d-YkfNTBFYLCU32QkVPpXsPFZspDIEk3CyID900JS3ivOhZVESGUaaNV1-N9iWwmAnEbCnXKmT3fLhfq4Ni2q_lxt3uSJ_Dce9b0sLYuVraoONxaBVyBucjZVYNWiJUfXx3v2utAP2KlHq2r44mAWo3Z8QtSP-48RxLtc7Y5OqQ7OBOq9pXZPk92fQYVkRer4B7mXnmxdLzYHxxX4q7lJ0zdvbYdP0m90BFXm7RXzGA3WSqmoQpUigDjoBXeXXQpfMtHwyPjwcc_B7MzJWvUtboCcUqREemqRzRv0b0ADoY1NCrXXCNX3eVrkirix2I4KYvLArTw6TupQZ-qOCoet4vNlZnPLFCWg%26flowName%3DGeneralOAuthFlow%26as%3DS1477548783%253A1777414023819328%26client_id%3D984766311073-gpfn06s5o6grmiqm75nb7p35svq56klg.apps.googleusercontent.com%26requestPath%3D%252Fsignin%252Foauth%252Fconsent%23&app_domain=http%3A%2F%2F127.0.0.1%3A54321&rart=ANgoxcf8s3i2SG6pctRgkFH7kSk11YNZhua6Y_Dyo54KFlUb4pNfq_PoTXVIn73u_TUQjaZTjGe4LKlB4ztUjQOLJAUw3KNp6tdj_ZtuJlPXflQyqdDQAzs:0
+[68524954ms] [LOG] %c%s color: red; background: yellow; font-size: 24px; WARNING! @ https://www.gstatic.com/_/mss/boq-identity/_/js/k=boq-identity.AccountsSignInUi.en_US.uyRcdCkifhA.es5.O/am=Kd8AAAChCIQMAMb__w0AEABB1MDrWQCaQGQAAAAAAAAAAMACAAA0Ag/d=1/excm=_b,_tp,identifierview/ed=1/dg=0/wt=2/ujg=1/rs=AOaEmlH6F4dg8o247GHVUITP2PYNAIaftg/dti=1/m=_b,_tp:541
+[68524954ms] [LOG] %c%s font-size: 18px; Using this console may allow attackers to impersonate you and steal your information using an attack called Self-XSS.
+Do not enter or paste code that you do not understand. @ https://www.gstatic.com/_/mss/boq-identity/_/js/k=boq-identity.AccountsSignInUi.en_US.uyRcdCkifhA.es5.O/am=Kd8AAAChCIQMAMb__w0AEABB1MDrWQCaQGQAAAAAAAAAAMACAAA0Ag/d=1/excm=_b,_tp,identifierview/ed=1/dg=0/wt=2/ujg=1/rs=AOaEmlH6F4dg8o247GHVUITP2PYNAIaftg/dti=1/m=_b,_tp:541

@@ -19,8 +19,18 @@ export async function refreshSession(request: NextRequest) {
       },
     },
   );
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  return { response, user };
+
+  // If the user is authenticated, check whether MFA is required but not yet
+  // satisfied for this session (aal1 when aal2 is needed).
+  let needsMfa = false;
+  if (user) {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    needsMfa = aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2";
+  }
+
+  return { response, user, needsMfa };
 }

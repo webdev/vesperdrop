@@ -65,7 +65,7 @@ export function Gallery() {
             <span className="italic">Out in the world.</span>
           </h2>
           <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--color-ink-3)]">
-            Two phone snapshots. Eight seconds in the darkroom. Zero retouching.
+            Two phone snapshots. Eight seconds in the studio. Zero retouching.
           </p>
         </div>
       </div>
@@ -132,7 +132,7 @@ export function Gallery() {
                   />
                 </div>
                 <div className="absolute top-2.5 left-2.5 bg-[var(--color-ember)] px-2 py-1 font-mono text-[9px] tracking-[0.14em] text-[var(--color-cream)]">
-                  AFTER &middot; DARKROOM
+                  AFTER &middot; VESPERDROP
                 </div>
                 <div className="mt-2.5 font-mono text-[10px] tracking-[0.1em] text-[var(--color-ink-3)]">
                   {pair.scene.toUpperCase()}

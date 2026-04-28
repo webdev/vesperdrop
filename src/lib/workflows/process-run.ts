@@ -1,9 +1,10 @@
 import "server-only";
-import { sceneify } from "@/lib/sceneify/client";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { updateGeneration } from "@/lib/db/generations";
 import { applyWatermark } from "@/lib/watermark";
 import { storeWatermarked } from "@/lib/storage";
+import { type GenerationScene } from "@/lib/ai/generate";
+import { generateViaSceneify } from "@/lib/ai/sceneify";
 import { env } from "@/lib/env";
 
 type SourceUpload = {
@@ -13,20 +14,9 @@ type SourceUpload = {
   placeholderKey: string;
 };
 
-async function uploadOneSource(upload: SourceUpload, runId: string): Promise<{ placeholderKey: string; sceneifySourceId: string }> {
-  "use step";
-  const res = await fetch(upload.blobUrl);
-  const blob = await res.blob();
-  const source = await sceneify().uploadSource(blob, upload.filename);
-  await supabaseAdmin
-    .from("generations")
-    .update({ sceneify_source_id: source.id })
-    .eq("run_id", runId)
-    .eq("sceneify_source_id", upload.placeholderKey);
-  return { placeholderKey: upload.placeholderKey, sceneifySourceId: source.id };
-}
-
-async function listPendingForRun(runId: string): Promise<Array<{ id: string; sceneify_source_id: string; preset_id: string }>> {
+async function listPendingForRun(runId: string): Promise<
+  Array<{ id: string; sceneify_source_id: string; preset_id: string }>
+> {
   "use step";
   const { data, error } = await supabaseAdmin
     .from("generations")
@@ -37,21 +27,58 @@ async function listPendingForRun(runId: string): Promise<Array<{ id: string; sce
   return data ?? [];
 }
 
-async function generateOne(row: { id: string; sceneify_source_id: string; preset_id: string }): Promise<void> {
+async function getSceneBySlug(slug: string): Promise<GenerationScene | null> {
+  "use step";
+  const { data, error } = await supabaseAdmin
+    .from("scenes")
+    .select("slug, name, mood, category, image_url")
+    .eq("slug", slug)
+    .single();
+  if (error || !data) return null;
+  return {
+    slug: data.slug,
+    name: data.name,
+    mood: data.mood,
+    category: data.category,
+    imageUrl: data.image_url,
+  };
+}
+
+async function mapUploadToUrl(
+  placeholderKey: string,
+  uploads: SourceUpload[],
+): Promise<string> {
+  const upload = uploads.find((u) => u.placeholderKey === placeholderKey);
+  if (!upload) throw new Error(`Upload not found for key: ${placeholderKey}`);
+  return upload.blobUrl;
+}
+
+async function generateOne(
+  row: { id: string; sceneify_source_id: string; preset_id: string },
+  sourceUploads: SourceUpload[],
+): Promise<void> {
   "use step";
   await updateGeneration(row.id, { status: "running" });
   try {
-    const gen = await sceneify().createGeneration({
-      sourceId: row.sceneify_source_id,
-      presetId: row.preset_id,
-      model: "gpt-image-2",
+    const scene = await getSceneBySlug(row.preset_id);
+    if (!scene) throw new Error(`Scene not found: ${row.preset_id}`);
+
+    const sourceImageUrl = await mapUploadToUrl(row.sceneify_source_id, sourceUploads);
+
+    const result = await generateViaSceneify({
+      sourceUrl: sourceImageUrl,
+      presetSlug: scene.slug,
+      model: "nano-banana-2",
+      quality: "high",
+      callerRef: row.id,
     });
+
     await updateGeneration(row.id, {
-      status: gen.status === "running" || gen.status === "pending" ? "running" : gen.status,
-      sceneifyGenerationId: gen.id,
-      outputUrl: gen.outputUrl,
-      error: gen.error,
-      completedAt: gen.completedAt ?? new Date().toISOString(),
+      status: "succeeded",
+      outputUrl: result.outputUrl,
+      modelUsed: result.model,
+      sceneifyGenerationId: result.generationId,
+      completedAt: new Date().toISOString(),
     });
   } catch (e) {
     await updateGeneration(row.id, {
@@ -69,12 +96,14 @@ async function shouldWatermarkForUser(userId: string): Promise<boolean> {
     .select("plan")
     .eq("id", userId)
     .single();
-  const plan = (data?.plan as "free" | "pro") ?? "free";
+  const plan = (data?.plan as string) ?? "free";
   return (plan === "free" && env.PLAN_FREE_WATERMARK) ||
          (plan === "pro" && env.PLAN_PRO_WATERMARK);
 }
 
-async function listSucceededUnwatermarked(runId: string): Promise<Array<{ id: string; output_url: string | null }>> {
+async function listSucceededUnwatermarked(runId: string): Promise<
+  Array<{ id: string; output_url: string | null }>
+> {
   "use step";
   const { data, error } = await supabaseAdmin
     .from("generations")
@@ -91,27 +120,32 @@ async function watermarkOne(row: { id: string; output_url: string | null }, orig
   if (!row.output_url) return;
   const res = await fetch(row.output_url);
   const buf = Buffer.from(await res.arrayBuffer());
-  const out = await applyWatermark(buf, "DARKROOM PREVIEW");
+  const out = await applyWatermark(buf, "VESPERDROP PREVIEW");
   const url = await storeWatermarked(out, `${row.id}.png`, origin);
   await updateGeneration(row.id, { outputUrl: url, watermarked: true });
 }
 
-async function refundFailedUsage(userId: string, runId: string): Promise<void> {
+async function refundFailedCredits(userId: string, runId: string): Promise<void> {
   "use step";
-  const { count, error: countErr } = await supabaseAdmin
+  const { data, error: selectErr } = await supabaseAdmin
     .from("generations")
-    .select("id", { count: "exact", head: true })
+    .select("id")
     .eq("run_id", runId)
     .eq("status", "failed");
-  if (countErr) throw countErr;
-  if (count && count > 0) {
-    const ym = new Date().toISOString().slice(0, 7);
-    const { error } = await supabaseAdmin.rpc("increment_usage", {
+  if (selectErr) throw selectErr;
+  const count = data?.length ?? 0;
+  if (count > 0) {
+    // Refill by adding back failed credits (use the rpc but pass minimal params)
+    const { error } = await supabaseAdmin.rpc("refill_credits", {
       p_user_id: userId,
-      p_year_month: ym,
-      p_delta: -count,
+      p_plan: "free", // dummy value, not used in the refund context
+      p_credits: count,
+      p_renews_at: null,
     });
-    if (error) throw error;
+    if (error) {
+      // Log but don't throw — failed refund shouldn't block workflow completion
+      console.error("refund failed:", error);
+    }
   }
 }
 
@@ -123,16 +157,14 @@ export async function processRun(
 ): Promise<void> {
   "use workflow";
 
-  await Promise.all(sourceUploads.map((u) => uploadOneSource(u, runId)));
-
   const pending = await listPendingForRun(runId);
 
-  await Promise.all(pending.map((row) => generateOne(row)));
+  await Promise.all(pending.map((row) => generateOne(row, sourceUploads)));
 
   if (await shouldWatermarkForUser(userId)) {
     const succeeded = await listSucceededUnwatermarked(runId);
     await Promise.all(succeeded.map((row) => watermarkOne(row, origin)));
   }
 
-  await refundFailedUsage(userId, runId);
+  await refundFailedCredits(userId, runId);
 }

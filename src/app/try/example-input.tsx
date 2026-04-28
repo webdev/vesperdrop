@@ -53,7 +53,7 @@ export function ExampleInput({ paused }: { paused: boolean }) {
   return (
     <div>
       <div className="mb-3 font-mono text-[10px] tracking-[0.18em] text-[var(--color-ink-3)] uppercase">
-        Example input
+        Example of a good input &rarr;
       </div>
       <div className="relative aspect-square overflow-hidden border border-[var(--color-line)] bg-[var(--color-cream)]">
         {SAMPLES.map((s, i) => (
@@ -67,13 +67,16 @@ export function ExampleInput({ paused }: { paused: boolean }) {
           />
         ))}
         <div className="absolute top-3 left-3 bg-black/55 px-2 py-1 font-mono text-[9px] tracking-[0.16em] text-[var(--color-cream)] uppercase backdrop-blur-sm">
-          REF · BEFORE
+          YOURS CAN LOOK LIKE THIS
         </div>
       </div>
       <div className="mt-3 flex items-center justify-between font-mono text-[10px] tracking-[0.12em] text-[var(--color-ink-3)] uppercase">
         <span>{SAMPLES[idx].filename}</span>
         <span>{SAMPLES[idx].size}</span>
       </div>
+      <p className="mt-3 font-mono text-[10px] leading-relaxed tracking-[0.1em] text-[var(--color-ink-3)]">
+        Hanger, mannequin, flat on the floor — any angle works.
+      </p>
     </div>
   );
 }

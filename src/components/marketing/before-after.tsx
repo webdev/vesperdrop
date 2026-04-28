@@ -87,7 +87,7 @@ export function BeforeAfter({ pairs }: { pairs: Pair[] }) {
         INPUT &middot; YOUR PHOTO
       </div>
       <div className="absolute top-3 right-3 inline-flex items-center bg-[var(--color-ember)] px-2 py-1 font-mono text-[10px] tracking-[0.2em] text-[var(--color-cream)]">
-        OUTPUT &middot; DARKROOM
+        OUTPUT &middot; VESPERDROP
       </div>
 
       <div className="absolute right-3 bottom-3 flex gap-1 border border-white/15 bg-black/55 p-1 backdrop-blur">

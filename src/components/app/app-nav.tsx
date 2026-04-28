@@ -1,14 +1,16 @@
 import Link from "next/link";
 
-export function AppNav({ email }: { email: string }) {
+export function AppNav({ firstName, email }: { firstName: string | null; email: string }) {
   return (
     <nav className="border-b border-[var(--color-line)] bg-[var(--color-paper)]">
       <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
         <Link href="/app" className="font-serif text-xl">
-          Darkroom
+          Vesperdrop
         </Link>
         <div className="flex items-center gap-4 text-sm">
-          <span className="text-[var(--color-ink-3)]">{email}</span>
+          <span className="text-[var(--color-ink-2)]">
+            Hello, {firstName ?? email}
+          </span>
           <Link href="/app/discover" className="underline">
             Discover
           </Link>

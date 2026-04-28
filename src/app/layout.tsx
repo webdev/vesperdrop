@@ -7,7 +7,7 @@ const newsreader = Newsreader({ subsets: ["latin"], variable: "--font-serif" });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
-  title: "Darkroom",
+  title: "Vesperdrop",
   description: "AI lifestyle photography for Shopify and Amazon sellers",
 };
 

@@ -1,0 +1,230 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]: THU · APRIL · 25 · MMXXVI
+      - generic [ref=e5]: LIFESTYLE PHOTOGRAPHY · GENERATED · ON DEMAND
+      - generic [ref=e6]: VOL·02 · NO·14
+    - generic [ref=e7]:
+      - navigation [ref=e8]:
+        - link "How it works" [ref=e9] [cursor=pointer]:
+          - /url: "#how"
+        - link "Gallery" [ref=e10] [cursor=pointer]:
+          - /url: "#gallery"
+        - link "Pricing" [ref=e11] [cursor=pointer]:
+          - /url: /pricing
+      - generic [ref=e12]:
+        - link "Darkroom" [ref=e13] [cursor=pointer]:
+          - /url: /
+        - generic [ref=e14]: — EST. 2026 · BROOKLYN NY —
+      - generic [ref=e15]:
+        - link "Sign in" [ref=e16] [cursor=pointer]:
+          - /url: /sign-in
+        - link "Try it →" [ref=e17] [cursor=pointer]:
+          - /url: /try
+  - main [ref=e18]:
+    - generic [ref=e20]:
+      - generic [ref=e21]:
+        - generic [ref=e22]:
+          - paragraph [ref=e23]: FEATURE · N°01
+          - heading "Your product, on location. In minutes." [level=1] [ref=e24]:
+            - text: Your product,
+            - text: on location.
+            - text: In minutes.
+          - paragraph [ref=e25]: Drop in a plain product shot. Darkroom returns a library of lifestyle photographs — kitchens, counters, coffee tables, gardens — ready for your Amazon listing, A+ content, and ads.
+        - generic [ref=e26]:
+          - generic [ref=e27]:
+            - link "Get your free shot →" [ref=e28] [cursor=pointer]:
+              - /url: /try
+            - link "See pricing" [ref=e29] [cursor=pointer]:
+              - /url: /pricing
+          - generic [ref=e30]:
+            - generic [ref=e31]:
+              - text: 1 FREE HD SHOT
+              - text: NO CARD
+            - generic [ref=e32]:
+              - text: A+ READY
+              - text: 2000PX SQUARE
+            - generic [ref=e33]:
+              - text: ~90 SECONDS
+              - text: PER GENERATION
+            - generic [ref=e34]:
+              - text: PRO FROM $49
+              - text: CANCEL ANY TIME
+      - generic [ref=e36]:
+        - button "Drag to compare" [ref=e40]:
+          - img [ref=e41]
+        - generic [ref=e43]: INPUT · YOUR PHOTO
+        - generic [ref=e44]: OUTPUT · DARKROOM
+        - generic [ref=e45]:
+          - button "JKT-08" [ref=e46]
+          - button "SKT-14" [ref=e47]
+          - button "CAM-BRN-S" [ref=e48]
+          - button "BRL-RSE-M" [ref=e49]
+    - generic [ref=e50]:
+      - generic [ref=e51]:
+        - paragraph [ref=e53]: PROCESS · N°03
+        - heading "Three steps. No studio." [level=2] [ref=e55]:
+          - text: Three steps.
+          - text: No studio.
+      - list [ref=e56]:
+        - listitem [ref=e57]:
+          - generic [ref=e58]: "01."
+          - heading "Upload" [level=3] [ref=e59]
+          - paragraph [ref=e60]: Drop in your Amazon main image or any product shot on white. We auto-extract the subject.
+        - listitem [ref=e61]:
+          - generic [ref=e62]: "02."
+          - heading "Pick scenes" [level=3] [ref=e63]
+          - paragraph [ref=e64]: Choose from curated scene presets — studio, city, cafe, trail — or describe the mood in your own words.
+        - listitem [ref=e65]:
+          - generic [ref=e66]: "03."
+          - heading "Download" [level=3] [ref=e67]
+          - paragraph [ref=e68]: Get a batch of shots at Amazon A+ resolution. Relight, recompose, or regenerate any frame.
+    - generic [ref=e69]:
+      - generic [ref=e70]:
+        - generic [ref=e71]:
+          - paragraph [ref=e72]: CONTACT SHEET · N°02
+          - paragraph [ref=e73]:
+            - text: BATCH_2847
+            - text: HERO PAIRS
+            - text: 4 EXPOSURES
+        - generic [ref=e74]:
+          - heading "Flat on the floor. Out in the world." [level=2] [ref=e75]:
+            - text: Flat on the floor.
+            - text: Out in the world.
+          - paragraph [ref=e76]: Two phone snapshots. Eight seconds in the darkroom. Zero retouching.
+      - generic [ref=e77]:
+        - generic [ref=e78]:
+          - generic [ref=e79]:
+            - generic [ref=e80]: FIG. 01 · JKT-08
+            - generic [ref=e81]: CROPPED DENIM JACKET
+          - generic [ref=e82]:
+            - generic [ref=e83]:
+              - img "Cropped Denim Jacket before" [ref=e85]
+              - generic [ref=e86]: BEFORE · INPUT
+              - generic [ref=e87]: HUNG ON DOOR · IPHONE
+            - img [ref=e89]
+            - generic [ref=e91]:
+              - img "Cropped Denim Jacket after" [ref=e93]
+              - generic [ref=e94]: AFTER · DARKROOM
+              - generic [ref=e95]: HOTEL BANQUETTE · GOLDEN HOUR
+          - generic [ref=e96]:
+            - paragraph [ref=e97]: “Tripled my conversion rate the first week. No reshoots needed.”
+            - generic [ref=e98]: — @oakandlinen
+        - generic [ref=e99]:
+          - generic [ref=e100]:
+            - generic [ref=e101]: FIG. 02 · SKT-14
+            - generic [ref=e102]: PLEATED MINI SKIRT
+          - generic [ref=e103]:
+            - generic [ref=e104]:
+              - img "Pleated Mini Skirt before" [ref=e106]
+              - generic [ref=e107]: BEFORE · INPUT
+              - generic [ref=e108]: ON BEDSHEET · PHONE FLATLAY
+            - img [ref=e110]
+            - generic [ref=e112]:
+              - img "Pleated Mini Skirt after" [ref=e114]
+              - generic [ref=e115]: AFTER · DARKROOM
+              - generic [ref=e116]: STUDIO SEAMLESS · SOFT STROBE
+          - generic [ref=e117]:
+            - paragraph [ref=e118]: “Sold out in three days. Buyers thought I had a real studio.”
+            - generic [ref=e119]: — @bloomintimates
+        - generic [ref=e120]:
+          - generic [ref=e121]:
+            - generic [ref=e122]: FIG. 03 · CAM-BRN-S
+            - generic [ref=e123]: LINEN CAMI DRESS
+          - generic [ref=e124]:
+            - generic [ref=e125]:
+              - img "Linen Cami Dress before" [ref=e127]
+              - generic [ref=e128]: BEFORE · INPUT
+              - generic [ref=e129]: ON MANNEQUIN · CELLPHONE
+            - img [ref=e131]
+            - generic [ref=e133]:
+              - img "Linen Cami Dress after" [ref=e135]
+              - generic [ref=e136]: AFTER · DARKROOM
+              - generic [ref=e137]: STUDIO · GOLDEN HOUR
+          - generic [ref=e138]:
+            - paragraph [ref=e139]: “Made the listing look like a fashion editorial.”
+            - generic [ref=e140]: — @northsider
+        - generic [ref=e141]:
+          - generic [ref=e142]:
+            - generic [ref=e143]: FIG. 04 · BRL-RSE-M
+            - generic [ref=e144]: LACE BRALETTE
+          - generic [ref=e145]:
+            - generic [ref=e146]:
+              - img "Lace Bralette before" [ref=e148]
+              - generic [ref=e149]: BEFORE · INPUT
+              - generic [ref=e150]: ON WOOD TABLE · PHONE FLATLAY
+            - img [ref=e152]
+            - generic [ref=e154]:
+              - img "Lace Bralette after" [ref=e156]
+              - generic [ref=e157]: AFTER · DARKROOM
+              - generic [ref=e158]: STUDIO SEAMLESS · SOFT DAYLIGHT
+          - generic [ref=e159]:
+            - paragraph [ref=e160]: “I shoot on a bedsheet. Customers see Vogue.”
+            - generic [ref=e161]: — @plisséstudio
+    - generic [ref=e162]:
+      - generic [ref=e163]:
+        - paragraph [ref=e165]: FIELD NOTES · N°04
+        - heading "Sellers speak. Numbers don’t lie." [level=2] [ref=e167]:
+          - text: Sellers speak.
+          - text: Numbers don’t lie.
+      - generic [ref=e168]:
+        - generic [ref=e169]:
+          - paragraph [ref=e170]: “Tripled my conversion rate the first week. No reshoots needed.”
+          - generic [ref=e171]:
+            - generic [ref=e172]: "@oakandlinen"
+            - generic [ref=e173]: CROPPED DENIM JACKET
+        - generic [ref=e174]:
+          - paragraph [ref=e175]: “Sold out in three days. Buyers thought I had a real studio.”
+          - generic [ref=e176]:
+            - generic [ref=e177]: "@bloomintimates"
+            - generic [ref=e178]: PLEATED MINI SKIRT
+        - generic [ref=e179]:
+          - paragraph [ref=e180]: “Made the listing look like a fashion editorial.”
+          - generic [ref=e181]:
+            - generic [ref=e182]: "@northsider"
+            - generic [ref=e183]: LINEN CAMI DRESS
+        - generic [ref=e184]:
+          - paragraph [ref=e185]: “I shoot on a bedsheet. Customers see Vogue.”
+          - generic [ref=e186]:
+            - generic [ref=e187]: "@plisséstudio"
+            - generic [ref=e188]: LACE BRALETTE
+    - generic [ref=e190]:
+      - generic [ref=e191]:
+        - paragraph [ref=e192]: DEVELOP YOUR LIBRARY
+        - heading "Stop reshooting. Start producing." [level=2] [ref=e193]:
+          - text: Stop reshooting.
+          - emphasis [ref=e194]: Start producing.
+      - generic [ref=e195]:
+        - link "Get your free shot→" [ref=e196] [cursor=pointer]:
+          - /url: /try
+        - generic [ref=e197]: 1 FREE HD SHOT · NO CARD · UPGRADE WHEN YOU SEE IT
+    - generic [ref=e198]:
+      - paragraph [ref=e199]: COLOPHON · N°05
+      - heading "Open the darkroom." [level=2] [ref=e200]
+      - link "Start with 1 free HD shot →" [ref=e201] [cursor=pointer]:
+        - /url: /try
+      - generic [ref=e202]: NO CARD · FIRST RESULT IN ~90S · UPGRADE WHEN YOU SEE IT
+  - link "Try Darkroom free":
+    - /url: /try
+    - text: Try free →
+  - contentinfo [ref=e203]:
+    - generic [ref=e204]:
+      - generic [ref=e205]:
+        - link "Darkroom" [ref=e206] [cursor=pointer]:
+          - /url: /
+        - paragraph [ref=e207]: Lifestyle photography, generated. For sellers who shoot on bedsheets and ship like a studio.
+      - generic [ref=e208]:
+        - paragraph [ref=e209]: Product
+        - list [ref=e210]:
+          - listitem [ref=e211]:
+            - link "Pricing" [ref=e212] [cursor=pointer]:
+              - /url: /pricing
+          - listitem [ref=e213]:
+            - link "Sign in" [ref=e214] [cursor=pointer]:
+              - /url: /sign-in
+          - listitem [ref=e215]:
+            - link "How it works" [ref=e216] [cursor=pointer]:
+              - /url: /#how
+      - generic [ref=e217]:
+        - paragraph [ref=e218]: © 2026 Darkroom Studio
+        - paragraph [ref=e219]: darkroom.ai

@@ -20,7 +20,13 @@ const SAMPLE_NAME = "CAM-BRN-S_SAMPLE.JPG";
 
 type Photo = { url: string; name: string; isObjectUrl: boolean };
 
-export function TryFlow({ scenes }: { scenes: Scene[] }) {
+export function TryFlow({
+  scenes,
+  firstName,
+}: {
+  scenes: Scene[];
+  firstName: string | null;
+}) {
   const sceneById = scenes.reduce<Record<string, Scene>>(
     (acc, s) => ({ ...acc, [s.slug]: s }),
     {},
@@ -81,16 +87,32 @@ export function TryFlow({ scenes }: { scenes: Scene[] }) {
             href="/"
             className="font-serif text-2xl font-light italic tracking-tight text-[var(--color-ink)] hover:text-[var(--color-ember)]"
           >
-            ← Darkroom
+            ← Vesperdrop
           </Link>
-          <div className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-ink-3)] uppercase">
-            Already have an account?{" "}
-            <Link
-              href="/sign-in"
-              className="text-[var(--color-ink)] underline-offset-4 hover:text-[var(--color-ember)] hover:underline"
-            >
-              Sign in
-            </Link>
+          <div className="flex items-center gap-4 font-mono text-[10px] tracking-[0.18em] text-[var(--color-ink-3)] uppercase">
+            {firstName ? (
+              <>
+                <span className="text-[var(--color-ink)]">Hello, {firstName}</span>
+                <form action="/api/auth/sign-out" method="post">
+                  <button
+                    type="submit"
+                    className="text-[var(--color-ink-3)] underline-offset-4 hover:text-[var(--color-ember)] hover:underline"
+                  >
+                    Sign out
+                  </button>
+                </form>
+              </>
+            ) : (
+              <span>
+                Already have an account?{" "}
+                <Link
+                  href="/sign-in"
+                  className="text-[var(--color-ink)] underline-offset-4 hover:text-[var(--color-ember)] hover:underline"
+                >
+                  Sign in
+                </Link>
+              </span>
+            )}
           </div>
         </div>
       </header>
@@ -400,7 +422,7 @@ function DevelopStep({
             DEVELOPING · N°03
           </p>
           <h1 className="font-serif text-[clamp(40px,6vw,72px)] font-light leading-[0.98] tracking-tight text-[var(--color-ink)]">
-            In the <span className="italic">darkroom</span>.
+            In the <span className="italic">studio</span>.
           </h1>
         </div>
         {!developDone ? (
@@ -471,8 +493,7 @@ function SignUpGate({ onReset }: { onReset: () => void }) {
           Save &amp; download your <span className="italic">batch</span>.
         </h2>
         <p className="mt-4 font-serif text-base font-light text-[var(--color-ink-2)]">
-          Create a free account to download these shots and develop your own
-          product.
+          Create a free account and get <strong>1 free HD generation</strong> — no card required. Your batch is ready when you are.
         </p>
         <Link
           href="/sign-up"
@@ -490,7 +511,7 @@ function SignUpGate({ onReset }: { onReset: () => void }) {
           </button>
         </div>
         <div className="mt-6 border-t border-[var(--color-line)] pt-5 font-mono text-[10px] tracking-[0.18em] text-[var(--color-ink-4)] uppercase">
-          FREE · NO CARD · YOUR FIRST BATCH IS ON US
+          FREE · 1 HD CREDIT · NO CARD · YOUR FIRST SHOT IS ON US
         </div>
       </div>
     </div>

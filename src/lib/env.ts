@@ -24,7 +24,7 @@ const ServerOnlyEnv = z.object({
   RUNS_PER_MINUTE_PER_USER: z.coerce.number().int().positive(),
   BLOB_READ_WRITE_TOKEN: z.string().optional(),
   FAL_KEY: z.string().optional().default(""),
-  DATABASE_URL: z.string().url(),
+  POSTGRES_URL: z.string().url(),
 });
 
 export const env = { ...ServerOnlyEnv.parse(process.env), ...clientEnv };

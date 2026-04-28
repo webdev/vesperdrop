@@ -53,7 +53,7 @@ export function Hero() {
               <span className="text-[var(--color-ember)]">In minutes.</span>
             </h1>
             <p className="mt-7 max-w-lg font-serif text-xl font-light leading-snug text-[var(--color-ink-2)] md:text-[22px]">
-              Drop in a plain product shot. Darkroom returns a library of
+              Drop in a plain product shot. Vesperdrop returns a library of
               lifestyle photographs &mdash; kitchens, counters, coffee tables,
               gardens &mdash; ready for your Amazon listing, A+ content, and
               ads.
@@ -66,7 +66,7 @@ export function Hero() {
                 href="/try"
                 className="inline-flex items-center rounded-full bg-[var(--color-ember)] px-7 py-4 text-sm md:text-base font-medium text-[var(--color-cream)] transition-transform hover:scale-[1.02] hover:bg-[#a83c18]"
               >
-                Try with your product &rarr;
+                Get your free shot &rarr;
               </Link>
               <Link
                 href="/pricing"
@@ -76,9 +76,9 @@ export function Hero() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 border-t border-[var(--color-ink)] pt-4 font-mono text-[10px] tracking-[0.14em] text-[var(--color-ink-3)]">
+            <div className="grid grid-cols-2 gap-4 border-t border-[var(--color-ink)] pt-4 font-mono text-[10px] tracking-[0.14em] text-[var(--color-ink-3)] sm:grid-cols-4">
               <div>
-                3 FREE SHOTS
+                1 FREE HD SHOT
                 <br />
                 <span className="text-[var(--color-ink)]">NO CARD</span>
               </div>
@@ -90,7 +90,12 @@ export function Hero() {
               <div>
                 ~90 SECONDS
                 <br />
-                <span className="text-[var(--color-ink)]">PER BATCH</span>
+                <span className="text-[var(--color-ink)]">PER GENERATION</span>
+              </div>
+              <div>
+                PRO FROM $49
+                <br />
+                <span className="text-[var(--color-ink)]">CANCEL ANY TIME</span>
               </div>
             </div>
           </div>
