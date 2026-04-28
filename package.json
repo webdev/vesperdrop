@@ -17,6 +17,9 @@
     "db:migrate": "pnpm exec supabase migration up",
     "db:reset": "pnpm exec supabase db reset",
     "db:diff": "pnpm exec supabase db diff",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push && tsx scripts/db-apply-sql.ts",
+    "db:studio": "drizzle-kit studio",
     "stripe:listen": "stripe listen --forward-to localhost:3000/api/stripe/webhook",
     "dev:all": "pnpm db:restart && concurrently -n next,stripe -c blue,magenta \"pnpm dev\" \"pnpm stripe:listen\""
   },

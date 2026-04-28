@@ -11,7 +11,10 @@ const ServerOnlyEnv = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   STRIPE_SECRET_KEY: z.string().min(1),
   STRIPE_WEBHOOK_SECRET: z.string().min(1),
+  STRIPE_STARTER_PRICE_ID: z.string().optional(),
   STRIPE_PRO_PRICE_ID: z.string().min(1),
+  STRIPE_STUDIO_PRICE_ID: z.string().optional(),
+  STRIPE_AGENCY_PRICE_ID: z.string().optional(),
   PLAN_FREE_MONTHLY_GENERATIONS: z.coerce.number().int().nonnegative(),
   PLAN_FREE_WATERMARK: bool,
   PLAN_PRO_PRICE_USD: z.coerce.number().nonnegative(),
@@ -20,6 +23,8 @@ const ServerOnlyEnv = z.object({
   MAX_RUN_IMAGES: z.coerce.number().int().positive(),
   RUNS_PER_MINUTE_PER_USER: z.coerce.number().int().positive(),
   BLOB_READ_WRITE_TOKEN: z.string().optional(),
+  FAL_KEY: z.string().optional().default(""),
+  DATABASE_URL: z.string().url(),
 });
 
 export const env = { ...ServerOnlyEnv.parse(process.env), ...clientEnv };
