@@ -1,5 +1,5 @@
 {
-  "name": "darkroom",
+  "name": "modelready",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -12,12 +12,13 @@
     "test:e2e": "playwright test",
     "db:start": "pnpm exec supabase start",
     "db:stop": "pnpm exec supabase stop",
+    "db:restart": "pnpm exec supabase stop && pnpm exec supabase start",
     "db:status": "pnpm exec supabase status",
     "db:migrate": "pnpm exec supabase migration up",
     "db:reset": "pnpm exec supabase db reset",
     "db:diff": "pnpm exec supabase db diff",
     "stripe:listen": "stripe listen --forward-to localhost:3000/api/stripe/webhook",
-    "dev:all": "concurrently -n next,stripe -c blue,magenta \"pnpm dev\" \"pnpm stripe:listen\""
+    "dev:all": "pnpm db:restart && concurrently -n next,stripe -c blue,magenta \"pnpm dev\" \"pnpm stripe:listen\""
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -26,11 +27,14 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
+    "@neondatabase/serverless": "^1.1.0",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.104.1",
     "@vercel/blob": "^2.3.3",
+    "@vercel/oidc": "^3.2.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.11.0",
     "next": "16",
     "next-themes": "^0.4.6",
@@ -58,11 +62,13 @@
     "@vitest/ui": "^4.1.5",
     "concurrently": "^9.2.1",
     "dotenv": "^17.4.2",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "jsdom": "^29.0.2",
     "supabase": "^2.95.3",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "vitest": "^4.1.5"
   }
