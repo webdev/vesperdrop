@@ -1,5 +1,7 @@
 import "server-only";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { and, eq } from "drizzle-orm";
+import { db } from "./index";
+import { runs } from "./schema";
 
 export async function createRun(params: {
   userId: string;
@@ -7,27 +9,23 @@ export async function createRun(params: {
   presetCount: number;
 }) {
   const totalImages = params.sourceCount * params.presetCount;
-  const { data, error } = await supabaseAdmin
-    .from("runs")
-    .insert({
-      user_id: params.userId,
-      source_count: params.sourceCount,
-      preset_count: params.presetCount,
-      total_images: totalImages,
+  const [row] = await db
+    .insert(runs)
+    .values({
+      userId: params.userId,
+      sourceCount: params.sourceCount,
+      presetCount: params.presetCount,
+      totalImages,
     })
-    .select("id")
-    .single();
-  if (error) throw error;
-  return { id: data.id, totalImages };
+    .returning({ id: runs.id });
+  return { id: row.id, totalImages };
 }
 
 export async function getRunForUser(runId: string, userId: string) {
-  const { data, error } = await supabaseAdmin
-    .from("runs")
-    .select("*")
-    .eq("id", runId)
-    .eq("user_id", userId)
-    .single();
-  if (error) throw error;
-  return data;
+  const [row] = await db
+    .select()
+    .from(runs)
+    .where(and(eq(runs.id, runId), eq(runs.userId, userId)));
+  if (!row) throw new Error("run not found");
+  return row;
 }

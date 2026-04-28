@@ -1,5 +1,5 @@
 import "server-only";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { tryTakeToken as rpcTryTakeToken } from "./rpc";
 
 export async function tryTakeToken(
   userId: string,
@@ -7,12 +7,5 @@ export async function tryTakeToken(
   capacity: number,
   refillPerMinute: number,
 ): Promise<boolean> {
-  const { data, error } = await supabaseAdmin.rpc("try_take_token", {
-    p_user_id: userId,
-    p_bucket: bucket,
-    p_capacity: capacity,
-    p_refill_per_minute: refillPerMinute,
-  });
-  if (error) throw error;
-  return Boolean(data);
+  return rpcTryTakeToken(userId, bucket, capacity, refillPerMinute);
 }

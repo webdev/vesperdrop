@@ -1,53 +1,64 @@
 import "server-only";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { and, asc, eq } from "drizzle-orm";
+import { db } from "./index";
+import { generations } from "./schema";
 
-export async function insertPendingGenerations(rows: Array<{
-  runId: string;
-  userId: string;
-  sceneifySourceId: string;
-  presetId: string;
-}>) {
-  const { data, error } = await supabaseAdmin
-    .from("generations")
-    .insert(rows.map((r) => ({
-      run_id: r.runId,
-      user_id: r.userId,
-      sceneify_source_id: r.sceneifySourceId,
-      preset_id: r.presetId,
-    })))
-    .select("id, preset_id, sceneify_source_id");
-  if (error) throw error;
-  return data;
+export async function insertPendingGenerations(
+  rows: Array<{
+    runId: string;
+    userId: string;
+    sceneifySourceId: string;
+    presetId: string;
+  }>,
+) {
+  const inserted = await db
+    .insert(generations)
+    .values(
+      rows.map((r) => ({
+        runId: r.runId,
+        userId: r.userId,
+        sceneifySourceId: r.sceneifySourceId,
+        presetId: r.presetId,
+      })),
+    )
+    .returning({
+      id: generations.id,
+      preset_id: generations.presetId,
+      sceneify_source_id: generations.sceneifySourceId,
+    });
+  return inserted;
 }
 
-export async function updateGeneration(id: string, patch: {
-  status?: "running" | "succeeded" | "failed";
-  sceneifyGenerationId?: string;
-  sceneifySourceId?: string;
-  outputUrl?: string;
-  watermarked?: boolean;
-  error?: string;
-  completedAt?: string;
-}) {
+export async function updateGeneration(
+  id: string,
+  patch: {
+    status?: "running" | "succeeded" | "failed";
+    sceneifyGenerationId?: string;
+    sceneifySourceId?: string;
+    outputUrl?: string;
+    watermarked?: boolean;
+    error?: string;
+    completedAt?: string;
+    modelUsed?: string;
+  },
+) {
   const update: Record<string, unknown> = {};
   if (patch.status) update.status = patch.status;
-  if (patch.sceneifyGenerationId) update.sceneify_generation_id = patch.sceneifyGenerationId;
-  if (patch.sceneifySourceId) update.sceneify_source_id = patch.sceneifySourceId;
-  if (patch.outputUrl) update.output_url = patch.outputUrl;
+  if (patch.sceneifyGenerationId)
+    update.sceneifyGenerationId = patch.sceneifyGenerationId;
+  if (patch.sceneifySourceId) update.sceneifySourceId = patch.sceneifySourceId;
+  if (patch.outputUrl) update.outputUrl = patch.outputUrl;
   if (patch.watermarked !== undefined) update.watermarked = patch.watermarked;
   if (patch.error) update.error = patch.error;
-  if (patch.completedAt) update.completed_at = patch.completedAt;
-  const { error } = await supabaseAdmin.from("generations").update(update).eq("id", id);
-  if (error) throw error;
+  if (patch.completedAt) update.completedAt = new Date(patch.completedAt);
+  if (patch.modelUsed) update.modelUsed = patch.modelUsed;
+  await db.update(generations).set(update).where(eq(generations.id, id));
 }
 
 export async function listGenerationsForRun(runId: string, userId: string) {
-  const { data, error } = await supabaseAdmin
-    .from("generations")
-    .select("*")
-    .eq("run_id", runId)
-    .eq("user_id", userId)
-    .order("created_at", { ascending: true });
-  if (error) throw error;
-  return data;
+  return db
+    .select()
+    .from(generations)
+    .where(and(eq(generations.runId, runId), eq(generations.userId, userId)))
+    .orderBy(asc(generations.createdAt));
 }
