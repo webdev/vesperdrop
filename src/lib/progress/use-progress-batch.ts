@@ -17,7 +17,7 @@ const REANCHOR_LINE = "Almost there — the high-res pass takes a beat longer.";
 
 export type BatchView = {
   streams: Record<string, StreamHandle>;
-  primaryPreset: PresetMeta | null;
+  primaryPreset: PresetMeta;
   primaryAttributes: StreamHandle["attributes"];
   currentLine: string;
   showCounter: boolean;
@@ -32,8 +32,9 @@ export type BatchView = {
 export function useProgressBatch(args: {
   file: File;
   sceneSlugs: string[];
+  primaryPreset: PresetMeta;
 }): BatchView {
-  const { file, sceneSlugs } = args;
+  const { file, sceneSlugs, primaryPreset } = args;
 
   const handles = sceneSlugs.map((slug) => ({
     slug,
@@ -64,7 +65,7 @@ export function useProgressBatch(args: {
   const historyRef = useRef<string[]>([]);
 
   useEffect(() => {
-    if (!primary?.preset || !agg.medianPhaseId) return;
+    if (!agg.medianPhaseId) return;
     const interval = window.setInterval(() => {
       if (
         !reanchorShownRef.current &&
@@ -77,8 +78,8 @@ export function useProgressBatch(args: {
       }
       const line = pickLine(
         agg.medianPhaseId!,
-        primary.attributes,
-        primary.preset!,
+        primary?.attributes ?? null,
+        primaryPreset,
         historyRef.current,
       );
       historyRef.current = [...historyRef.current.slice(-2), line];
@@ -88,7 +89,7 @@ export function useProgressBatch(args: {
       window.setTimeout(() => setHighlight(false), 1800);
     }, ROTATION_MS);
     return () => window.clearInterval(interval);
-  }, [primary?.preset, primary?.attributes, agg.medianPhaseId, agg.slowestElapsedMs, agg.allDone]);
+  }, [primaryPreset, primary?.attributes, agg.medianPhaseId, agg.slowestElapsedMs, agg.allDone]);
 
   useEffect(() => {
     if (!agg.showCounter) return;
@@ -105,7 +106,7 @@ export function useProgressBatch(args: {
 
   return {
     streams,
-    primaryPreset: primary?.preset ?? null,
+    primaryPreset,
     primaryAttributes: primary?.attributes ?? null,
     currentLine: displayLine,
     showCounter: agg.showCounter,

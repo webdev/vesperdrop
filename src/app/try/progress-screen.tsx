@@ -5,20 +5,22 @@ import Image from "next/image";
 import { useProgressBatch } from "@/lib/progress/use-progress-batch";
 import { filmstripFor } from "@/lib/progress/filmstrip-fallback";
 import { track } from "@/lib/analytics";
+import type { PresetMeta } from "@/lib/progress/strings";
 
 type Props = {
   file: File;
   sceneSlugs: string[];
   userPhotoUrl: string;
+  primaryPreset: PresetMeta;
   onSettled: (
     results: Array<{ slug: string; outputUrl?: string; error?: string }>,
   ) => void;
 };
 
-export function ProgressScreen({ file, sceneSlugs, userPhotoUrl, onSettled }: Props) {
+export function ProgressScreen({ file, sceneSlugs, userPhotoUrl, primaryPreset, onSettled }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const stableSlugs = useMemo(() => sceneSlugs, []); // contract: stable for lifetime
-  const view = useProgressBatch({ file, sceneSlugs: stableSlugs });
+  const view = useProgressBatch({ file, sceneSlugs: stableSlugs, primaryPreset });
 
   const [batchId] = useState<string>(() => crypto.randomUUID());
   const batchStartRef = useRef<number>(0);

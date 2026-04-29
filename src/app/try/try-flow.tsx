@@ -501,11 +501,18 @@ function DevelopStep({
         </div>
 
         <div>
-          {results.every((r) => r.status === "pending") && photo?.file ? (
+          {results.every((r) => r.status === "pending") && photo?.file && sceneById[picked[0]] ? (
             <ProgressScreen
               file={photo.file}
               sceneSlugs={picked}
               userPhotoUrl={photo.url}
+              primaryPreset={{
+                slug: sceneById[picked[0]].slug,
+                name: sceneById[picked[0]].name,
+                mood: sceneById[picked[0]].mood,
+                palette: sceneById[picked[0]].palette,
+                category: sceneById[picked[0]].category,
+              }}
               onSettled={(out) => {
                 setResults((prev) =>
                   prev.map((r) => {

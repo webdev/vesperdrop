@@ -83,13 +83,12 @@ export function useProgressStream({ file, sceneSlug, enabled = true }: Args): St
         const parser = createSseParser((event, data) => {
           if (myRunId !== runIdRef.current) return;
           if (event === "ready") {
-            const d = data as { startedAt: number; preset: PresetMeta };
+            const d = data as { startedAt: number };
             startedAtRef.current = d.startedAt;
             setState((s) => ({
               ...s,
               status: "streaming",
               startedAt: d.startedAt,
-              preset: d.preset,
             }));
             if (tickRef.current === null) {
               tickRef.current = window.setInterval(() => {

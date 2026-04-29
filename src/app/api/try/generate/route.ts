@@ -8,7 +8,6 @@ import { applyWatermark } from "@/lib/watermark";
 import { storeWatermarked } from "@/lib/storage";
 import { encodeSse } from "@/lib/progress/sse-encoder";
 import { phaseAtElapsed, type PhaseId } from "@/lib/progress/strings";
-import { listScenes } from "@/lib/db/scenes";
 import { env } from "@/lib/env";
 
 export const runtime = "nodejs";
@@ -77,10 +76,6 @@ export async function POST(req: Request) {
     sourceUrl = `${origin}/uploads/${filename}`;
   }
 
-  const scenes = await listScenes();
-  const scene = scenes.find((s) => s.slug === slug);
-  if (!scene) return jsonError("unknown scene", 404);
-
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const startedAt = Date.now();
@@ -95,17 +90,7 @@ export async function POST(req: Request) {
         }
       };
 
-      send("ready", {
-        startedAt,
-        preset: {
-          slug: scene.slug,
-          name: scene.name,
-          mood: scene.mood,
-          palette: scene.palette,
-          category: scene.category,
-          heroImageUrl: scene.imageUrl,
-        },
-      });
+      send("ready", { startedAt });
 
       const tickInterval = setInterval(() => {
         if (closed) return;
