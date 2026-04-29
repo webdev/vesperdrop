@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import { useProgressBatch } from "@/lib/progress/use-progress-batch";
 import { filmstripFor } from "@/lib/progress/filmstrip-fallback";
@@ -9,32 +9,32 @@ type Props = {
   file: File;
   sceneSlugs: string[];
   userPhotoUrl: string;
-  onAllDone: (results: Array<{ slug: string; outputUrl: string }>) => void;
-  onFatal: (message: string) => void;
+  onSettled: (
+    results: Array<{ slug: string; outputUrl?: string; error?: string }>,
+  ) => void;
 };
 
-export function ProgressScreen({ file, sceneSlugs, userPhotoUrl, onAllDone, onFatal }: Props) {
+export function ProgressScreen({ file, sceneSlugs, userPhotoUrl, onSettled }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const stableSlugs = useMemo(() => sceneSlugs, []); // contract: stable for lifetime
   const view = useProgressBatch({ file, sceneSlugs: stableSlugs });
 
+  const settledRef = useRef(false);
   useEffect(() => {
-    if (view.allDone) {
-      const results = stableSlugs
-        .map((slug) => {
-          const url = view.streams[slug]?.outputUrl;
-          return url ? { slug, outputUrl: url } : null;
-        })
-        .filter((x): x is { slug: string; outputUrl: string } => x !== null);
-      onAllDone(results);
-    } else if (view.allFailed) {
-      const firstError = stableSlugs
-        .map((slug) => view.streams[slug]?.error?.message)
-        .find(Boolean) ?? "Generation failed";
-      onFatal(firstError);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view.allDone, view.allFailed]);
+    if (settledRef.current) return;
+    const allSettled = stableSlugs.every((slug) => {
+      const s = view.streams[slug];
+      return s?.status === "done" || s?.status === "error";
+    });
+    if (!allSettled) return;
+    settledRef.current = true;
+    const out = stableSlugs.map((slug) => {
+      const s = view.streams[slug];
+      if (s?.outputUrl) return { slug, outputUrl: s.outputUrl };
+      return { slug, error: s?.error?.message ?? "generation failed" };
+    });
+    onSettled(out);
+  }, [view.streams, stableSlugs, onSettled]);
 
   const filmstrip = filmstripFor(view.primaryPreset?.category);
   const palette = view.primaryPreset?.palette ?? ["#cfcabf", "#766c57"];

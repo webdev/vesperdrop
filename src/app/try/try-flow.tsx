@@ -21,6 +21,7 @@ import {
   type DevelopGridVariant,
   type TileResult,
 } from "./develop-grid";
+import { ProgressScreen } from "./progress-screen";
 
 const SAMPLE_SRC = "/marketing/before-after/cami_before.png";
 const SAMPLE_NAME = "CAM-BRN-S_SAMPLE.JPG";
@@ -444,74 +445,6 @@ function DevelopStep({
     })),
   );
 
-  const fired = useRef(false);
-  useEffect(() => {
-    if (fired.current) return;
-    fired.current = true;
-    if (!photo || picked.length === 0) return;
-
-    (async () => {
-      let blob: Blob;
-      try {
-        if (photo.file) {
-          blob = photo.file;
-        } else {
-          const r = await fetch(photo.url);
-          blob = await r.blob();
-        }
-      } catch (e) {
-        const message = e instanceof Error ? e.message : "could not read photo";
-        setResults((prev) =>
-          prev.map((r) => ({ ...r, status: "failed", error: message })),
-        );
-        return;
-      }
-
-      await Promise.all(
-        picked.map(async (slug) => {
-          try {
-            const form = new FormData();
-            form.append("file", blob, photo.name);
-            form.append("sceneSlug", slug);
-            const res = await fetch("/api/try/generate", {
-              method: "POST",
-              body: form,
-            });
-            const data = (await res.json()) as
-              | { outputUrl: string; sceneSlug: string }
-              | { error: string };
-            if (!res.ok || "error" in data) {
-              const error = "error" in data ? data.error : `error ${res.status}`;
-              setResults((prev) =>
-                prev.map((r) =>
-                  r.sceneSlug === slug ? { ...r, status: "failed", error } : r,
-                ),
-              );
-              track("try_generate_failed", { slug, error });
-              return;
-            }
-            setResults((prev) =>
-              prev.map((r) =>
-                r.sceneSlug === slug
-                  ? { ...r, status: "succeeded", outputUrl: data.outputUrl }
-                  : r,
-              ),
-            );
-            track("try_generate_succeeded", { slug });
-          } catch (e) {
-            const error = e instanceof Error ? e.message : "network error";
-            setResults((prev) =>
-              prev.map((r) =>
-                r.sceneSlug === slug ? { ...r, status: "failed", error } : r,
-              ),
-            );
-            track("try_generate_failed", { slug, error });
-          }
-        }),
-      );
-    })();
-  }, [photo, picked]);
-
   useEffect(() => {
     if (results.length === 0) return;
     if (results.every((r) => r.status !== "pending")) onComplete();
@@ -567,7 +500,31 @@ function DevelopStep({
         </div>
 
         <div>
-          <DevelopGrid results={results} variant={variant} sourceUrl={photo?.url} />
+          {results.every((r) => r.status === "pending") && photo?.file ? (
+            <ProgressScreen
+              file={photo.file}
+              sceneSlugs={picked}
+              userPhotoUrl={photo.url}
+              onSettled={(out) => {
+                setResults((prev) =>
+                  prev.map((r) => {
+                    const hit = out.find((o) => o.slug === r.sceneSlug);
+                    if (!hit) return r;
+                    if (hit.outputUrl) {
+                      return { ...r, status: "succeeded", outputUrl: hit.outputUrl };
+                    }
+                    return { ...r, status: "failed", error: hit.error ?? "failed" };
+                  }),
+                );
+                for (const item of out) {
+                  if (item.outputUrl) track("try_generate_succeeded", { slug: item.slug });
+                  else track("try_generate_failed", { slug: item.slug, error: item.error ?? "failed" });
+                }
+              }}
+            />
+          ) : (
+            <DevelopGrid results={results} variant={variant} sourceUrl={photo?.url} />
+          )}
         </div>
       </div>
 
