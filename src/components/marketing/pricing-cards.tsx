@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { track } from "@/lib/analytics";
 
 const TIERS = [
   {
@@ -122,7 +123,7 @@ export function PricingCards() {
             <span className="text-sm text-[var(--color-ink-3)]">/month</span>
           </div>
           <p className="mt-2 text-sm leading-relaxed text-[var(--color-ink-2)]">
-            Try Vesperdrop. No card required.
+            Try Verceldrop. No card required.
           </p>
           <ul className="mt-6 space-y-3 text-sm text-[var(--color-ink-2)]">
             <Feature>1 full-resolution HD generation</Feature>
@@ -166,6 +167,7 @@ export function PricingCards() {
           </ul>
           <a
             href="/api/stripe/checkout?plan=pro"
+            onClick={() => track("pricing_plan_clicked", { plan: "pro", billing })}
             className="mt-7 inline-flex justify-center rounded-full bg-[var(--color-ink)] border border-[var(--color-cream)]/30 px-5 py-3 text-sm font-medium text-[var(--color-cream)] transition-colors hover:bg-[var(--color-ink-2)]"
           >
             Start Pro &rarr;
@@ -212,6 +214,7 @@ export function PricingCards() {
               <div className="hidden sm:flex justify-end">
                 <a
                   href={tier.href}
+                  onClick={() => track("pricing_plan_clicked", { plan: tier.id, billing })}
                   className="inline-flex items-center rounded-full border border-[var(--color-ink)] px-4 py-1.5 font-mono text-[10px] tracking-[0.08em] text-[var(--color-ink)] transition-colors hover:bg-[var(--color-ink)] hover:text-[var(--color-cream)]"
                 >
                   {tier.cta}
@@ -237,6 +240,7 @@ export function PricingCards() {
             <a
               key={pack.credits}
               href={`/api/stripe/checkout?plan=pack-${pack.credits}`}
+              onClick={() => track("pricing_pack_clicked", { credits: pack.credits })}
               className="flex items-center justify-between rounded-lg border border-[var(--color-line)] bg-[var(--color-paper-2)] px-4 py-3 transition-colors hover:border-[var(--color-ink)]"
             >
               <div>

@@ -5,13 +5,14 @@ import { stripe } from "@/lib/stripe/server";
 import { refillCredits } from "@/lib/db/credits";
 import { PLAN_MONTHLY_CREDITS } from "@/lib/ai/models";
 import { env } from "@/lib/env";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 /**
- * Map a Stripe price ID to a Vesperdrop plan name using env-configured price IDs.
+ * Map a Stripe price ID to a Verceldrop plan name using env-configured price IDs.
  * Returns null when the price ID is not recognised.
  */
 function priceIdToPlan(priceId: string): string | null {
@@ -97,6 +98,15 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
         .from("profiles")
         .update({ plan, plan_renews_at: null })
         .eq("stripe_customer_id", customerId);
+
+      const activatedUserId = await getUserIdByCustomerId(customerId);
+      if (activatedUserId) {
+        getPostHogClient().capture({
+          distinctId: activatedUserId,
+          event: "subscription_activated",
+          properties: { plan },
+        });
+      }
       return;
     }
 
@@ -129,6 +139,12 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
       if (!resolved) return;
 
       await refillCredits(userId, resolved.plan, resolved.credits, resolved.renewsAt);
+
+      getPostHogClient().capture({
+        distinctId: userId,
+        event: "subscription_renewed",
+        properties: { plan: resolved.plan, credits_granted: resolved.credits },
+      });
       return;
     }
 
@@ -145,6 +161,15 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
         .from("profiles")
         .update({ plan: "free", plan_renews_at: null })
         .eq("stripe_customer_id", customerId);
+
+      const cancelledUserId = await getUserIdByCustomerId(customerId);
+      if (cancelledUserId) {
+        getPostHogClient().capture({
+          distinctId: cancelledUserId,
+          event: "subscription_cancelled",
+          properties: { reason: event.type },
+        });
+      }
       return;
     }
 

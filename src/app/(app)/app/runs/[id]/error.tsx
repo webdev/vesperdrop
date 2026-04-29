@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
+import posthog from "posthog-js";
+
 export default function Error({
   error,
   reset,
@@ -7,6 +10,10 @@ export default function Error({
   error: Error;
   reset: () => void;
 }) {
+  useEffect(() => {
+    posthog.captureException(error);
+  }, [error]);
+
   return (
     <div className="space-y-4 py-12">
       <h2 className="font-serif text-2xl">Something went wrong</h2>

@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import type { Scene } from "@/lib/db/scenes";
+import { track } from "@/lib/analytics";
 import { WizardSteps, type StepId } from "./wizard-steps";
 import { ExampleInput } from "./example-input";
 import { DevelopGrid } from "./develop-grid";
@@ -46,7 +47,7 @@ export function TryFlow({
   }, [photo]);
 
   const handleFiles = useCallback(
-    (files: FileList | null) => {
+    (files: FileList | null, source: "drop" | "browse" = "browse") => {
       if (!files || files.length === 0) return;
       const file = files[0];
       if (!file.type.startsWith("image/")) return;
@@ -54,6 +55,7 @@ export function TryFlow({
       const url = URL.createObjectURL(file);
       setPhoto({ url, name: file.name, isObjectUrl: true });
       setStep("scenes");
+      track("try_upload_started", { source });
     },
     [photo],
   );
@@ -62,6 +64,7 @@ export function TryFlow({
     if (photo?.isObjectUrl) URL.revokeObjectURL(photo.url);
     setPhoto({ url: SAMPLE_SRC, name: SAMPLE_NAME, isObjectUrl: false });
     setStep("scenes");
+    track("try_upload_started", { source: "sample" });
   }, [photo]);
 
   const resetAll = useCallback(() => {
@@ -74,9 +77,13 @@ export function TryFlow({
   }, [photo]);
 
   const togglePickedScene = useCallback((id: string) => {
-    setPickedScenes((p) =>
-      p.includes(id) ? p.filter((x) => x !== id) : [...p, id],
-    );
+    setPickedScenes((p) => {
+      const next = p.includes(id) ? p.filter((x) => x !== id) : [...p, id];
+      if (!p.includes(id)) {
+        track("try_scene_picked", { slug: id, total_picked: next.length });
+      }
+      return next;
+    });
   }, []);
 
   return (
@@ -87,7 +94,7 @@ export function TryFlow({
             href="/"
             className="font-serif text-2xl font-light italic tracking-tight text-[var(--color-ink)] hover:text-[var(--color-ember)]"
           >
-            ← Vesperdrop
+            ← Verceldrop
           </Link>
           <div className="flex items-center gap-4 font-mono text-[10px] tracking-[0.18em] text-[var(--color-ink-3)] uppercase">
             {firstName ? (
@@ -139,6 +146,7 @@ export function TryFlow({
               setSkipDevelop(false);
               setDevelopDone(false);
               setStep("develop");
+              track("try_develop_started", { scene_count: pickedScenes.length });
             }}
           />
         ) : null}
@@ -151,7 +159,13 @@ export function TryFlow({
             skip={skipDevelop}
             developDone={developDone}
             onSkip={() => setSkipDevelop(true)}
-            onComplete={() => setDevelopDone(true)}
+            onComplete={() => {
+              setDevelopDone(true);
+              track("try_develop_complete", {
+                scene_count: pickedScenes.length,
+                skipped_animation: skipDevelop,
+              });
+            }}
             onReset={resetAll}
           />
         ) : null}
@@ -168,7 +182,7 @@ function UploadStep({
 }: {
   photo: Photo | null;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
-  onFiles: (files: FileList | null) => void;
+  onFiles: (files: FileList | null, source?: "drop" | "browse") => void;
   onUseSample: () => void;
 }) {
   const [dragging, setDragging] = useState(false);
@@ -220,7 +234,7 @@ function Dropzone({
   dragging: boolean;
   setDragging: (v: boolean) => void;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
-  onFiles: (files: FileList | null) => void;
+  onFiles: (files: FileList | null, source?: "drop" | "browse") => void;
   onUseSample: () => void;
 }) {
   return (
@@ -236,7 +250,7 @@ function Dropzone({
         onDrop={(e) => {
           e.preventDefault();
           setDragging(false);
-          onFiles(e.dataTransfer.files);
+          onFiles(e.dataTransfer.files, "drop");
         }}
         className="block w-full cursor-pointer border-[1.5px] border-dashed bg-[var(--color-cream)] px-8 py-14 text-center transition-colors"
         style={{
@@ -272,7 +286,7 @@ function Dropzone({
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={(e) => onFiles(e.target.files)}
+        onChange={(e) => onFiles(e.target.files, "browse")}
       />
       <div className="mt-4 text-sm text-[var(--color-ink-3)]">
         Don&apos;t have one handy?{" "}
@@ -483,6 +497,9 @@ function DevelopStep({
 }
 
 function SignUpGate({ onReset }: { onReset: () => void }) {
+  useEffect(() => {
+    track("try_signup_gate_seen");
+  }, []);
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-[var(--color-ink)]/55 px-6 py-10 backdrop-blur-sm">
       <div className="w-full max-w-md border border-[var(--color-line)] bg-[var(--color-paper)] px-8 py-10 text-center shadow-[0_30px_80px_rgba(27,25,21,0.45)]">
@@ -497,6 +514,7 @@ function SignUpGate({ onReset }: { onReset: () => void }) {
         </p>
         <Link
           href="/sign-up"
+          onClick={() => track("try_signup_clicked")}
           className="mt-7 inline-flex items-center rounded-full bg-[var(--color-ember)] px-7 py-4 text-sm font-medium text-[var(--color-cream)] transition-transform hover:scale-[1.02] hover:bg-[#a83c18]"
         >
           Create your account →

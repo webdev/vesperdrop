@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { track } from "@/lib/analytics";
 
 type Generation = {
   id: string;
@@ -14,9 +15,16 @@ type Generation = {
 
 export function RunGrid({ runId, initial }: { runId: string; initial: Generation[] }) {
   const [gens, setGens] = useState<Generation[]>(initial);
+  const completedTracked = useRef(false);
 
   useEffect(() => {
     const allDone = gens.every((g) => g.status === "succeeded" || g.status === "failed");
+    if (allDone && !completedTracked.current) {
+      completedTracked.current = true;
+      const succeeded = gens.filter((g) => g.status === "succeeded").length;
+      const failed = gens.filter((g) => g.status === "failed").length;
+      track("run_complete", { run_id: runId, succeeded, failed, total: gens.length });
+    }
     if (allDone) return;
     const t = setInterval(async () => {
       const res = await fetch(`/api/runs/${runId}`);

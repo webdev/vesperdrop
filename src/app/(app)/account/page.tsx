@@ -2,10 +2,16 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { CheckoutSuccessTracker } from "@/components/checkout-success-tracker";
+import { UpgradeButton } from "@/components/app/upgrade-button";
 
 export const dynamic = "force-dynamic";
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ upgraded?: string }>;
+}) {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -18,8 +24,11 @@ export default async function Page() {
     .eq("id", user.id)
     .single();
 
+  const { upgraded } = await searchParams;
+
   return (
     <div className="space-y-8 max-w-xl">
+      {upgraded === "1" ? <CheckoutSuccessTracker source="subscription" /> : null}
       <header>
         <h1 className="font-serif text-3xl">Account</h1>
         <p className="text-sm text-[var(--color-ink-3)]">{user.email}</p>
@@ -50,12 +59,7 @@ export default async function Page() {
               Manage subscription
             </a>
           ) : (
-            <a
-              href="/api/stripe/checkout"
-              className="bg-[var(--color-ember)] text-white px-4 py-2 rounded"
-            >
-              Upgrade to Pro
-            </a>
+            <UpgradeButton />
           )}
           <form action="/api/auth/sign-out" method="post">
             <button className="underline text-[var(--color-ink-3)]">

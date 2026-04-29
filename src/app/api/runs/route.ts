@@ -12,6 +12,7 @@ import { tryTakeToken } from "@/lib/db/rate-limit";
 import { tryDeductCredits } from "@/lib/db/credits";
 import { processRun } from "@/lib/workflows/process-run";
 import { env } from "@/lib/env";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export const runtime = "nodejs";
 
@@ -66,6 +67,11 @@ export async function POST(req: Request) {
   if (isFreePlan) {
     const creditsAvailable = profile?.credits_balance ?? 0;
     if (creditsAvailable < total) {
+      getPostHogClient().capture({
+        distinctId: user.id,
+        event: "run_credits_insufficient",
+        properties: { plan, credits_available: creditsAvailable, credits_needed: total },
+      });
       return NextResponse.json(
         { error: "Insufficient credits. Upgrade to Pro or purchase credit packs." },
         { status: 402 },
@@ -77,6 +83,11 @@ export async function POST(req: Request) {
   if (isFreePlan) {
     const ok = await tryDeductCredits(user.id, total);
     if (!ok) {
+      getPostHogClient().capture({
+        distinctId: user.id,
+        event: "run_credits_insufficient",
+        properties: { plan, credits_available: 0, credits_needed: total },
+      });
       return NextResponse.json(
         { error: "Insufficient credits. Upgrade to Pro or purchase credit packs." },
         { status: 402 },
@@ -119,6 +130,18 @@ export async function POST(req: Request) {
   await insertPendingGenerations(rows);
 
   const run = await start(processRun, [runId, user.id, sourceUploads, origin]);
+
+  getPostHogClient().capture({
+    distinctId: user.id,
+    event: "run_started",
+    properties: {
+      run_id: runId,
+      plan,
+      file_count: files.length,
+      scene_count: presetIds.length,
+      total_images: total,
+    },
+  });
 
   return NextResponse.json({ runId, workflowRunId: run.runId });
 }
