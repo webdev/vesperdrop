@@ -1,6 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { AuthForm } from "@/components/app/auth-form";
+
+export const metadata: Metadata = {
+  title: "Create account",
+  description:
+    "Create your Verceldrop account and get 1 free HD lifestyle shot. No card required.",
+  alternates: { canonical: "/sign-up" },
+  robots: { index: false, follow: true },
+};
 
 export default function Page() {
   return (

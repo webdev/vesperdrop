@@ -1,6 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { AuthForm } from "@/components/app/auth-form";
+
+export const metadata: Metadata = {
+  title: "Sign in",
+  description: "Sign in to your Verceldrop account.",
+  alternates: { canonical: "/sign-in" },
+  robots: { index: false, follow: true },
+};
 
 export default function Page() {
   return (

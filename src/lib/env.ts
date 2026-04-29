@@ -6,7 +6,14 @@ const bool = z
   .union([z.literal("true"), z.literal("false")])
   .transform((v) => v === "true");
 
+const optionalBool = z
+  .union([z.literal("true"), z.literal("false")])
+  .optional()
+  .transform((v) => v === "true");
+
 const ServerOnlyEnv = z.object({
+  SITE_URL: z.string().url().default("https://verceldrop.com"),
+  SITE_PUBLIC: optionalBool,
   SCENEIFY_API_URL: z.string().url(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   STRIPE_SECRET_KEY: z.string().min(1),

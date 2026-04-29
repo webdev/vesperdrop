@@ -1,3 +1,5 @@
+import { FaqJsonLd } from "./structured-data";
+
 const FAQ = [
   {
     q: "What's a credit?",
@@ -36,6 +38,9 @@ const FAQ = [
 export function PricingFaq() {
   return (
     <section className="mx-auto max-w-3xl border-t border-[var(--color-line)] px-6 py-16">
+      <FaqJsonLd
+        questions={FAQ.map((f) => ({ question: f.q, answer: f.a }))}
+      />
       <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-ink-3)]">
         FAQ &middot; N&deg;03
       </p>
