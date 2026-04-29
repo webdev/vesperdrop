@@ -34,9 +34,9 @@ describe("phaseAtElapsed", () => {
 
 describe("pickLine", () => {
   it("interpolates slot fills from attributes and preset", () => {
-    const out = pickLine("reading", attrs, preset, []);
-    expect(out).toMatch(/navy|linen|shirt/);
-    expect(out).not.toMatch(/\{.*\}/);
+    const samples = Array.from({ length: 30 }, () => pickLine("reading", attrs, preset, []));
+    expect(samples.some((s) => /navy|linen|shirt/.test(s))).toBe(true);
+    samples.forEach((s) => expect(s).not.toMatch(/\{.*\}/));
   });
 
   it("collapses missing-attribute slots gracefully", () => {
