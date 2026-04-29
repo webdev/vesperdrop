@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useProgressBatch } from "@/lib/progress/use-progress-batch";
 import { filmstripFor } from "@/lib/progress/filmstrip-fallback";
+import { track } from "@/lib/analytics";
 
 type Props = {
   file: File;
@@ -19,6 +20,25 @@ export function ProgressScreen({ file, sceneSlugs, userPhotoUrl, onSettled }: Pr
   const stableSlugs = useMemo(() => sceneSlugs, []); // contract: stable for lifetime
   const view = useProgressBatch({ file, sceneSlugs: stableSlugs });
 
+  const [batchId] = useState<string>(() => crypto.randomUUID());
+  const batchStartRef = useRef<number>(0);
+
+  useEffect(() => {
+    batchStartRef.current = Date.now();
+    track("try_batch_started", { batchId, slugs: stableSlugs });
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        track("try_batch_abandoned", {
+          batchId,
+          elapsedMs: Date.now() - batchStartRef.current,
+        });
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const settledRef = useRef(false);
   useEffect(() => {
     if (settledRef.current) return;
@@ -28,13 +48,21 @@ export function ProgressScreen({ file, sceneSlugs, userPhotoUrl, onSettled }: Pr
     });
     if (!allSettled) return;
     settledRef.current = true;
+    const errorCount = stableSlugs.filter((slug) => view.streams[slug]?.status === "error").length;
+    const doneCount = stableSlugs.length - errorCount;
+    track("try_batch_completed", {
+      batchId,
+      doneCount,
+      errorCount,
+      totalMs: Date.now() - batchStartRef.current,
+    });
     const out = stableSlugs.map((slug) => {
       const s = view.streams[slug];
       if (s?.outputUrl) return { slug, outputUrl: s.outputUrl };
       return { slug, error: s?.error?.message ?? "generation failed" };
     });
     onSettled(out);
-  }, [view.streams, stableSlugs, onSettled]);
+  }, [view.streams, stableSlugs, onSettled, batchId, batchStartRef]);
 
   const filmstrip = filmstripFor(view.primaryPreset?.category);
   const palette = view.primaryPreset?.palette ?? ["#cfcabf", "#766c57"];
@@ -138,10 +166,74 @@ export function ProgressScreen({ file, sceneSlugs, userPhotoUrl, onSettled }: Pr
         })}
       </div>
 
+      {stableSlugs.map((slug) => (
+        <StreamTelemetry
+          key={`tel-${slug}`}
+          slug={slug}
+          batchId={batchId}
+          stream={view.streams[slug]}
+        />
+      ))}
+
       <style>{`
         @keyframes vd-zoom { from { transform: scale(1); } to { transform: scale(1.04); } }
         @keyframes vd-sweep { from { background-position: 0% 0; } to { background-position: -200% 0; } }
       `}</style>
     </div>
   );
+}
+
+type Stream = ReturnType<typeof useProgressBatch>["streams"][string];
+
+function StreamTelemetry({
+  batchId,
+  slug,
+  stream,
+}: {
+  batchId: string;
+  slug: string;
+  stream: Stream | undefined;
+}) {
+  const startRef = useRef<number>(0);
+  const seenRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    startRef.current = Date.now();
+  }, []);
+
+  useEffect(() => {
+    if (!stream) return;
+    if (stream.attributes !== null && !seenRef.current.has("__attrs")) {
+      seenRef.current.add("__attrs");
+      track("try_stream_attributes", { batchId, slug, hasAttributes: true });
+    }
+    if (stream.phaseId && !seenRef.current.has(`phase:${stream.phaseId}`)) {
+      seenRef.current.add(`phase:${stream.phaseId}`);
+      track("try_stream_phase", {
+        batchId,
+        slug,
+        phaseId: stream.phaseId,
+        elapsedMs: stream.elapsedMs,
+      });
+    }
+    if (stream.status === "done" && !seenRef.current.has("__done")) {
+      seenRef.current.add("__done");
+      track("try_stream_completed", {
+        batchId,
+        slug,
+        totalMs: Date.now() - startRef.current,
+      });
+    } else if (stream.status === "error" && stream.error && !seenRef.current.has("__error")) {
+      seenRef.current.add("__error");
+      track("try_stream_error", {
+        batchId,
+        slug,
+        message: stream.error.message,
+        retryable: stream.error.retryable,
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [batchId, slug, stream?.status, stream?.phaseId, stream?.attributes, stream?.error?.message]);
+
+  return null;
 }

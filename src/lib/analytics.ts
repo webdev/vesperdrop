@@ -17,7 +17,14 @@ export type AnalyticsEvent =
   | { name: "upgrade_clicked"; props: { location: "account" | "try" | "pricing" } }
   | { name: "user_signed_up"; props: { method: "email" | "google" | "facebook" | "apple" } }
   | { name: "user_signed_in"; props: { method: "email" | "google" | "facebook" | "apple" } }
-  | { name: "run_complete"; props: { run_id: string; succeeded: number; failed: number; total: number } };
+  | { name: "run_complete"; props: { run_id: string; succeeded: number; failed: number; total: number } }
+  | { name: "try_batch_started"; props: { batchId: string; slugs: string[] } }
+  | { name: "try_batch_completed"; props: { batchId: string; doneCount: number; errorCount: number; totalMs: number } }
+  | { name: "try_batch_abandoned"; props: { batchId: string; elapsedMs: number } }
+  | { name: "try_stream_attributes"; props: { batchId: string; slug: string; hasAttributes: boolean } }
+  | { name: "try_stream_phase"; props: { batchId: string; slug: string; phaseId: string; elapsedMs: number } }
+  | { name: "try_stream_completed"; props: { batchId: string; slug: string; totalMs: number } }
+  | { name: "try_stream_error"; props: { batchId: string; slug: string; message: string; retryable: boolean } };
 
 export function track<E extends AnalyticsEvent>(name: E["name"], props?: E["props"]) {
   if (typeof window === "undefined") return;
