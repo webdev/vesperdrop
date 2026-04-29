@@ -5,6 +5,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { track, identify } from "@/lib/analytics";
 
 type Mode = "sign-in" | "sign-up";
 type Step = "credentials" | "mfa";
@@ -27,6 +28,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
   function oauthRedirect(provider: "google" | "facebook" | "apple") {
     return async () => {
       setError(null);
+      track(mode === "sign-up" ? "user_signed_up" : "user_signed_in", { method: provider });
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
@@ -45,15 +47,23 @@ export function AuthForm({ mode }: { mode: Mode }) {
     setError(null);
     start(async () => {
       if (mode === "sign-up") {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { data: signUpData, error } = await supabase.auth.signUp({ email, password });
         if (error) { setError(error.message); return; }
+        if (signUpData.user) {
+          identify(signUpData.user.id, { email });
+          track("user_signed_up", { method: "email" });
+        }
         router.push(next);
         router.refresh();
         return;
       }
 
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) { setError(error.message); return; }
+      if (signInData.user) {
+        identify(signInData.user.id, { email });
+        track("user_signed_in", { method: "email" });
+      }
 
       // Check if MFA verification is required
       const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
