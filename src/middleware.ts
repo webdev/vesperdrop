@@ -5,7 +5,14 @@ import { refreshSession } from "@/lib/supabase/middleware";
 const ALLOWED_EMAILS = ["gblazer@gmail.com", "info@slavablazer.com"];
 
 // Paths that bypass the gate entirely (auth UI + API routes handle their own auth).
-const PUBLIC_PREFIXES = ["/sign-in", "/sign-up", "/unauthorized", "/mfa-verify", "/api/"];
+const PUBLIC_PREFIXES = [
+  "/sign-in",
+  "/sign-up",
+  "/unauthorized",
+  "/mfa-verify",
+  "/api/",
+  ...(process.env.E2E_SCENEIFY_MOCK === "1" ? ["/try"] : []),
+];
 
 export async function middleware(request: NextRequest) {
   const { response, user, needsMfa } = await refreshSession(request);
