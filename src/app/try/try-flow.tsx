@@ -362,6 +362,7 @@ function ScenesStep({
             <button
               key={s.slug}
               type="button"
+              data-testid="scene-card"
               onClick={() => onToggle(s.slug)}
               onKeyDown={(e) => onCardKey(e, s.slug)}
               disabled={atCap}
@@ -409,6 +410,7 @@ function ScenesStep({
         </p>
         <button
           type="button"
+          data-testid="generate-button"
           disabled={picked.length === 0}
           onClick={onContinue}
           className="inline-flex items-center rounded-full bg-[var(--color-ember)] px-6 py-3 text-sm font-medium text-[var(--color-cream)] transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
