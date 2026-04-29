@@ -4,6 +4,8 @@
 **Status:** Approved (pending user review)
 **Surface:** `/try` (anonymous freemium flow). Authenticated flow inherits the same components in a follow-up.
 
+**Batch shape:** `/try` lets the user pick N scenes (typically 5) at once and generates them in parallel. The progress UX is a single batch-level screen that owns N independent streaming POSTs and aggregates their state into one narrative. When N collapses to 1 (premium flow later), the same component renders without the per-tile counter.
+
 ## Goal
 
 Make the 70-second image-generation wait feel like deliberate craft instead of a stalled spinner. Specifically:
@@ -21,28 +23,42 @@ Make the 70-second image-generation wait feel like deliberate craft instead of a
 
 ## High-level flow
 
+The client fans out **N parallel POSTs** to `/api/try/generate` (one per picked slug). Each is its own independent streaming response — the route knows nothing about batching. The `<ProgressScreen />` component aggregates the N streams into one narrative.
+
+**Per-stream lifecycle (one slug):**
+
 ```
-upload  ─►  POST /api/try/generate  (streaming response, SSE-formatted)
-              │
-              │   Phase 1 (sync, ~1.5–2s):
-              │     ├─► Vercel Blob put
-              │     └─► flush  event: ready  data: { startedAt, attributes, preset }
-              │
-              │   Phase 2 (parallel, ~70s):
-              │     ├─► extractAttributes()  (Gemini Flash via Gateway)  ──┐
-              │     │   when it lands → flush  event: attributes  data: {…}│
-              │     │                                                       │
-              │     └─► generateViaSceneify()                               │
-              │         while running → tick/phase events on a timer       │
-              │         on resolve → fetch, applyWatermark, storeWatermarked│
-              │         flush  event: done  data: { outputUrl }            ─┘
-              │
-              │   On any error → flush  event: error  data: {…}; close stream
+upload + slug ──►  POST /api/try/generate  (streaming response, SSE-formatted)
+                     │
+                     │   Phase 1 (sync, ~1.5–2s):
+                     │     ├─► Vercel Blob put
+                     │     └─► flush  event: ready  data: { startedAt, preset }
+                     │
+                     │   Phase 2 (parallel, ~70s):
+                     │     ├─► extractAttributes()  (Gemini Flash via Gateway)  ──┐
+                     │     │   when it lands → flush  event: attributes  data: {…}│
+                     │     │                                                       │
+                     │     └─► generateViaSceneify()                               │
+                     │         while running → tick/phase events on a timer       │
+                     │         on resolve → fetch, applyWatermark, storeWatermarked│
+                     │         flush  event: done  data: { outputUrl }            ─┘
+                     │
+                     │   On any error → flush  event: error  data: {…}; close stream
 ```
 
-The route returns a `ReadableStream` body with `Content-Type: text/event-stream`. The client reads it with `fetch` + a small SSE-from-stream parser (no `EventSource`, since that's GET-only). Everything runs in a single execution context — no cross-instance handoff, no job-store, no client reconnection logic.
+**Batch aggregation (client side):**
 
-The current `POST /api/try/generate` route is rewritten in place. No backwards-compat shim — `/try` is the only caller and we update it in the same change.
+`<ProgressScreen />` opens N `fetch` calls in parallel, each handed to `useProgressStream(slug)`. The screen-level state computes:
+
+- **Batch caption phase:** the median phase across active streams. If 4 streams are in `composing` and 1 is in `matching`, the caption shows `composing` work. Strings still slot-fill from the *first slug's* preset metadata (the visible one in the filmstrip), so the narrative reads naturally.
+- **Batch counter:** `"3 of 5 done"` — increments as each stream's `done` event lands. Replaces the caption text once at least one tile has completed.
+- **Per-tile state:** indexed by slug — `pending | streaming | done(outputUrl) | error(message, retryable)`. Tiles render in a grid below the hero/filmstrip area; each one is skeleton until its stream's `done` lands.
+- **Filmstrip:** uses the first picked slug's preset palette/category. The other 4 slugs influence only their own tile's state.
+- **Attributes:** the first stream's `attributes` event populates the caption slot fills; subsequent streams' attribute events are ignored (they'll be the same — same uploaded image).
+
+The route returns a `ReadableStream` body with `Content-Type: text/event-stream`. The client reads it with `fetch` + a small SSE-from-stream parser (no `EventSource`, since that's GET-only). Everything for a single stream runs in one execution context — no cross-instance handoff, no job-store, no reconnection logic.
+
+The current `POST /api/try/generate` route is rewritten in place. The existing call site in `try-flow.tsx:476` (which already does `Promise.all` over slugs) moves into `<ProgressScreen />` and uses streaming reads instead of `await res.json()`.
 
 ## Architecture
 
@@ -157,42 +173,52 @@ Pure helper that turns `(eventName, data)` into the SSE-framed bytes (`event: �
 
 #### `src/app/try/progress-screen.tsx` — new
 
-The wait screen. Mounts as soon as the user submits — it owns the streaming `fetch` to `/api/try/generate` for its lifetime. Props:
+The wait screen. Mounts as soon as the user submits — it fans out N streaming `fetch` calls to `/api/try/generate` (one per slug) and aggregates their state. Props:
 
 ```ts
 {
   file: File;                  // the upload
-  sceneSlug: string;
+  sceneSlugs: string[];        // typically 5
   userPhotoUrl: string;        // local object URL for instant display
-  onDone: (outputUrl: string) => void;
-  onError: (msg: string, retryable: boolean) => void;
+  onAllDone: (results: Array<{ slug: string; outputUrl: string }>) => void;
+  onFatal: (msg: string) => void;  // only fires if every stream fails
 }
 ```
 
-The `startedAt`, `preset`, and `attributes` come in over the stream as the `ready` and `attributes` events. Until `ready` arrives (~1.5–2s), the screen shows a brief skeleton with the user photo only.
+Per-tile failures are not fatal — the user still gets the successful tiles. `onFatal` fires only when every slug's stream errors. Partial-failure tiles render an inline retry button that re-opens just that slug's stream; this is local to the screen and doesn't affect the others.
+
+The first slug's `ready` and `attributes` events drive the hero filmstrip and caption slot fills. Until that first `ready` arrives (~1.5–2s), the screen shows a brief skeleton with the user photo only.
 
 Layout:
 
 ```
-┌──────────────────────────────────────────────────────┐
-│                                                      │
-│   ┌──────────────┐      ┌──┬──┬──┬──┬──┐           │
-│   │  user photo  │      │R1│R2│R3│R4│R5│           │
-│   │   ~360px     │      └──┴──┴──┴──┴──┘           │
-│   └──────────────┘      (filmstrip)                  │
-│                                                      │
-│      "Pulling references for the linen-chair set…"   │
-│                                                      │
-│      ▁▁▁▂▂▂▂▃▃▃▃▃ ░░░░░░░░  (palette sweep)         │
-│                                                      │
-└──────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│                                                        │
+│   ┌──────────────┐      ┌──┬──┬──┬──┬──┐             │
+│   │  user photo  │      │R1│R2│R3│R4│R5│             │
+│   │   ~360px     │      └──┴──┴──┴──┴──┘             │
+│   └──────────────┘      (filmstrip — first slug)       │
+│                                                        │
+│      "Composing the linen-chair scene…"   (or)         │
+│      "3 of 5 done"                                     │
+│                                                        │
+│      ▁▁▁▂▂▂▂▃▃▃▃▃ ░░░░░░░░  (palette sweep)           │
+│                                                        │
+│   ┌────────┬────────┬────────┬────────┬────────┐     │
+│   │ tile 1 │ tile 2 │ tile 3 │ tile 4 │ tile 5 │     │
+│   │ (skel) │ (done) │ (skel) │ (skel) │ (err)  │     │
+│   └────────┴────────┴────────┴────────┴────────┘     │
+│                                                        │
+└────────────────────────────────────────────────────────┘
 ```
+
+The 5 result tiles below the hero are the same component the existing results grid uses today (skeleton → image fade-in per tile). The hero block (photo + filmstrip + caption + sweep) is what's new.
 
 - **User photo (left, ~360px square):** lightly desaturated (95% saturation), 1.5px noise overlay, slow 12s zoom from `scale(1.0)` to `scale(1.04)`. Stays mounted the full wait. CSS-only animation.
 - **Filmstrip (right, 5 tiles):** Stock fallback per category (option B from brainstorm) — see `src/lib/progress/filmstrip-fallback.ts`. Each tile is 64×64. Default state: 35% opacity, grayscale 60%. When the active caption matches `personal: false` lines that mention "references" / "shots" / a palette color, a round-robin tile transitions to 100% opacity, full color, with a 2px ring in `palette[0]`, over 250ms ease-out. Hold for 1.8s, then return to default. Roughly 6 highlights across 70s.
-- **Caption:** Single line, fixed 24px height (no layout shift), 350ms crossfade between lines. New line every 2.8s, driven by a client-side timer plus `tick` events from SSE. Server timer is authoritative; client uses the timer for smooth ticks between server messages.
+- **Caption:** Single line, fixed 24px height (no layout shift), 350ms crossfade between lines. New line every 2.8s, driven by a client-side timer plus `tick` events from the streams. Phase id used for slot fills is the **median** phase across active streams (rounded down). Once at least one stream has completed, the caption alternates between rotating phase lines and the `"3 of 5 done"` counter (3s on counter, 5.6s on rotating lines).
 - **Sweep bar:** 4px tall, full-width within the card. Linear gradient `palette[0] → palette[1] → palette[0]`, animated via CSS `background-position` over 8s. Pure motion-as-life — never tied to actual progress.
-- **60s re-anchor:** when `elapsedMs > 60_000` and we haven't shown it yet, force the caption to `"Almost there — the high-res pass takes a beat longer."` for one cycle. Then resume normal rotation.
+- **60s re-anchor:** when the elapsed time of the slowest active stream crosses 60_000 ms and we haven't shown it yet, force the caption to `"Almost there — the high-res pass takes a beat longer."` for one cycle. Then resume normal rotation.
 
 #### `src/lib/progress/filmstrip-fallback.ts`
 
@@ -206,13 +232,55 @@ If a preset's category has no fallback set, `FILMSTRIP_BY_CATEGORY` returns the 
 
 #### `src/app/try/try-flow.tsx` — modified
 
-Replaces the existing wait/spinner branch with a mount of `<ProgressScreen />`. The submit handler stops calling `/api/try/generate` directly — it just hands the `file` and `sceneSlug` to `<ProgressScreen />`, which owns the streaming request from there. On `onDone(outputUrl)` the flow advances to the existing result step. On `onError` it switches to a single retry CTA that remounts `<ProgressScreen />` with the same inputs.
+The current effect at `try-flow.tsx:470-512` (which loops `Promise.all` over `picked` slugs and calls `/api/try/generate` per slug) is **deleted**. In its place, the wait/result branch mounts `<ProgressScreen file={photo.file} sceneSlugs={picked} userPhotoUrl={photo.url} onAllDone={…} onFatal={…} />`. `<ProgressScreen />` owns the N streaming POSTs. `onAllDone` updates the existing `results` state with the final URLs; `onFatal` shows the existing error state.
 
-### Hook: `src/lib/progress/use-progress.ts`
+### Hooks
 
-Encapsulates the streaming `fetch`, the SSE-from-stream parser, and the caption-rotation timer. Input: `{ file, sceneSlug }`. Returns `{ status, preset, attributes, phaseId, currentLine, isHighlightingFilmstrip, outputUrl, error }`. The page component stays declarative.
+#### `src/lib/progress/use-progress-stream.ts`
 
-The SSE parser is ~30 lines: read from `response.body.getReader()`, accumulate text, split on `\n\n`, parse each frame's `event:` and `data:` lines, dispatch to a callback. No external dependency.
+One stream. Input: `{ file, sceneSlug, enabled }`. Returns:
+
+```ts
+{
+  status: 'idle' | 'connecting' | 'streaming' | 'done' | 'error',
+  startedAt: number | null,
+  preset: PresetMeta | null,
+  attributes: ExtractedAttributes | null,
+  phaseId: PhaseId | null,
+  elapsedMs: number,
+  outputUrl: string | null,
+  error: { message: string; retryable: boolean } | null,
+  retry: () => void,
+}
+```
+
+Encapsulates the streaming `fetch`, the SSE-from-stream parser, and a per-stream elapsed-time timer (independent of server `tick` events — the timer ticks between events for smoothness).
+
+#### `src/lib/progress/use-progress-batch.ts`
+
+The aggregator. Input: `{ file, sceneSlugs }`. Internally calls `useProgressStream` for each slug. Returns:
+
+```ts
+{
+  streams: Record<slug, ReturnType<typeof useProgressStream>>,
+  batch: {
+    primaryPreset: PresetMeta | null,        // from first slug's ready event
+    primaryAttributes: ExtractedAttributes | null,
+    medianPhaseId: PhaseId | null,
+    currentLine: string,                     // resolved caption with slot fills
+    showCounter: boolean,                    // true once ≥1 done
+    doneCount: number,
+    totalCount: number,
+    allDone: boolean,
+    allFailed: boolean,
+    isHighlightingFilmstrip: boolean,
+  },
+}
+```
+
+The caption-rotation timer and median-phase math live here, not in `useProgressStream`. Page component stays declarative.
+
+The SSE parser (`src/lib/progress/sse-parser.ts`) is ~30 lines: read from `response.body.getReader()`, accumulate text, split on `\n\n`, parse each frame's `event:` and `data:` lines, dispatch to a callback. No external dependency.
 
 ## Data flow
 
@@ -270,14 +338,18 @@ No silent failures. Every failure path emits a typed event the client renders ex
 
 Instrumented inline per the project rule that PostHog goes alongside feature code:
 
-A `clientJobId` is generated on the client (UUID v4) the moment `<ProgressScreen />` mounts, used purely as a correlation key for telemetry — it is not persisted server-side.
+A `batchId` is generated on the client (UUID v4) the moment `<ProgressScreen />` mounts. Each per-slug stream gets a `streamId` (also UUID v4). Both are correlation keys for telemetry only — not persisted server-side.
 
-- `try_progress_started` — `{ clientJobId, presetSlug }`
-- `try_progress_attributes` — `{ clientJobId, hasAttributes: bool }` (fired when the `attributes` event arrives)
-- `try_progress_phase` — `{ clientJobId, phaseId, elapsedMs }` (sampled to first occurrence per phase per job)
-- `try_progress_completed` — `{ clientJobId, totalMs, presetSlug }`
-- `try_progress_abandoned` — `{ clientJobId, lastPhaseId, elapsedMs }` fired on `visibilitychange` → hidden, debounced
-- `try_progress_error` — `{ clientJobId, message, retryable }`
+Batch-level events:
+- `try_batch_started` — `{ batchId, slugs: string[] }`
+- `try_batch_completed` — `{ batchId, totalMs, doneCount, errorCount }`
+- `try_batch_abandoned` — `{ batchId, lastMedianPhaseId, elapsedMs }` fired on `visibilitychange` → hidden, debounced
+
+Per-stream events:
+- `try_stream_attributes` — `{ batchId, streamId, slug, hasAttributes: bool }`
+- `try_stream_phase` — `{ batchId, streamId, slug, phaseId, elapsedMs }` (sampled to first occurrence per phase per stream)
+- `try_stream_completed` — `{ batchId, streamId, slug, totalMs }`
+- `try_stream_error` — `{ batchId, streamId, slug, message, retryable }`
 
 These let us measure the actual goal: drop-off rate during the wait, broken down by phase.
 
@@ -288,18 +360,21 @@ These let us measure the actual goal: drop-off rate during the wait, broken down
 - `extract-attributes.test.ts` — mocked Gateway response; schema validation; cache hit/miss; low-confidence returns null; timeout returns null.
 - `progress/strings.test.ts` — `phaseAtElapsed` boundaries; cumulative weight math; pin-to-finishing past totalEstMs; `pickLine` slot interpolation; missing-slot graceful collapse; no-immediate-repeat cycler; `personal` preference when attributes present.
 - `progress/sse-encoder.test.ts` — encodes `(event, data)` to the exact byte sequence with proper newlines; handles JSON-serializable payloads; rejects payloads with embedded `\n\n`.
-- `progress/sse-parser.test.ts` (client-side parser exported from `use-progress`) — chunks split mid-frame; multi-byte UTF-8 split across chunks; multiple events in one chunk; empty data lines.
+- `progress/sse-parser.test.ts` — chunks split mid-frame; multi-byte UTF-8 split across chunks; multiple events in one chunk; empty data lines.
+- `progress/batch-aggregate.test.ts` — median phase math across N stream states; counter only appears once ≥1 done; `allDone` and `allFailed` derivation.
 
 ### E2E (Playwright)
 
 - `e2e/try-progress.spec.ts`:
-  1. Upload a fixture flatlay, pick a scene.
-  2. Assert progress screen mounts within 1s with the user photo (preset/filmstrip may not be visible yet).
-  3. Assert filmstrip and caption appear within 3s once the `ready` event lands.
-  4. Assert the caption changes at least 3 times in 12s (mocked Sceneify takes 20s in this test).
-  5. Assert filmstrip highlight transitions occur (CSS class assertion).
-  6. Assert completion swaps to the existing result component with a watermarked image.
-  7. Error path: mock Sceneify throws 502, assert retry CTA renders.
+  1. Upload a fixture flatlay, pick 3 scenes (smaller batch than prod for test speed).
+  2. Assert progress screen mounts within 1s with the user photo.
+  3. Assert filmstrip and caption appear within 3s (after the first stream's `ready` event).
+  4. Assert the caption changes at least 3 times in 12s (mocked Sceneify with staggered delays).
+  5. Assert all 3 result tiles render skeletons immediately and fill in as each stream completes.
+  6. Assert the `"X of 3 done"` counter appears after the first tile completes.
+  7. Assert all 3 tiles show watermarked images at the end and the screen advances to the existing result step.
+  8. Partial-failure path: mock returns 502 for one of the three slugs. Assert that tile shows an inline retry button and the other two tiles complete normally.
+  9. Total-failure path: mock returns 502 for all three. Assert `onFatal` UI renders.
 
 Mocked Sceneify uses a test-only env switch: `SCENEIFY_API_URL` points at a local Next route under `e2e/fixtures/sceneify-mock` that returns a controllable single-shot response (delay N ms, then 200 with a fixture image URL, or 502 for the error case). Same approach used by existing e2e tests — no MSW dependency.
 
@@ -312,18 +387,21 @@ Mocked Sceneify uses a test-only env switch: `SCENEIFY_API_URL` points at a loca
 - `src/lib/progress/strings.test.ts`
 - `src/lib/progress/sse-encoder.ts`
 - `src/lib/progress/sse-encoder.test.ts`
-- `src/lib/progress/sse-parser.ts` (client-side; consumed by `use-progress`)
+- `src/lib/progress/sse-parser.ts`
 - `src/lib/progress/sse-parser.test.ts`
+- `src/lib/progress/batch-aggregate.ts`
+- `src/lib/progress/batch-aggregate.test.ts`
 - `src/lib/progress/filmstrip-fallback.ts`
-- `src/lib/progress/use-progress.ts`
+- `src/lib/progress/use-progress-stream.ts`
+- `src/lib/progress/use-progress-batch.ts`
 - `src/app/try/progress-screen.tsx`
-- `public/filmstrip/<category>/0[1-5].jpg` — stock fallback assets (categories enumerated from seeded scenes)
+- `public/filmstrip/<category>/0[1-5].jpg` — stock fallback assets (categories: EXTERIOR, INTERIOR, STREET, STUDIO, plus default)
 - `e2e/fixtures/sceneify-mock/route.ts` — controllable mock for e2e
 - `e2e/try-progress.spec.ts`
 
 **Modified:**
 - `src/app/api/try/generate/route.ts` — rewritten as a streaming response
-- `src/app/try/try-flow.tsx` — swap the wait branch to mount `<ProgressScreen />`
+- `src/app/try/try-flow.tsx` — delete the `Promise.all` block; mount `<ProgressScreen />` instead
 
 ## Out of scope (next iterations)
 
