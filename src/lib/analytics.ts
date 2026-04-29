@@ -6,7 +6,9 @@ export type AnalyticsEvent =
   | { name: "try_upload_started"; props?: { source: "drop" | "browse" | "sample" } }
   | { name: "try_scene_picked"; props: { slug: string; total_picked: number } }
   | { name: "try_develop_started"; props: { scene_count: number } }
-  | { name: "try_develop_complete"; props: { scene_count: number; skipped_animation: boolean } }
+  | { name: "try_develop_complete"; props: { scene_count: number } }
+  | { name: "try_generate_succeeded"; props: { slug: string } }
+  | { name: "try_generate_failed"; props: { slug: string; error: string } }
   | { name: "try_signup_gate_seen"; props?: never }
   | { name: "try_signup_clicked"; props?: never }
   | { name: "pricing_plan_clicked"; props: { plan: string; billing: "monthly" | "yearly" } }

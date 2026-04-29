@@ -1,6 +1,12 @@
 import "server-only";
 import { env } from "@/lib/env";
-import type { SceneifyGeneration, SceneifyModelId, SceneifyPreset, SceneifySource } from "./types";
+import type {
+  SceneifyGeneration,
+  SceneifyModelId,
+  SceneifyPreset,
+  SceneifyPublicPreset,
+  SceneifySource,
+} from "./types";
 
 export class SceneifyError extends Error {
   constructor(message: string, public status?: number, public body?: string) {
@@ -47,6 +53,13 @@ export class SceneifyClient {
 
   async listPresets(): Promise<SceneifyPreset[]> {
     const { presets } = await this.request<{ presets: SceneifyPreset[] }>("/api/presets");
+    return presets;
+  }
+
+  async listPublicPresets(): Promise<SceneifyPublicPreset[]> {
+    const { presets } = await this.request<{ presets: SceneifyPublicPreset[] }>(
+      "/api/public/presets",
+    );
     return presets;
   }
 

@@ -13,6 +13,17 @@ export type SceneifyPreset = {
   referenceImageUrls: string[];
 };
 
+export type SceneifyPublicPreset = {
+  slug: string;
+  name: string;
+  description: string;
+  mood: string;
+  category: string;
+  palette: string[];
+  displayOrder: number;
+  heroImageUrl: string;
+};
+
 export type SceneifyGenerationStatus = "pending" | "running" | "succeeded" | "failed";
 
 export type SceneifyGeneration = {

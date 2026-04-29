@@ -2,9 +2,11 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -14,12 +16,17 @@ import type { Scene } from "@/lib/db/scenes";
 import { track } from "@/lib/analytics";
 import { WizardSteps, type StepId } from "./wizard-steps";
 import { ExampleInput } from "./example-input";
-import { DevelopGrid } from "./develop-grid";
+import {
+  DevelopGrid,
+  type DevelopGridVariant,
+  type TileResult,
+} from "./develop-grid";
 
 const SAMPLE_SRC = "/marketing/before-after/cami_before.png";
 const SAMPLE_NAME = "CAM-BRN-S_SAMPLE.JPG";
+const MAX_TRY_SCENES = 5;
 
-type Photo = { url: string; name: string; isObjectUrl: boolean };
+type Photo = { url: string; name: string; isObjectUrl: boolean; file: File | null };
 
 export function TryFlow({
   scenes,
@@ -35,8 +42,13 @@ export function TryFlow({
   const [step, setStep] = useState<StepId>("upload");
   const [photo, setPhoto] = useState<Photo | null>(null);
   const [pickedScenes, setPickedScenes] = useState<string[]>([]);
-  const [skipDevelop, setSkipDevelop] = useState(false);
   const [developDone, setDevelopDone] = useState(false);
+
+  const searchParams = useSearchParams();
+  const variant: DevelopGridVariant = useMemo(() => {
+    const fx = searchParams.get("fx");
+    return fx === "grain" ? "grain" : "darkroom";
+  }, [searchParams]);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -53,7 +65,7 @@ export function TryFlow({
       if (!file.type.startsWith("image/")) return;
       if (photo?.isObjectUrl) URL.revokeObjectURL(photo.url);
       const url = URL.createObjectURL(file);
-      setPhoto({ url, name: file.name, isObjectUrl: true });
+      setPhoto({ url, name: file.name, isObjectUrl: true, file });
       setStep("scenes");
       track("try_upload_started", { source });
     },
@@ -62,7 +74,7 @@ export function TryFlow({
 
   const useSample = useCallback(() => {
     if (photo?.isObjectUrl) URL.revokeObjectURL(photo.url);
-    setPhoto({ url: SAMPLE_SRC, name: SAMPLE_NAME, isObjectUrl: false });
+    setPhoto({ url: SAMPLE_SRC, name: SAMPLE_NAME, isObjectUrl: false, file: null });
     setStep("scenes");
     track("try_upload_started", { source: "sample" });
   }, [photo]);
@@ -71,17 +83,16 @@ export function TryFlow({
     if (photo?.isObjectUrl) URL.revokeObjectURL(photo.url);
     setPhoto(null);
     setPickedScenes([]);
-    setSkipDevelop(false);
     setDevelopDone(false);
     setStep("upload");
   }, [photo]);
 
   const togglePickedScene = useCallback((id: string) => {
     setPickedScenes((p) => {
-      const next = p.includes(id) ? p.filter((x) => x !== id) : [...p, id];
-      if (!p.includes(id)) {
-        track("try_scene_picked", { slug: id, total_picked: next.length });
-      }
+      if (p.includes(id)) return p.filter((x) => x !== id);
+      if (p.length >= MAX_TRY_SCENES) return p;
+      const next = [...p, id];
+      track("try_scene_picked", { slug: id, total_picked: next.length });
       return next;
     });
   }, []);
@@ -143,7 +154,6 @@ export function TryFlow({
             onToggle={togglePickedScene}
             onBack={() => setStep("upload")}
             onContinue={() => {
-              setSkipDevelop(false);
               setDevelopDone(false);
               setStep("develop");
               track("try_develop_started", { scene_count: pickedScenes.length });
@@ -156,14 +166,12 @@ export function TryFlow({
             photo={photo}
             picked={pickedScenes}
             sceneById={sceneById}
-            skip={skipDevelop}
             developDone={developDone}
-            onSkip={() => setSkipDevelop(true)}
+            variant={variant}
             onComplete={() => {
               setDevelopDone(true);
               track("try_develop_complete", {
                 scene_count: pickedScenes.length,
-                skipped_animation: skipDevelop,
               });
             }}
             onReset={resetAll}
@@ -348,13 +356,15 @@ function ScenesStep({
       <div className="grid grid-cols-2 gap-5 md:grid-cols-3">
         {scenes.map((s) => {
           const on = picked.includes(s.slug);
+          const atCap = !on && picked.length >= MAX_TRY_SCENES;
           return (
             <button
               key={s.slug}
               type="button"
               onClick={() => onToggle(s.slug)}
               onKeyDown={(e) => onCardKey(e, s.slug)}
-              className="group block text-left"
+              disabled={atCap}
+              className="group block text-left disabled:cursor-not-allowed disabled:opacity-50"
               aria-pressed={on}
             >
               <div
@@ -394,7 +404,7 @@ function ScenesStep({
 
       <div className="mt-10 flex items-center justify-between border-t border-[var(--color-line)] pt-6">
         <p className="font-mono text-[11px] tracking-[0.14em] text-[var(--color-ink-3)] uppercase">
-          {picked.length} scene{picked.length === 1 ? "" : "s"} picked
+          {picked.length} of {MAX_TRY_SCENES} scene{picked.length === 1 ? "" : "s"} picked
         </p>
         <button
           type="button"
@@ -413,21 +423,100 @@ function DevelopStep({
   photo,
   picked,
   sceneById,
-  skip,
   developDone,
-  onSkip,
+  variant,
   onComplete,
   onReset,
 }: {
   photo: Photo | null;
   picked: string[];
   sceneById: Record<string, Scene>;
-  skip: boolean;
   developDone: boolean;
-  onSkip: () => void;
+  variant: DevelopGridVariant;
   onComplete: () => void;
   onReset: () => void;
 }) {
+  const [results, setResults] = useState<TileResult[]>(() =>
+    picked.map((slug) => ({
+      sceneSlug: slug,
+      sceneName: sceneById[slug]?.name ?? slug,
+      status: "pending",
+    })),
+  );
+
+  const fired = useRef(false);
+  useEffect(() => {
+    if (fired.current) return;
+    fired.current = true;
+    if (!photo || picked.length === 0) return;
+
+    (async () => {
+      let blob: Blob;
+      try {
+        if (photo.file) {
+          blob = photo.file;
+        } else {
+          const r = await fetch(photo.url);
+          blob = await r.blob();
+        }
+      } catch (e) {
+        const message = e instanceof Error ? e.message : "could not read photo";
+        setResults((prev) =>
+          prev.map((r) => ({ ...r, status: "failed", error: message })),
+        );
+        return;
+      }
+
+      await Promise.all(
+        picked.map(async (slug) => {
+          try {
+            const form = new FormData();
+            form.append("file", blob, photo.name);
+            form.append("sceneSlug", slug);
+            const res = await fetch("/api/try/generate", {
+              method: "POST",
+              body: form,
+            });
+            const data = (await res.json()) as
+              | { outputUrl: string; sceneSlug: string }
+              | { error: string };
+            if (!res.ok || "error" in data) {
+              const error = "error" in data ? data.error : `error ${res.status}`;
+              setResults((prev) =>
+                prev.map((r) =>
+                  r.sceneSlug === slug ? { ...r, status: "failed", error } : r,
+                ),
+              );
+              track("try_generate_failed", { slug, error });
+              return;
+            }
+            setResults((prev) =>
+              prev.map((r) =>
+                r.sceneSlug === slug
+                  ? { ...r, status: "succeeded", outputUrl: data.outputUrl }
+                  : r,
+              ),
+            );
+            track("try_generate_succeeded", { slug });
+          } catch (e) {
+            const error = e instanceof Error ? e.message : "network error";
+            setResults((prev) =>
+              prev.map((r) =>
+                r.sceneSlug === slug ? { ...r, status: "failed", error } : r,
+              ),
+            );
+            track("try_generate_failed", { slug, error });
+          }
+        }),
+      );
+    })();
+  }, [photo, picked]);
+
+  useEffect(() => {
+    if (results.length === 0) return;
+    if (results.every((r) => r.status !== "pending")) onComplete();
+  }, [results, onComplete]);
+
   return (
     <div className="relative">
       <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
@@ -439,15 +528,6 @@ function DevelopStep({
             In the <span className="italic">studio</span>.
           </h1>
         </div>
-        {!developDone ? (
-          <button
-            type="button"
-            onClick={onSkip}
-            className="font-mono text-[11px] tracking-[0.14em] text-[var(--color-ink-3)] uppercase underline-offset-4 hover:text-[var(--color-ember)] hover:underline"
-          >
-            Skip animation →
-          </button>
-        ) : null}
       </div>
 
       <div className="mb-10 grid grid-cols-1 items-start gap-8 md:grid-cols-[260px_1fr] md:gap-12">
@@ -487,7 +567,7 @@ function DevelopStep({
         </div>
 
         <div>
-          <DevelopGrid skip={skip} onComplete={onComplete} />
+          <DevelopGrid results={results} variant={variant} sourceUrl={photo?.url} />
         </div>
       </div>
 

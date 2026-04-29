@@ -1,4 +1,4 @@
-# Vesperdrop
+# Verceldrop
 
 AI lifestyle photography tool for Shopify/Amazon sellers. Turns rough product photos into conversion-optimized 6-image batches using conversion-seeded presets.
 
@@ -13,14 +13,14 @@ AI lifestyle photography tool for Shopify/Amazon sellers. Turns rough product ph
 - **Analytics**: PostHog cloud
 - **AI**:
   - GPT-4o vision → Vercel AI Gateway via AI SDK v6 (`openai/gpt-4o`)
-  - Flux image gen → `@fal-ai/client` direct (queue-based streaming doesn't fit Gateway shape)
+  - Image generation → **Sceneify** (internal API at `SCENEIFY_API_URL`), called via `lib/ai/sceneify.ts` with Vercel OIDC. Sceneify wraps the underlying providers (gpt-image-2, nano-banana-2, flux-kontext, flux-2) and exposes a single `presetSlug + model + quality` interface.
 - **Testing**: Vitest (unit), Playwright (e2e)
 
 ## Architectural constraints
 
-- All LLM calls go through `lib/ai.ts`. Never import `openai` or `@fal-ai/client` from routes/components/hooks.
-- Every generation persists to Supabase **before** returning to the client. No orphan images.
-- Every external API call (OpenAI, Fal, Stripe) wraps retry + structured logging + cost tracking.
+- All LLM/image-gen calls go through `lib/ai/*` wrappers. Never call Sceneify HTTP or import `openai` from routes/components/hooks.
+- Every authenticated generation persists to Supabase **before** returning to the client. No orphan images. (`/try` is anonymous and intentionally non-persistent — see UX section.)
+- Every external API call (OpenAI, Sceneify, Stripe) wraps retry + structured logging + cost tracking.
 - Every user-facing route has an `error.tsx` boundary.
 - PostHog events instrumented alongside feature code, not backfilled.
 - Env-driven everything. No hardcoded keys, even for test/dev.
@@ -30,9 +30,9 @@ AI lifestyle photography tool for Shopify/Amazon sellers. Turns rough product ph
 1 credit = 1 generated lifestyle image at full 2000px resolution.
 
 ### Free tier (acquisition engine)
-- 1 full-resolution HD generation (no watermark, no card)
-- 5 watermarked 720p previews
-- Goal: convert within first session. Cost to us: ~$0.04 per free user who generates.
+- Anonymous `/try` flow: up to 5 watermarked previews per visitor, generated through Sceneify (`gpt-image-2`, medium quality). No account, no card, no DB persistence — results live in client state only.
+- Post sign-up: 1 full-resolution HD generation as a sign-up gift (no watermark).
+- Goal: convert within first session.
 
 ### Subscription tiers
 | Tier    | Price    | Credits/mo | ¢/credit | COGS  | Gross margin |
@@ -58,33 +58,27 @@ Packs intentionally cost more per credit than subscriptions — they are the ups
 
 ## Generation model strategy
 
-### Model costs (April 2026)
-| Model                          | Cost/image | Use case                          |
-|--------------------------------|------------|-----------------------------------|
-| Flux Schnell (fal.ai)          | ~$0.003    | Free watermarked previews         |
-| Flux 1.1 Pro (fal.ai)          | ~$0.04     | Paid HD generations               |
-| Nano Banana 2 (Gemini Flash)   | ~$0.039    | Paid HD, photoreal product shots  |
-| GPT-Image-1 medium (OpenAI)    | ~$0.16     | Premium quality                   |
-| GPT-Image-1 high (OpenAI)      | ~$0.25     | Print-quality / high-spend        |
-| VLM auto-describe (LLaVA)      | ~$0.002    | Per-generation overhead           |
+All image generation routes through **Sceneify**, our internal image-gen service. The app never picks providers directly — it picks a `presetSlug + model + quality` and Sceneify handles preset reference assembly, prompt construction, provider dispatch, and color QA.
 
-Blended paid COGS: ~$0.06–0.10/image. Free preview (Flux Schnell): ~$0.005.
+### Where each model is used today
+| Surface                               | Model            | Quality  | Notes                                    |
+|---------------------------------------|------------------|----------|------------------------------------------|
+| Anonymous `/try` (watermarked)        | `gpt-image-2`    | `medium` | `app/api/try/generate/route.ts`          |
+| Authenticated `/api/runs` (paid HD)   | `nano-banana-2`  | `high`   | `lib/workflows/process-run.ts:68`        |
 
-### Reference picking strategy (how presets work)
-- **MVP (now)**: At generation time, randomly grab 3–5 reference images from the preset and feed as style/IP-adapter inputs alongside the user's flatlay. Zero new infra. Results vary slightly run-to-run.
-- **v2 (month 1)**: VLM-matched references. VLM (LLaVA / Gemini Flash) classifies the user's garment first (denim shorts, knit top, leather jacket), then pulls the 3–5 preset references that best match. ~10× more consistent quality.
-- **v3 (month 3)**: LoRA fine-tune per preset. One-time ~$30–100 training per preset (Replicate or fal.ai). Generations in that preset use the LoRA at zero extra inference cost. This is what Lalaland.ai and Botika do. Required for premium brand-tier output.
-- **Recommended path**: Ship MVP this week → v2 in parallel → v3 after 100 paying customers.
+Available models in the wrapper: `gpt-image-2 | nano-banana-2 | flux-kontext | flux-2`. To change a tier's default, edit the call site — do not branch by `model` inside `lib/ai/sceneify.ts`.
+
+Reference picking, preset weighting, LoRA fine-tunes, and per-preset tuning are Sceneify-side concerns. This repo treats Sceneify as a black box behind a stable HTTP contract.
 
 ## Freemium-to-paid conversion mechanic
 
 This is the single most important UX decision. The pattern:
-1. User uploads flatlay → free generation runs on **Flux Schnell** (~8s, $0.005)
-2. Result appears watermarked + 720p
-3. Below result: "Upgrade to HD, no watermark — $9 for 10 credits, or $49/mo for 200."
-4. HD version generates on **Flux 1.1 Pro / Nano Banana 2** the moment they pay — they see the upgrade in real time.
+1. User uploads flatlay on `/try` → up to 5 watermarked previews generate via Sceneify (`gpt-image-2`, medium). One request per picked scene, parallel, anonymous.
+2. As tiles complete, the develop grid fills in real time (real images, not stock).
+3. Once all picked scenes finish, the sign-up gate appears.
+4. After sign-up the user uses their 1-credit HD gift via the authenticated `/api/runs` path, which runs Sceneify at `nano-banana-2` quality `high`.
 
-Converts at 8–15% in fashion-tool benchmarks. Higher than any pure paywall.
+Anonymous `/try` is throttled with an in-memory per-IP rate limiter in the route. Replace with a durable rate limiter when traffic warrants.
 
 ## Commands
 
@@ -163,7 +157,7 @@ Split layout: left panel carries brand wordmark, 4 benefit bullets, and 3 testim
 - ⏳ Supabase — provision via Vercel Marketplace
 - ⏳ Stripe — provision via Vercel Marketplace, test mode
 - ⏳ PostHog — cloud signup
-- ⏳ Domain: vesperdrop.com (user to purchase)
+- ⏳ Domain: verceldrop.com (user to purchase)
 
 ## Reference material
 

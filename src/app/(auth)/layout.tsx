@@ -15,7 +15,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           href="/"
           className="font-serif text-4xl font-light italic leading-none tracking-tight text-[var(--color-ink)]"
         >
-          Vesperdrop
+          Verceldrop
         </Link>
 
         <div className="space-y-10">
@@ -58,7 +58,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         <p className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-ink-3)]">
-          &copy; 2026 VESPERDROP STUDIO
+          &copy; 2026 VERCELDROP STUDIO
         </p>
       </div>
 

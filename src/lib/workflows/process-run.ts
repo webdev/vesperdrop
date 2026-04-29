@@ -120,7 +120,7 @@ async function watermarkOne(row: { id: string; output_url: string | null }, orig
   if (!row.output_url) return;
   const res = await fetch(row.output_url);
   const buf = Buffer.from(await res.arrayBuffer());
-  const out = await applyWatermark(buf, "VESPERDROP PREVIEW");
+  const out = await applyWatermark(buf, "VERCELDROP PREVIEW");
   const url = await storeWatermarked(out, `${row.id}.png`, origin);
   await updateGeneration(row.id, { outputUrl: url, watermarked: true });
 }

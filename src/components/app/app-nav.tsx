@@ -5,7 +5,7 @@ export function AppNav({ firstName, email }: { firstName: string | null; email: 
     <nav className="border-b border-[var(--color-line)] bg-[var(--color-paper)]">
       <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
         <Link href="/app" className="font-serif text-xl">
-          Vesperdrop
+          Verceldrop
         </Link>
         <div className="flex items-center gap-4 text-sm">
           <span className="text-[var(--color-ink-2)]">

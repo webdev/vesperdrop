@@ -44,7 +44,7 @@ export async function SiteNav() {
             href="/"
             className="block font-serif text-4xl font-light italic leading-none tracking-tight text-[var(--color-ink)] md:text-5xl"
           >
-            Vesperdrop
+            Verceldrop
           </Link>
           <div className="mt-2 font-mono text-[9px] tracking-[0.3em] text-[var(--color-ink-3)]">
             &mdash; EST. 2026 &middot; BROOKLYN NY &mdash;

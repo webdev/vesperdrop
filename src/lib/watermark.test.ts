@@ -7,7 +7,7 @@ describe("applyWatermark", () => {
     const input = await sharp({
       create: { width: 800, height: 600, channels: 3, background: "#888" },
     }).png().toBuffer();
-    const out = await applyWatermark(input, "VESPERDROP PREVIEW");
+    const out = await applyWatermark(input, "VERCELDROP PREVIEW");
     const meta = await sharp(out).metadata();
     expect(meta.width).toBe(800);
     expect(meta.height).toBe(600);

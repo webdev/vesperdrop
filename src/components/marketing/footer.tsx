@@ -9,7 +9,7 @@ export function Footer() {
             href="/"
             className="block font-serif text-3xl font-light italic tracking-tight text-[var(--color-ink)]"
           >
-            Vesperdrop
+            Verceldrop
           </Link>
           <p className="mt-3 max-w-xs font-serif text-base font-light leading-snug text-[var(--color-ink-2)]">
             Lifestyle photography, generated. For sellers who shoot on bedsheets
@@ -42,10 +42,10 @@ export function Footer() {
 
         <div className="md:text-right">
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-ink-3)]">
-            &copy; 2026 Vesperdrop Studio
+            &copy; 2026 Verceldrop Studio
           </p>
           <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-ink-3)]">
-            vesperdrop.com
+            verceldrop.com
           </p>
         </div>
       </div>
