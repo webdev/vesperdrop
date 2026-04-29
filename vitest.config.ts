@@ -5,7 +5,7 @@ import path from "node:path";
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: "node",
+    environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
     exclude: ["**/node_modules/**", "**/.next/**", "e2e/**"],
   },
