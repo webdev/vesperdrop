@@ -64,22 +64,38 @@ export function useProgressBatch(args: {
   const reanchorShownRef = useRef(false);
   const historyRef = useRef<string[]>([]);
 
+  // Refs for values we read inside the rotation interval but do NOT want as
+  // effect deps — including them would tear down and re-create the 2.8s
+  // interval on every server tick / client smooth tick, so it never fires.
+  const slowestElapsedRef = useRef(agg.slowestElapsedMs);
+  const allDoneRef = useRef(agg.allDone);
+  const attributesRef = useRef(primary?.attributes ?? null);
+  const presetRef = useRef(primaryPreset);
+  useEffect(() => {
+    slowestElapsedRef.current = agg.slowestElapsedMs;
+    allDoneRef.current = agg.allDone;
+    attributesRef.current = primary?.attributes ?? null;
+    presetRef.current = primaryPreset;
+  });
+
   useEffect(() => {
     if (!agg.medianPhaseId) return;
-    const interval = window.setInterval(() => {
+    const phaseId = agg.medianPhaseId;
+
+    const rotate = () => {
       if (
         !reanchorShownRef.current &&
-        agg.slowestElapsedMs > REANCHOR_AT_MS &&
-        !agg.allDone
+        slowestElapsedRef.current > REANCHOR_AT_MS &&
+        !allDoneRef.current
       ) {
         reanchorShownRef.current = true;
         setCurrentLine(REANCHOR_LINE);
         return;
       }
       const line = pickLine(
-        agg.medianPhaseId!,
-        primary?.attributes ?? null,
-        primaryPreset,
+        phaseId,
+        attributesRef.current,
+        presetRef.current,
         historyRef.current,
       );
       historyRef.current = [...historyRef.current.slice(-2), line];
@@ -87,9 +103,11 @@ export function useProgressBatch(args: {
       setFilmstripIndex((i) => (i + 1) % 5);
       setHighlight(true);
       window.setTimeout(() => setHighlight(false), 1800);
-    }, ROTATION_MS);
+    };
+    rotate(); // fire first line immediately so the screen doesn't sit on "Getting things ready…"
+    const interval = window.setInterval(rotate, ROTATION_MS);
     return () => window.clearInterval(interval);
-  }, [primaryPreset, primary?.attributes, agg.medianPhaseId, agg.slowestElapsedMs, agg.allDone]);
+  }, [agg.medianPhaseId]);
 
   useEffect(() => {
     if (!agg.showCounter) return;
