@@ -447,10 +447,9 @@ function DevelopStep({
     })),
   );
 
-  useEffect(() => {
-    if (results.length === 0) return;
-    if (results.every((r) => r.status !== "pending")) onComplete();
-  }, [results, onComplete]);
+  const allSettled =
+    results.length > 0 && results.every((r) => r.status !== "pending");
+  const anySucceeded = results.some((r) => r.status === "succeeded");
 
   return (
     <div className="relative">
@@ -529,6 +528,18 @@ function DevelopStep({
           )}
         </div>
       </div>
+
+      {allSettled && anySucceeded && !developDone ? (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onComplete}
+            className="inline-flex items-center rounded-full bg-[var(--color-ink)] px-7 py-3 text-sm font-medium text-[var(--color-cream)] transition-transform hover:scale-[1.02] hover:bg-[var(--color-ember)]"
+          >
+            Next →
+          </button>
+        </div>
+      ) : null}
 
       {developDone ? <SignUpGate onReset={onReset} /> : null}
     </div>
