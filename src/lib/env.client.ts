@@ -6,6 +6,10 @@ const ClientEnv = z.object({
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().min(1),
   NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN: z.string().min(1).optional(),
   NEXT_PUBLIC_POSTHOG_HOST: z.string().url().default("https://us.i.posthog.com"),
+  // When "1", show the admin-only mock-gen toggle pill on /try. Set this in
+  // Vercel's project env vars per environment (typically Production only) so
+  // admins can short-circuit Sceneify on live deployments without code changes.
+  NEXT_PUBLIC_ENABLE_MOCK_GEN: z.enum(["0", "1"]).default("0"),
 });
 
 export const clientEnv = ClientEnv.parse({
@@ -14,4 +18,5 @@ export const clientEnv = ClientEnv.parse({
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
   NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN: process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN,
   NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+  NEXT_PUBLIC_ENABLE_MOCK_GEN: process.env.NEXT_PUBLIC_ENABLE_MOCK_GEN,
 });

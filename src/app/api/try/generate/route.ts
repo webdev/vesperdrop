@@ -113,11 +113,14 @@ export async function POST(req: Request) {
   const origin = new URL(req.url).origin;
   const key = `try-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-  // Mock branch — admin-only, cookie-gated. Skips Blob upload, VLM, Sceneify,
-  // and watermarking. Streams the same ready/tick/phase cadence + a synthetic
-  // done event. Used for UX iteration without burning Sceneify or Gemini cost.
+  // Mock branch — admin-only, cookie-gated, env-gated. Skips Blob upload, VLM,
+  // Sceneify, and watermarking. Streams the same ready/tick/phase cadence + a
+  // synthetic done event. Used for UX iteration without burning Sceneify or
+  // Gemini cost. The NEXT_PUBLIC_ENABLE_MOCK_GEN flag is checked here too so
+  // a leaked cookie can't trigger mock in environments where it's disabled.
+  const mockEnabled = process.env.NEXT_PUBLIC_ENABLE_MOCK_GEN === "1";
   const cookieStore = await cookies();
-  const wantsMock = cookieStore.get("vd_mock_gen")?.value === "1";
+  const wantsMock = mockEnabled && cookieStore.get("vd_mock_gen")?.value === "1";
   let isAdmin = false;
   if (wantsMock) {
     const supabase = await createSupabaseServerClient();
