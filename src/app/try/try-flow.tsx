@@ -14,7 +14,7 @@ import {
 
 import type { Scene } from "@/lib/db/scenes";
 import { track } from "@/lib/analytics";
-import { clientEnv } from "@/lib/env.client";
+import { isNonProdEnv } from "@/lib/env.client";
 import { WizardSteps, type StepId } from "./wizard-steps";
 import { ExampleInput } from "./example-input";
 import {
@@ -182,7 +182,7 @@ export function TryFlow({
           />
         ) : null}
       </main>
-      {isAdmin && clientEnv.NEXT_PUBLIC_ENABLE_MOCK_GEN === "1" ? <AdminMockToggle /> : null}
+      {isAdmin && isNonProdEnv ? <AdminMockToggle /> : null}
     </div>
   );
 }

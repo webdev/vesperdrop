@@ -116,9 +116,10 @@ export async function POST(req: Request) {
   // Mock branch — admin-only, cookie-gated, env-gated. Skips Blob upload, VLM,
   // Sceneify, and watermarking. Streams the same ready/tick/phase cadence + a
   // synthetic done event. Used for UX iteration without burning Sceneify or
-  // Gemini cost. The NEXT_PUBLIC_ENABLE_MOCK_GEN flag is checked here too so
-  // a leaked cookie can't trigger mock in environments where it's disabled.
-  const mockEnabled = process.env.NEXT_PUBLIC_ENABLE_MOCK_GEN === "1";
+  // Gemini cost. Disabled in production so a leaked cookie can't trigger mock
+  // there. VERCEL_ENV is unset in pure local `pnpm dev`, so the check passes
+  // and the mock works locally too.
+  const mockEnabled = process.env.VERCEL_ENV !== "production";
   const cookieStore = await cookies();
   const wantsMock = mockEnabled && cookieStore.get("vd_mock_gen")?.value === "1";
   let isAdmin = false;
