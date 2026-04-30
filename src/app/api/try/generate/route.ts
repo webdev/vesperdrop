@@ -2,12 +2,15 @@ import { put } from "@vercel/blob";
 import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
+import { cookies } from "next/headers";
 import { generateViaSceneify, SceneifyError } from "@/lib/ai/sceneify";
 import { extractAttributes } from "@/lib/ai/extract-attributes";
 import { applyWatermark } from "@/lib/watermark";
 import { storeWatermarked } from "@/lib/storage";
 import { encodeSse } from "@/lib/progress/sse-encoder";
 import { phaseAtElapsed, type PhaseId } from "@/lib/progress/strings";
+import { isAdminEmail } from "@/lib/admin";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
 
 export const runtime = "nodejs";
@@ -17,6 +20,9 @@ const ipBuckets = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 12;
 const WINDOW_MS = 60_000;
 const TOTAL_EST_MS = 70_000;
+const MOCK_GEN_DURATION_MS = 14_000;
+const MOCK_OUTPUT_URL =
+  "https://placehold.co/1024x1024/1b1915/f4f0e8.png?text=MOCK+GEN";
 
 function rateLimitOk(ip: string): boolean {
   const now = Date.now();
@@ -34,6 +40,51 @@ function jsonError(message: string, status: number) {
   return new Response(JSON.stringify({ error: message }), {
     status,
     headers: { "content-type": "application/json" },
+  });
+}
+
+function buildMockStream(slug: string): ReadableStream<Uint8Array> {
+  return new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const startedAt = Date.now();
+      let lastPhase: PhaseId | null = null;
+      let closed = false;
+      const send = (event: string, data: unknown) => {
+        if (closed) return;
+        try {
+          controller.enqueue(encodeSse(event, data));
+        } catch {
+          closed = true;
+        }
+      };
+
+      send("ready", { startedAt });
+      send("attributes", null);
+
+      const tickInterval = setInterval(() => {
+        if (closed) return;
+        const elapsedMs = Date.now() - startedAt;
+        send("tick", { elapsedMs });
+        const phase = phaseAtElapsed(elapsedMs, MOCK_GEN_DURATION_MS);
+        if (phase !== lastPhase) {
+          lastPhase = phase;
+          send("phase", { id: phase, elapsedMs, totalEstMs: MOCK_GEN_DURATION_MS });
+        }
+      }, 1000);
+
+      try {
+        await new Promise((r) => setTimeout(r, MOCK_GEN_DURATION_MS));
+        clearInterval(tickInterval);
+        send("done", { outputUrl: MOCK_OUTPUT_URL, sceneSlug: slug });
+      } finally {
+        closed = true;
+        try {
+          controller.close();
+        } catch {
+          /* already closed */
+        }
+      }
+    },
   });
 }
 
@@ -61,6 +112,29 @@ export async function POST(req: Request) {
 
   const origin = new URL(req.url).origin;
   const key = `try-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  // Mock branch — admin-only, cookie-gated. Skips Blob upload, VLM, Sceneify,
+  // and watermarking. Streams the same ready/tick/phase cadence + a synthetic
+  // done event. Used for UX iteration without burning Sceneify or Gemini cost.
+  const cookieStore = await cookies();
+  const wantsMock = cookieStore.get("vd_mock_gen")?.value === "1";
+  let isAdmin = false;
+  if (wantsMock) {
+    const supabase = await createSupabaseServerClient();
+    const { data } = await supabase.auth.getUser();
+    isAdmin = isAdminEmail(data.user?.email ?? null);
+  }
+  if (wantsMock && isAdmin) {
+    return new Response(buildMockStream(slug), {
+      headers: {
+        "content-type": "text/event-stream",
+        "cache-control": "no-cache, no-transform",
+        connection: "keep-alive",
+        "x-accel-buffering": "no",
+      },
+    });
+  }
+
   const bytes = Buffer.from(await photo.arrayBuffer());
 
   let sourceUrl: string;

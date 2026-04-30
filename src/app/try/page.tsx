@@ -3,6 +3,7 @@ import { sceneify } from "@/lib/sceneify/client";
 import type { Scene } from "@/lib/db/scenes";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { firstNameFrom } from "@/lib/user-display";
+import { isAdminEmail } from "@/lib/admin";
 import { TryFlow } from "./try-flow";
 
 export const metadata: Metadata = {
@@ -37,5 +38,11 @@ export default async function Page() {
     palette: p.palette,
     imageUrl: p.heroImageUrl,
   }));
-  return <TryFlow scenes={scenes} firstName={user ? firstNameFrom(user) : null} />;
+  return (
+    <TryFlow
+      scenes={scenes}
+      firstName={user ? firstNameFrom(user) : null}
+      isAdmin={isAdminEmail(user?.email ?? null)}
+    />
+  );
 }

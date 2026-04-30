@@ -32,9 +32,11 @@ type Photo = { url: string; name: string; isObjectUrl: boolean; file: File | nul
 export function TryFlow({
   scenes,
   firstName,
+  isAdmin = false,
 }: {
   scenes: Scene[];
   firstName: string | null;
+  isAdmin?: boolean;
 }) {
   const sceneById = scenes.reduce<Record<string, Scene>>(
     (acc, s) => ({ ...acc, [s.slug]: s }),
@@ -179,7 +181,32 @@ export function TryFlow({
           />
         ) : null}
       </main>
+      {isAdmin ? <AdminMockToggle /> : null}
     </div>
+  );
+}
+
+function AdminMockToggle() {
+  const [on, setOn] = useState<boolean>(() => {
+    if (typeof document === "undefined") return false;
+    return document.cookie.split("; ").some((c) => c === "vd_mock_gen=1");
+  });
+  const toggle = () => {
+    const next = !on;
+    document.cookie = next
+      ? `vd_mock_gen=1; path=/; max-age=86400; samesite=lax`
+      : `vd_mock_gen=; path=/; max-age=0; samesite=lax`;
+    setOn(next);
+  };
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      className="fixed bottom-4 right-4 z-50 rounded-full border border-[var(--color-line)] bg-[var(--color-paper)] px-3 py-1.5 font-mono text-[10px] tracking-[0.18em] uppercase shadow-md hover:border-[var(--color-ember)]"
+      aria-label="Toggle mock generation"
+    >
+      Mock gen: <span className={on ? "text-[var(--color-ember)]" : "text-[var(--color-ink-3)]"}>{on ? "ON" : "OFF"}</span>
+    </button>
   );
 }
 
