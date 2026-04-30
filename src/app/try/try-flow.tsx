@@ -14,6 +14,7 @@ import {
 
 import type { Scene } from "@/lib/db/scenes";
 import { track } from "@/lib/analytics";
+import { isNonProdEnv } from "@/lib/env.client";
 import { WizardSteps, type StepId } from "./wizard-steps";
 import { ExampleInput } from "./example-input";
 import {
@@ -21,6 +22,7 @@ import {
   type DevelopGridVariant,
   type TileResult,
 } from "./develop-grid";
+import { ProgressScreen } from "./progress-screen";
 
 const SAMPLE_SRC = "/marketing/before-after/cami_before.png";
 const SAMPLE_NAME = "CAM-BRN-S_SAMPLE.JPG";
@@ -31,9 +33,11 @@ type Photo = { url: string; name: string; isObjectUrl: boolean; file: File | nul
 export function TryFlow({
   scenes,
   firstName,
+  isAdmin = false,
 }: {
   scenes: Scene[];
   firstName: string | null;
+  isAdmin?: boolean;
 }) {
   const sceneById = scenes.reduce<Record<string, Scene>>(
     (acc, s) => ({ ...acc, [s.slug]: s }),
@@ -178,7 +182,32 @@ export function TryFlow({
           />
         ) : null}
       </main>
+      {isAdmin && isNonProdEnv ? <AdminMockToggle /> : null}
     </div>
+  );
+}
+
+function AdminMockToggle() {
+  const [on, setOn] = useState<boolean>(() => {
+    if (typeof document === "undefined") return false;
+    return document.cookie.split("; ").some((c) => c === "vd_mock_gen=1");
+  });
+  const toggle = () => {
+    const next = !on;
+    document.cookie = next
+      ? `vd_mock_gen=1; path=/; max-age=86400; samesite=lax`
+      : `vd_mock_gen=; path=/; max-age=0; samesite=lax`;
+    setOn(next);
+  };
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      className="fixed bottom-4 right-4 z-50 rounded-full border border-[var(--color-line)] bg-[var(--color-paper)] px-3 py-1.5 font-mono text-[10px] tracking-[0.18em] uppercase shadow-md hover:border-[var(--color-ember)]"
+      aria-label="Toggle mock generation"
+    >
+      Mock gen: <span className={on ? "text-[var(--color-ember)]" : "text-[var(--color-ink-3)]"}>{on ? "ON" : "OFF"}</span>
+    </button>
   );
 }
 
@@ -361,6 +390,7 @@ function ScenesStep({
             <button
               key={s.slug}
               type="button"
+              data-testid="scene-card"
               onClick={() => onToggle(s.slug)}
               onKeyDown={(e) => onCardKey(e, s.slug)}
               disabled={atCap}
@@ -408,6 +438,7 @@ function ScenesStep({
         </p>
         <button
           type="button"
+          data-testid="generate-button"
           disabled={picked.length === 0}
           onClick={onContinue}
           className="inline-flex items-center rounded-full bg-[var(--color-ember)] px-6 py-3 text-sm font-medium text-[var(--color-cream)] transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
@@ -444,78 +475,9 @@ function DevelopStep({
     })),
   );
 
-  const fired = useRef(false);
-  useEffect(() => {
-    if (fired.current) return;
-    fired.current = true;
-    if (!photo || picked.length === 0) return;
-
-    (async () => {
-      let blob: Blob;
-      try {
-        if (photo.file) {
-          blob = photo.file;
-        } else {
-          const r = await fetch(photo.url);
-          blob = await r.blob();
-        }
-      } catch (e) {
-        const message = e instanceof Error ? e.message : "could not read photo";
-        setResults((prev) =>
-          prev.map((r) => ({ ...r, status: "failed", error: message })),
-        );
-        return;
-      }
-
-      await Promise.all(
-        picked.map(async (slug) => {
-          try {
-            const form = new FormData();
-            form.append("file", blob, photo.name);
-            form.append("sceneSlug", slug);
-            const res = await fetch("/api/try/generate", {
-              method: "POST",
-              body: form,
-            });
-            const data = (await res.json()) as
-              | { outputUrl: string; sceneSlug: string }
-              | { error: string };
-            if (!res.ok || "error" in data) {
-              const error = "error" in data ? data.error : `error ${res.status}`;
-              setResults((prev) =>
-                prev.map((r) =>
-                  r.sceneSlug === slug ? { ...r, status: "failed", error } : r,
-                ),
-              );
-              track("try_generate_failed", { slug, error });
-              return;
-            }
-            setResults((prev) =>
-              prev.map((r) =>
-                r.sceneSlug === slug
-                  ? { ...r, status: "succeeded", outputUrl: data.outputUrl }
-                  : r,
-              ),
-            );
-            track("try_generate_succeeded", { slug });
-          } catch (e) {
-            const error = e instanceof Error ? e.message : "network error";
-            setResults((prev) =>
-              prev.map((r) =>
-                r.sceneSlug === slug ? { ...r, status: "failed", error } : r,
-              ),
-            );
-            track("try_generate_failed", { slug, error });
-          }
-        }),
-      );
-    })();
-  }, [photo, picked]);
-
-  useEffect(() => {
-    if (results.length === 0) return;
-    if (results.every((r) => r.status !== "pending")) onComplete();
-  }, [results, onComplete]);
+  const allSettled =
+    results.length > 0 && results.every((r) => r.status !== "pending");
+  const anySucceeded = results.some((r) => r.status === "succeeded");
 
   return (
     <div className="relative">
@@ -567,9 +529,66 @@ function DevelopStep({
         </div>
 
         <div>
-          <DevelopGrid results={results} variant={variant} sourceUrl={photo?.url} />
+          {results.every((r) => r.status === "pending") && photo?.file && sceneById[picked[0]] ? (
+            <ProgressScreen
+              file={photo.file}
+              sceneSlugs={picked}
+              userPhotoUrl={photo.url}
+              primaryPreset={{
+                slug: sceneById[picked[0]].slug,
+                name: sceneById[picked[0]].name,
+                mood: sceneById[picked[0]].mood,
+                palette: sceneById[picked[0]].palette,
+                category: sceneById[picked[0]].category,
+              }}
+              presetMetaBySlug={Object.fromEntries(
+                picked.map((slug) => [
+                  slug,
+                  {
+                    slug: sceneById[slug]?.slug ?? slug,
+                    name: sceneById[slug]?.name ?? slug,
+                    mood: sceneById[slug]?.mood ?? "",
+                    palette: sceneById[slug]?.palette ?? [],
+                    category: sceneById[slug]?.category ?? "",
+                  },
+                ]),
+              )}
+              variant={variant}
+              initialResults={results}
+              onSettled={(out) => {
+                setResults((prev) =>
+                  prev.map((r) => {
+                    const hit = out.find((o) => o.slug === r.sceneSlug);
+                    if (!hit) return r;
+                    if (hit.outputUrl) {
+                      return { ...r, status: "succeeded", outputUrl: hit.outputUrl };
+                    }
+                    return { ...r, status: "failed", error: hit.error ?? "failed" };
+                  }),
+                );
+                for (const item of out) {
+                  if (item.outputUrl) track("try_generate_succeeded", { slug: item.slug });
+                  else track("try_generate_failed", { slug: item.slug, error: item.error ?? "failed" });
+                }
+              }}
+            />
+          ) : (
+            <DevelopGrid results={results} variant={variant} sourceUrl={photo?.url} />
+          )}
         </div>
       </div>
+
+      {allSettled && anySucceeded && !developDone ? (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onComplete}
+            className="inline-flex items-center rounded-full bg-[var(--color-ink)] px-7 py-3 text-sm font-medium text-[var(--color-cream)] transition-transform hover:scale-[1.02] hover:bg-[var(--color-ember)]"
+          >
+            Next →
+          </button>
+        </div>
+      ) : null}
 
       {developDone ? <SignUpGate onReset={onReset} /> : null}
     </div>

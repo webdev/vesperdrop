@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { refreshSession } from "@/lib/supabase/middleware";
+import { ADMIN_EMAILS } from "@/lib/admin";
 
-// During private development, only these emails may access the site.
-const ALLOWED_EMAILS = ["gblazer@gmail.com", "info@slavablazer.com"];
+// During private development, only the admin allowlist may access the site.
+const ALLOWED_EMAILS = ADMIN_EMAILS;
 
 // Paths that bypass the gate entirely (auth UI + API routes handle their own auth).
 const PUBLIC_PREFIXES = [
