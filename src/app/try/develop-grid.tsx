@@ -159,6 +159,7 @@ function Tile({
   const cornerSeed = seed % 4;
 
   return (
+    <div className="flex flex-col gap-2">
     <div className="relative aspect-[4/5] overflow-hidden border border-[var(--color-line)] bg-[var(--color-ink)]">
       {tile.outputUrl ? (
         <img
@@ -211,33 +212,32 @@ function Tile({
         {String(total).padStart(2, "0")}
       </div>
 
-      {!isDone ? (
-        <div
-          className="pointer-events-none absolute right-2 bottom-2 left-2 text-right font-mono text-[10px]"
-          style={{ zIndex: 40 }}
-        >
-          {isFailed ? (
-            <span className="bg-[var(--color-ember)]/85 px-1.5 py-0.5 tracking-[0.16em] text-[var(--color-cream)] uppercase">
-              RESHOOT NEEDED
+    </div>
+
+    {!isDone ? (
+      <div className="min-h-[18px] font-mono text-[10px]">
+        {isFailed ? (
+          <span className="tracking-[0.16em] text-[var(--color-ember)] uppercase">
+            RESHOOT NEEDED
+          </span>
+        ) : liveMode ? (
+          <span className="inline-flex items-center gap-1.5 text-[var(--color-ink-2)]">
+            <span className="vd-spin inline-block">⟳</span>
+            <span className="normal-case tracking-normal">{liveLine || "starting…"}</span>
+          </span>
+        ) : (
+          <span className="tracking-[0.18em] text-[var(--color-ink-3)] uppercase">
+            {phase}
+            <span className="ml-1 opacity-70">
+              {Math.min(99, Math.round(progress * 100))
+                .toString()
+                .padStart(2, "0")}
+              %
             </span>
-          ) : liveMode ? (
-            <span className="inline-flex items-center gap-1.5 bg-black/50 px-2 py-1 text-[var(--color-cream)] backdrop-blur-sm">
-              <span className="vd-spin inline-block">⟳</span>
-              <span className="truncate normal-case tracking-normal">{liveLine || "starting…"}</span>
-            </span>
-          ) : (
-            <span className="tracking-[0.18em] text-[var(--color-cream)] uppercase">
-              {phase}
-              <span className="ml-1 opacity-70">
-                {Math.min(99, Math.round(progress * 100))
-                  .toString()
-                  .padStart(2, "0")}
-                %
-              </span>
-            </span>
-          )}
-        </div>
-      ) : null}
+          </span>
+        )}
+      </div>
+    ) : null}
     </div>
   );
 }
