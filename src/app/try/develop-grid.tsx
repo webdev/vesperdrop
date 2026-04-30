@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const TILE_REVEAL_MS = 1100;
 const STATUS_PHASES = ["EXPOSING", "DEVELOPING", "FIXING", "WASHING"] as const;
@@ -31,12 +31,21 @@ const GRAIN_HUD = [
   "PHASE LOCK",
 ];
 
+import { pickLine, type PhaseId, type PresetMeta } from "@/lib/progress/strings";
+import type { ExtractedAttributes } from "@/lib/ai/extract-attributes";
+
 export type TileResult = {
   sceneSlug: string;
   sceneName: string;
   status: "pending" | "succeeded" | "failed";
   outputUrl?: string;
   error?: string;
+  // Optional live-stream context. When `streamPhaseId` is set the tile shows
+  // the rotating, slot-filled caption from our streaming events instead of
+  // the synthetic darkroom phase string.
+  streamPhaseId?: PhaseId | null;
+  streamAttributes?: ExtractedAttributes | null;
+  presetMeta?: PresetMeta;
 };
 
 export type DevelopGridVariant = "darkroom" | "grain";
@@ -92,6 +101,7 @@ function Tile({
 }) {
   const isDone = tile.status === "succeeded";
   const isFailed = tile.status === "failed";
+  const liveMode = tile.streamPhaseId != null && tile.presetMeta != null;
 
   const seed = useMemo(() => hashSeed(tile.sceneSlug + ":" + index), [tile.sceneSlug, index]);
   const [startedAt] = useState(() => performance.now() - (seed % 800));
@@ -106,6 +116,38 @@ function Tile({
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [isDone, isFailed]);
+
+  // Rotating live caption when streaming context is supplied. Each tile picks
+  // its own line so 5 parallel tiles narrate 5 different things at once.
+  const [liveLine, setLiveLine] = useState<string>("");
+  const lineHistoryRef = useRef<string[]>([]);
+  const phaseRef = useRef<PhaseId | null>(null);
+  const attrRef = useRef<ExtractedAttributes | null>(null);
+  const presetRef = useRef<PresetMeta | null>(null);
+  useEffect(() => {
+    phaseRef.current = tile.streamPhaseId ?? null;
+    attrRef.current = tile.streamAttributes ?? null;
+    presetRef.current = tile.presetMeta ?? null;
+  });
+  useEffect(() => {
+    if (!liveMode || isDone || isFailed) return;
+    const rotate = () => {
+      const phase = phaseRef.current;
+      const preset = presetRef.current;
+      if (!phase || !preset) return;
+      const next = pickLine(phase, attrRef.current, preset, lineHistoryRef.current);
+      lineHistoryRef.current = [...lineHistoryRef.current.slice(-2), next];
+      setLiveLine(next);
+    };
+    // Stagger initial fire by tile seed so the 5 tiles don't tick in lockstep.
+    const initialDelay = (seed % 5) * 280;
+    const t = window.setTimeout(rotate, initialDelay);
+    const interval = window.setInterval(rotate, 2800);
+    return () => {
+      window.clearTimeout(t);
+      window.clearInterval(interval);
+    };
+  }, [liveMode, isDone, isFailed, seed, tile.streamPhaseId]);
 
   const elapsed = Math.max(0, now - startedAt);
   const phase: Phase = computePhase(elapsed);
@@ -171,15 +213,20 @@ function Tile({
 
       {!isDone ? (
         <div
-          className="pointer-events-none absolute right-2 bottom-2 max-w-[80%] text-right font-mono text-[9px] uppercase"
+          className="pointer-events-none absolute right-2 bottom-2 left-2 text-right font-mono text-[10px]"
           style={{ zIndex: 40 }}
         >
           {isFailed ? (
-            <span className="bg-[var(--color-ember)]/85 px-1.5 py-0.5 tracking-[0.16em] text-[var(--color-cream)]">
+            <span className="bg-[var(--color-ember)]/85 px-1.5 py-0.5 tracking-[0.16em] text-[var(--color-cream)] uppercase">
               RESHOOT NEEDED
             </span>
+          ) : liveMode ? (
+            <span className="inline-flex items-center gap-1.5 bg-black/50 px-2 py-1 text-[var(--color-cream)] backdrop-blur-sm">
+              <span className="vd-spin inline-block">⟳</span>
+              <span className="truncate normal-case tracking-normal">{liveLine || "starting…"}</span>
+            </span>
           ) : (
-            <span className="tracking-[0.18em] text-[var(--color-cream)]">
+            <span className="tracking-[0.18em] text-[var(--color-cream)] uppercase">
               {phase}
               <span className="ml-1 opacity-70">
                 {Math.min(99, Math.round(progress * 100))
@@ -702,6 +749,8 @@ const GRAIN_SVG =
   "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.98  0 0 0 0 0.97  0 0 0 0 0.94  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")";
 
 const GLOBAL_KEYFRAMES = `
+  @keyframes vd-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .vd-spin { animation: vd-spin 1.6s linear infinite; }
   @keyframes vd-safelight-sweep {
     0% { transform: translateX(-60%) translateY(-20%) rotate(8deg); }
     100% { transform: translateX(60%) translateY(20%) rotate(8deg); }

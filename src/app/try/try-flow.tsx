@@ -540,6 +540,20 @@ function DevelopStep({
                 palette: sceneById[picked[0]].palette,
                 category: sceneById[picked[0]].category,
               }}
+              presetMetaBySlug={Object.fromEntries(
+                picked.map((slug) => [
+                  slug,
+                  {
+                    slug: sceneById[slug]?.slug ?? slug,
+                    name: sceneById[slug]?.name ?? slug,
+                    mood: sceneById[slug]?.mood ?? "",
+                    palette: sceneById[slug]?.palette ?? [],
+                    category: sceneById[slug]?.category ?? "",
+                  },
+                ]),
+              )}
+              variant={variant}
+              initialResults={results}
               onSettled={(out) => {
                 setResults((prev) =>
                   prev.map((r) => {
