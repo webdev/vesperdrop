@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     "Simple credit-based pricing. 1 credit = 1 lifestyle shot at 2000px. Free tier with 1 HD generation, Pro from $49/mo for 200 credits. Cancel any time.",
   alternates: { canonical: "/pricing" },
   openGraph: {
-    title: "Pricing · Verceldrop",
+    title: "Pricing · Vesperdrop",
     description:
       "Simple credit-based pricing. 1 credit = 1 lifestyle shot at 2000px. Free tier with 1 HD generation, Pro from $49/mo for 200 credits.",
     url: "/pricing",

@@ -1,10 +1,10 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import type { SceneifyPreset } from "@/lib/sceneify/types";
+import type { SceneifyPublicPreset } from "@/lib/sceneify/types";
+import { applyPicks } from "./actions";
 
 type Direction = "left" | "right";
 type HistoryEntry = { id: string; dir: Direction };
@@ -13,15 +13,15 @@ type Phase = "swipe" | "review";
 const EXIT_MS = 280;
 const SWIPE_THRESHOLD = 110;
 
-export function SwipeDeck({ presets }: { presets: SceneifyPreset[] }) {
-  const router = useRouter();
+export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
+  const [continuing, startContinue] = useTransition();
   const presetIndex = useMemo(() => {
-    const map = new Map<string, { preset: SceneifyPreset; position: number }>();
-    presets.forEach((p, i) => map.set(p.id, { preset: p, position: i }));
+    const map = new Map<string, { preset: SceneifyPublicPreset; position: number }>();
+    presets.forEach((p, i) => map.set(p.slug, { preset: p, position: i }));
     return map;
   }, [presets]);
 
-  const allIds = useMemo(() => presets.map((p) => p.id), [presets]);
+  const allIds = useMemo(() => presets.map((p) => p.slug), [presets]);
 
   const [deck, setDeck] = useState<string[]>(allIds);
   const [liked, setLiked] = useState<string[]>([]);
@@ -129,7 +129,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPreset[] }) {
 
   const continueToUpload = () => {
     if (liked.length === 0) return;
-    router.push(`/app?presets=${liked.join(",")}`);
+    startContinue(() => applyPicks(liked));
   };
 
   // ============================================================
@@ -138,7 +138,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPreset[] }) {
   if (phase === "review") {
     const likedPresets = liked
       .map((id) => presetIndex.get(id)?.preset)
-      .filter((p): p is SceneifyPreset => Boolean(p));
+      .filter((p): p is SceneifyPublicPreset => Boolean(p));
 
     return (
       <div className="space-y-10">
@@ -178,10 +178,10 @@ export function SwipeDeck({ presets }: { presets: SceneifyPreset[] }) {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
               {likedPresets.map((p) => {
-                const pos = (presetIndex.get(p.id)?.position ?? 0) + 1;
-                const hero = p.referenceImageUrls[0];
+                const pos = (presetIndex.get(p.slug)?.position ?? 0) + 1;
+                const hero = p.heroImageUrl;
                 return (
-                  <div key={p.id} className="space-y-2">
+                  <div key={p.slug} className="space-y-2">
                     <div className="relative aspect-[4/5] overflow-hidden border border-[var(--color-line)] bg-[var(--color-paper-2)]">
                       {hero ? (
                         <img
@@ -197,7 +197,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPreset[] }) {
                       <button
                         type="button"
                         aria-label={`Remove ${p.name}`}
-                        onClick={() => removeLiked(p.id)}
+                        onClick={() => removeLiked(p.slug)}
                         className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[var(--color-cream)]/90 hover:bg-[var(--color-cream)] flex items-center justify-center text-[var(--color-ink)] text-xs leading-none cursor-pointer"
                       >
                         ✕
@@ -234,10 +234,10 @@ export function SwipeDeck({ presets }: { presets: SceneifyPreset[] }) {
             <button
               type="button"
               onClick={continueToUpload}
-              disabled={likedPresets.length === 0}
+              disabled={likedPresets.length === 0 || continuing}
               className="font-mono text-[11px] tracking-[0.12em] uppercase bg-[var(--color-ember)] text-[var(--color-cream)] px-5 py-2.5 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Continue → upload →
+              {continuing ? "Loading…" : "Continue → upload →"}
             </button>
           </div>
         </div>
@@ -353,7 +353,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPreset[] }) {
             const entry = presetIndex.get(id);
             if (!entry) return null;
             const { preset, position } = entry;
-            const hero = preset.referenceImageUrls[0];
+            const hero = preset.heroImageUrl;
             const refLabel = `REF_${String(position + 1).padStart(3, "0")} · PRESET`;
             return (
               <div

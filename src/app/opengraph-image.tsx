@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "Verceldrop — lifestyle photography, generated.";
+export const alt = "Vesperdrop — lifestyle photography, generated.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -42,7 +42,7 @@ export default async function OpengraphImage() {
               letterSpacing: -2,
             }}
           >
-            Verceldrop
+            Vesperdrop
           </div>
           <div
             style={{
@@ -69,7 +69,7 @@ export default async function OpengraphImage() {
             color: "#7a7268",
           }}
         >
-          <span>verceldrop.com</span>
+          <span>vesperdrop.com</span>
           <span style={{ color: "#c2451c" }}>1 free HD shot · no card</span>
         </div>
       </div>

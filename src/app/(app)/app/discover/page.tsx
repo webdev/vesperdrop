@@ -4,6 +4,6 @@ import { SwipeDeck } from "./swipe-deck";
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const presets = await sceneify().listPresets();
+  const presets = await sceneify().listPublicPresets();
   return <SwipeDeck presets={presets} />;
 }

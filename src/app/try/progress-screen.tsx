@@ -14,6 +14,7 @@ type Props = {
   presetMetaBySlug: Record<string, PresetMeta>;
   variant: DevelopGridVariant;
   initialResults: TileResult[];
+  onSourceUrl?: (url: string) => void;
   onSettled: (
     results: Array<{ slug: string; outputUrl?: string; error?: string }>,
   ) => void;
@@ -27,6 +28,7 @@ export function ProgressScreen({
   presetMetaBySlug,
   variant,
   initialResults,
+  onSourceUrl,
   onSettled,
 }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -51,6 +53,19 @@ export function ProgressScreen({
     return () => document.removeEventListener("visibilitychange", onVisibility);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const sourceUrlReportedRef = useRef(false);
+  useEffect(() => {
+    if (sourceUrlReportedRef.current || !onSourceUrl) return;
+    for (const slug of stableSlugs) {
+      const url = view.streams[slug]?.sourceUrl;
+      if (url) {
+        sourceUrlReportedRef.current = true;
+        onSourceUrl(url);
+        break;
+      }
+    }
+  }, [view.streams, stableSlugs, onSourceUrl]);
 
   const settledRef = useRef(false);
   useEffect(() => {

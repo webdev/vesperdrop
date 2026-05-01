@@ -1087,7 +1087,7 @@ export async function POST(req: Request) {
         const fetched = await fetch(result.outputUrl);
         if (!fetched.ok) throw new Error(`fetch generated image failed: ${fetched.status}`);
         const buf = Buffer.from(await fetched.arrayBuffer());
-        const watermarked = await applyWatermark(buf, "VERCELDROP PREVIEW");
+        const watermarked = await applyWatermark(buf, "VESPERDROP PREVIEW");
         const finalUrl = await storeWatermarked(watermarked, `${key}.png`, origin);
 
         clearInterval(tickInterval);

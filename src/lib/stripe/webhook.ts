@@ -12,7 +12,7 @@ import { getPostHogClient } from "@/lib/posthog-server";
 // ---------------------------------------------------------------------------
 
 /**
- * Map a Stripe price ID to a Verceldrop plan name using env-configured price IDs.
+ * Map a Stripe price ID to a Vesperdrop plan name using env-configured price IDs.
  * Returns null when the price ID is not recognised.
  */
 function priceIdToPlan(priceId: string): string | null {

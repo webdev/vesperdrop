@@ -10,10 +10,19 @@ import { track, identify } from "@/lib/analytics";
 type Mode = "sign-in" | "sign-up";
 type Step = "credentials" | "mfa";
 
-export function AuthForm({ mode }: { mode: Mode }) {
+export function AuthForm({
+  mode,
+  onSuccess,
+  next: nextOverride,
+}: {
+  mode: Mode;
+  onSuccess?: () => void | Promise<void>;
+  next?: string;
+}) {
   const supabase = createSupabaseBrowserClient();
   const router = useRouter();
-  const next = useSearchParams().get("next") ?? "/app";
+  const searchParams = useSearchParams();
+  const next = nextOverride ?? searchParams.get("next") ?? "/app";
 
   const [step, setStep] = useState<Step>("credentials");
   const [factorId, setFactorId] = useState<string | null>(null);
@@ -53,6 +62,10 @@ export function AuthForm({ mode }: { mode: Mode }) {
           identify(signUpData.user.id, { email });
           track("user_signed_up", { method: "email" });
         }
+        if (onSuccess) {
+          await onSuccess();
+          return;
+        }
         router.push(next);
         router.refresh();
         return;
@@ -77,6 +90,10 @@ export function AuthForm({ mode }: { mode: Mode }) {
         }
       }
 
+      if (onSuccess) {
+        await onSuccess();
+        return;
+      }
       router.push(next);
       router.refresh();
     });
@@ -94,6 +111,10 @@ export function AuthForm({ mode }: { mode: Mode }) {
         code: totpCode.replace(/\s/g, ""),
       });
       if (error) { setError(error.message); return; }
+      if (onSuccess) {
+        await onSuccess();
+        return;
+      }
       router.push(next);
       router.refresh();
     });

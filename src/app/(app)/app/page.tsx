@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { listScenes } from "@/lib/db/scenes";
+import { cookies } from "next/headers";
+import type { Scene } from "@/lib/db/scenes";
+import { sceneify } from "@/lib/sceneify/client";
 import { RunForm } from "@/components/app/run-form";
 
 export const dynamic = "force-dynamic";
@@ -7,11 +9,27 @@ export const dynamic = "force-dynamic";
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ scenes?: string }>;
+  searchParams: Promise<{ presets?: string; scenes?: string }>;
 }) {
-  const { scenes: scenesParam } = await searchParams;
-  const initialSelected = scenesParam?.split(",").filter(Boolean) ?? [];
-  const scenes = await listScenes();
+  const { presets: presetsParam, scenes: scenesParam } = await searchParams;
+  const cookiePicks = (await cookies()).get("vd_picks")?.value;
+  const initialSelected =
+    (cookiePicks ?? presetsParam ?? scenesParam)
+      ?.split(",")
+      .filter(Boolean) ?? [];
+  const presets = await sceneify().listPublicPresets();
+  const filtered =
+    initialSelected.length > 0
+      ? presets.filter((p) => initialSelected.includes(p.slug))
+      : presets;
+  const scenes: Scene[] = filtered.map((p) => ({
+    slug: p.slug,
+    name: p.name,
+    mood: p.mood,
+    category: p.category,
+    palette: p.palette,
+    imageUrl: p.heroImageUrl,
+  }));
   return (
     <div className="space-y-8">
       <header>

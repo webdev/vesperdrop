@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Verceldrop",
-    short_name: "Verceldrop",
+    name: "Vesperdrop",
+    short_name: "Vesperdrop",
     description:
       "AI lifestyle photography for Shopify and Amazon sellers.",
     start_url: "/",

@@ -408,7 +408,7 @@ Mocked Sceneify uses a test-only env switch: `SCENEIFY_API_URL` points at a loca
 - Adding `referenceImageUrls` to `SceneifyPublicPreset` (option a) — unblocks dropping the stock filmstrip.
 - Reusing `<ProgressScreen />` for the authenticated paid flow.
 - Persisting attributes per upload for downstream prompt enrichment in the paid flow.
-- Browser notification + tab-title flash on completion (`(✓) Verceldrop`).
+- Browser notification + tab-title flash on completion (`(✓) Vesperdrop`).
 
 ## Risks
 

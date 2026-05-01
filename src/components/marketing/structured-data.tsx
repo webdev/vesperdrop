@@ -5,7 +5,7 @@ export function OrganizationJsonLd() {
   const data = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: "Verceldrop",
+    name: "Vesperdrop",
     url: base,
     logo: `${base}/favicon.ico`,
     sameAs: [] as string[],
@@ -23,7 +23,7 @@ export function WebSiteJsonLd() {
   const data = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    name: "Verceldrop",
+    name: "Vesperdrop",
     url: base,
     potentialAction: {
       "@type": "SearchAction",
@@ -46,10 +46,10 @@ export function PricingProductJsonLd({ offers }: { offers: Offer[] }) {
   const data = {
     "@context": "https://schema.org",
     "@type": "Product",
-    name: "Verceldrop",
+    name: "Vesperdrop",
     description:
       "AI lifestyle photography for Shopify and Amazon sellers. Turn rough product photos into conversion-optimized lifestyle batches.",
-    brand: { "@type": "Brand", name: "Verceldrop" },
+    brand: { "@type": "Brand", name: "Vesperdrop" },
     url: `${base}/pricing`,
     offers: offers.map((o) => ({
       "@type": "Offer",

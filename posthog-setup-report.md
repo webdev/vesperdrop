@@ -1,7 +1,7 @@
 <wizard-report>
 # PostHog post-wizard report
 
-The wizard completed a full PostHog integration for Verceldrop. The project already had `posthog-js` and `posthog-node` installed, a `PostHogProvider` wrapping the root layout, and a well-typed `analytics.ts` helper. This pass added the missing pieces: automatic error tracking (`capture_exceptions`), explicit error reporting in all three app error boundaries, a `run_complete` client event in the run grid, updated environment variables, and a PostHog dashboard with five insights.
+The wizard completed a full PostHog integration for Vesperdrop. The project already had `posthog-js` and `posthog-node` installed, a `PostHogProvider` wrapping the root layout, and a well-typed `analytics.ts` helper. This pass added the missing pieces: automatic error tracking (`capture_exceptions`), explicit error reporting in all three app error boundaries, a `run_complete` client event in the run grid, updated environment variables, and a PostHog dashboard with five insights.
 
 ## Changes made
 

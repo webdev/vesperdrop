@@ -10,7 +10,7 @@ const newsreader = Newsreader({ subsets: ["latin"], variable: "--font-serif" });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 const SITE_URL = env.SITE_URL.replace(/\/$/, "");
-const SITE_NAME = "Verceldrop";
+const SITE_NAME = "Vesperdrop";
 const SITE_DESCRIPTION =
   "AI lifestyle photography for Shopify and Amazon sellers. Drop a product photo, get a library of lifestyle shots in 90 seconds.";
 

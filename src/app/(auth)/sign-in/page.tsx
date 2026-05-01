@@ -5,7 +5,7 @@ import { AuthForm } from "@/components/app/auth-form";
 
 export const metadata: Metadata = {
   title: "Sign in",
-  description: "Sign in to your Verceldrop account.",
+  description: "Sign in to your Vesperdrop account.",
   alternates: { canonical: "/sign-in" },
   robots: { index: false, follow: true },
 };

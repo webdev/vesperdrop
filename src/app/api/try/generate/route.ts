@@ -23,6 +23,8 @@ const TOTAL_EST_MS = 70_000;
 const MOCK_GEN_DURATION_MS = 14_000;
 const MOCK_OUTPUT_URL =
   "https://placehold.co/1024x1024/1b1915/f4f0e8.png?text=MOCK+GEN";
+const MOCK_SOURCE_URL =
+  "https://placehold.co/1024x1024/cccccc/333333.png?text=MOCK+SOURCE";
 
 function rateLimitOk(ip: string): boolean {
   const now = Date.now();
@@ -59,6 +61,7 @@ function buildMockStream(slug: string): ReadableStream<Uint8Array> {
       };
 
       send("ready", { startedAt });
+      send("source", { url: MOCK_SOURCE_URL });
       send("attributes", null);
 
       const tickInterval = setInterval(() => {
@@ -169,6 +172,7 @@ export async function POST(req: Request) {
       };
 
       send("ready", { startedAt });
+      send("source", { url: sourceUrl });
 
       const tickInterval = setInterval(() => {
         if (closed) return;
@@ -201,7 +205,7 @@ export async function POST(req: Request) {
         const fetched = await fetch(result.outputUrl);
         if (!fetched.ok) throw new Error(`fetch generated image failed: ${fetched.status}`);
         const buf = Buffer.from(await fetched.arrayBuffer());
-        const watermarked = await applyWatermark(buf, "VERCELDROP PREVIEW");
+        const watermarked = await applyWatermark(buf, "VESPERDROP PREVIEW");
         const finalUrl = await storeWatermarked(watermarked, `${key}.png`, origin);
 
         clearInterval(tickInterval);

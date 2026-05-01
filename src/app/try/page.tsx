@@ -9,12 +9,12 @@ import { TryFlow } from "./try-flow";
 export const metadata: Metadata = {
   title: "Try free — develop a sample batch",
   description:
-    "Drop a product photo, pick a scene, and watch Verceldrop develop a 6-image lifestyle batch — no account, no card.",
+    "Drop a product photo, pick a scene, and watch Vesperdrop develop a 6-image lifestyle batch — no account, no card.",
   alternates: { canonical: "/try" },
   openGraph: {
-    title: "Try Verceldrop free — develop a sample batch",
+    title: "Try Vesperdrop free — develop a sample batch",
     description:
-      "Drop a product photo, pick a scene, and watch Verceldrop develop a 6-image lifestyle batch — no account, no card.",
+      "Drop a product photo, pick a scene, and watch Vesperdrop develop a 6-image lifestyle batch — no account, no card.",
     url: "/try",
     type: "website",
   },
@@ -43,6 +43,7 @@ export default async function Page() {
       scenes={scenes}
       firstName={user ? firstNameFrom(user) : null}
       isAdmin={isAdminEmail(user?.email ?? null)}
+      isAuthed={!!user}
     />
   );
 }

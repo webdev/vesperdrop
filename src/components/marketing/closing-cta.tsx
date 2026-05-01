@@ -7,7 +7,7 @@ export function ClosingCta() {
         COLOPHON &middot; N&deg;05
       </p>
       <h2 className="mx-auto max-w-5xl font-serif text-[clamp(64px,11vw,160px)] font-light leading-[0.95] tracking-tight text-[var(--color-ink)]">
-        Get <span className="italic text-[var(--color-ember)]">verceldrop</span>.
+        Get <span className="italic text-[var(--color-ember)]">vesperdrop</span>.
       </h2>
       <Link
         href="/try"

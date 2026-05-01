@@ -28,7 +28,7 @@ export type GenerationResult = {
 
 /** Placeholder returned when FAL_KEY is absent (local dev without API key) */
 export const DEV_PLACEHOLDER_URL =
-  "https://placehold.co/1024x1024/1b1915/f4f0e8?text=VERCELDROP+DEV";
+  "https://placehold.co/1024x1024/1b1915/f4f0e8?text=VESPERDROP+DEV";
 
 function buildPrompt(scene: GenerationScene, refCount: number): string {
   return [

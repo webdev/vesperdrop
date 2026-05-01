@@ -15,6 +15,7 @@ export type StreamState = {
   phaseId: PhaseId | null;
   elapsedMs: number;
   outputUrl: string | null;
+  sourceUrl: string | null;
   error: { message: string; retryable: boolean } | null;
 };
 
@@ -36,6 +37,7 @@ const initial: StreamState = {
   phaseId: null,
   elapsedMs: 0,
   outputUrl: null,
+  sourceUrl: null,
   error: null,
 };
 
@@ -96,6 +98,9 @@ export function useProgressStream({ file, sceneSlug, enabled = true }: Args): St
                 setState((s) => ({ ...s, elapsedMs: Date.now() - startedAtRef.current! }));
               }, 250);
             }
+          } else if (event === "source") {
+            const d = data as { url: string } | null;
+            if (d?.url) setState((s) => ({ ...s, sourceUrl: d.url }));
           } else if (event === "attributes") {
             setState((s) => ({ ...s, attributes: data as ExtractedAttributes | null }));
           } else if (event === "phase") {

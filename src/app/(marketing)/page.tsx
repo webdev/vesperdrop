@@ -8,13 +8,13 @@ import { CtaBand } from "@/components/marketing/cta-band";
 
 export const metadata: Metadata = {
   title: {
-    absolute: "Verceldrop — lifestyle photography from a product shot",
+    absolute: "Vesperdrop — lifestyle photography from a product shot",
   },
   description:
     "Drop a product photo, pick a scene, get a 6-image lifestyle batch in 90 seconds. Built for Shopify and Amazon sellers. 1 free HD shot, no card.",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "Verceldrop — lifestyle photography from a product shot",
+    title: "Vesperdrop — lifestyle photography from a product shot",
     description:
       "Drop a product photo, pick a scene, get a 6-image lifestyle batch in 90 seconds. Built for Shopify and Amazon sellers.",
     url: "/",

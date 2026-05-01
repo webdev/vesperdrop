@@ -123,7 +123,7 @@ export function PricingCards() {
             <span className="text-sm text-[var(--color-ink-3)]">/month</span>
           </div>
           <p className="mt-2 text-sm leading-relaxed text-[var(--color-ink-2)]">
-            Try Verceldrop. No card required.
+            Try Vesperdrop. No card required.
           </p>
           <ul className="mt-6 space-y-3 text-sm text-[var(--color-ink-2)]">
             <Feature>1 full-resolution HD generation</Feature>

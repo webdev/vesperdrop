@@ -12,12 +12,18 @@ const PUBLIC_PREFIXES = [
   "/unauthorized",
   "/mfa-verify",
   "/api/",
+  "/app/discover",
   ...(process.env.E2E_SCENEIFY_MOCK === "1" ? ["/try"] : []),
 ];
 
 export async function middleware(request: NextRequest) {
   const { response, user, needsMfa } = await refreshSession(request);
   const path = request.nextUrl.pathname;
+
+  // Local development: skip the allowlist gate entirely.
+  if (process.env.NODE_ENV === "development") {
+    return response;
+  }
 
   // Always pass through public paths and API routes unchanged.
   if (PUBLIC_PREFIXES.some((p) => path === p || path.startsWith(p))) {

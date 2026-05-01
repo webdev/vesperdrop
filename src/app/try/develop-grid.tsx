@@ -37,7 +37,7 @@ import type { ExtractedAttributes } from "@/lib/ai/extract-attributes";
 export type TileResult = {
   sceneSlug: string;
   sceneName: string;
-  status: "pending" | "succeeded" | "failed";
+  status: "pending" | "succeeded" | "failed" | "locked";
   outputUrl?: string;
   error?: string;
   // Optional live-stream context. When `streamPhaseId` is set the tile shows
@@ -54,10 +54,14 @@ export function DevelopGrid({
   results,
   variant = "darkroom",
   sourceUrl,
+  onDownloadClick,
+  onLockedClick,
 }: {
   results: TileResult[];
   variant?: DevelopGridVariant;
   sourceUrl?: string;
+  onDownloadClick?: (slug: string) => void;
+  onLockedClick?: () => void;
 }) {
   if (results.length === 0) {
     return (
@@ -71,16 +75,27 @@ export function DevelopGrid({
     <>
       <style>{GLOBAL_KEYFRAMES}</style>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
-        {results.map((r, i) => (
-          <Tile
-            key={r.sceneSlug}
-            tile={r}
-            index={i}
-            total={results.length}
-            variant={variant}
-            sourceUrl={sourceUrl}
-          />
-        ))}
+        {results.map((r, i) =>
+          r.status === "locked" ? (
+            <LockedTile
+              key={r.sceneSlug}
+              sourceUrl={sourceUrl}
+              index={i}
+              total={results.length}
+              onClick={onLockedClick}
+            />
+          ) : (
+            <Tile
+              key={r.sceneSlug}
+              tile={r}
+              index={i}
+              total={results.length}
+              variant={variant}
+              sourceUrl={sourceUrl}
+              onDownloadClick={onDownloadClick}
+            />
+          ),
+        )}
       </div>
     </>
   );
@@ -92,12 +107,14 @@ function Tile({
   total,
   variant,
   sourceUrl,
+  onDownloadClick,
 }: {
   tile: TileResult;
   index: number;
   total: number;
   variant: DevelopGridVariant;
   sourceUrl?: string;
+  onDownloadClick?: (slug: string) => void;
 }) {
   const isDone = tile.status === "succeeded";
   const isFailed = tile.status === "failed";
@@ -158,9 +175,28 @@ function Tile({
   const staggerMs = (seed % 7) * 140;
   const cornerSeed = seed % 4;
 
+  const handleDownloadClick = () => {
+    if (!isDone || !onDownloadClick) return;
+    onDownloadClick(tile.sceneSlug);
+  };
+
   return (
-    <div className="flex flex-col gap-2">
-    <div className="relative aspect-[4/5] overflow-hidden border border-[var(--color-line)] bg-[var(--color-ink)]">
+    <div className="group flex flex-col gap-2">
+    <div
+      className="relative aspect-[4/5] overflow-hidden border border-[var(--color-line)] bg-[var(--color-ink)]"
+      style={{ cursor: isDone && onDownloadClick ? "pointer" : "default" }}
+      onClick={handleDownloadClick}
+      onKeyDown={(e) => {
+        if (!isDone || !onDownloadClick) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleDownloadClick();
+        }
+      }}
+      role={isDone && onDownloadClick ? "button" : undefined}
+      tabIndex={isDone && onDownloadClick ? 0 : undefined}
+      aria-label={isDone ? `Download ${tile.sceneName} HD` : undefined}
+    >
       {tile.outputUrl ? (
         <img
           src={tile.outputUrl}
@@ -212,6 +248,22 @@ function Tile({
         {String(total).padStart(2, "0")}
       </div>
 
+      {isDone && onDownloadClick ? (
+        <>
+          <div
+            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent opacity-0 transition-opacity duration-300 md:group-hover:opacity-100"
+            style={{ zIndex: 35 }}
+          />
+          <div
+            className="pointer-events-none absolute right-2 bottom-2 inline-flex items-center gap-1.5 bg-[var(--color-ember)] px-2.5 py-1.5 font-mono text-[10px] font-medium tracking-[0.16em] text-[var(--color-cream)] uppercase shadow-md transition-all duration-300 md:translate-y-1 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100"
+            style={{ zIndex: 41 }}
+          >
+            <span aria-hidden>↓</span>
+            <span>Download HD</span>
+          </div>
+        </>
+      ) : null}
+
     </div>
 
     {!isDone ? (
@@ -238,6 +290,108 @@ function Tile({
         )}
       </div>
     ) : null}
+    </div>
+  );
+}
+
+function LockedTile({
+  sourceUrl,
+  index,
+  total,
+  onClick,
+}: {
+  sourceUrl?: string;
+  index: number;
+  total: number;
+  onClick?: () => void;
+}) {
+  return (
+    <div className="group flex flex-col gap-2">
+      <button
+        type="button"
+        onClick={onClick}
+        className="relative block aspect-[4/5] w-full overflow-hidden border border-[var(--color-line)] bg-[var(--color-ink)] text-left transition-transform hover:scale-[1.005]"
+        style={{ cursor: onClick ? "pointer" : "default" }}
+        aria-label="Sign up to unlock your bonus shot"
+      >
+        {sourceUrl ? (
+          <img
+            src={sourceUrl}
+            alt=""
+            aria-hidden
+            draggable={false}
+            className="absolute inset-0 h-full w-full object-cover"
+            style={{
+              opacity: 0.45,
+              filter: "blur(28px) saturate(0.4) brightness(0.55)",
+              transform: "scale(1.1)",
+              zIndex: 5,
+            }}
+          />
+        ) : null}
+
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(120% 90% at 50% 50%, rgba(27,25,21,0.25) 0%, rgba(27,25,21,0.85) 80%)",
+            zIndex: 6,
+          }}
+        />
+
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: `radial-gradient(50% 40% at 50% 35%, rgba(232,165,139,0.22), transparent 70%)`,
+            mixBlendMode: "screen",
+            animation: "vd-light-leak 5s ease-in-out infinite",
+            zIndex: 7,
+          }}
+        />
+
+        <div
+          className="absolute top-2 left-2 bg-black/55 px-2 py-1 font-mono text-[9px] tracking-[0.16em] text-[var(--color-cream)] uppercase backdrop-blur-sm"
+          style={{ zIndex: 40 }}
+        >
+          BONUS · {String(index + 1).padStart(2, "0")} /{" "}
+          {String(total).padStart(2, "0")}
+        </div>
+
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4 text-center"
+          style={{ zIndex: 41 }}
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--color-cream)]/40 bg-[var(--color-ink)]/70 backdrop-blur-sm">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-[var(--color-cream)]"
+              aria-hidden
+            >
+              <rect x="4" y="11" width="16" height="10" rx="1.5" />
+              <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+            </svg>
+          </div>
+          <p className="font-serif text-xl font-light leading-tight text-[var(--color-cream)] italic md:text-2xl">
+            Your bonus <span className="not-italic">shot</span>
+          </p>
+          <p className="max-w-[180px] font-mono text-[10px] tracking-[0.14em] text-[var(--color-cream)]/75 uppercase">
+            Sign up to unlock — free
+          </p>
+          <span className="mt-1 inline-flex items-center gap-1.5 bg-[var(--color-ember)] px-3 py-1.5 font-mono text-[10px] font-medium tracking-[0.16em] text-[var(--color-cream)] uppercase">
+            Unlock <span aria-hidden>→</span>
+          </span>
+        </div>
+      </button>
+      <div className="min-h-[18px] font-mono text-[10px] tracking-[0.16em] text-[var(--color-ember)] uppercase">
+        Locked · 1 free credit on signup
+      </div>
     </div>
   );
 }

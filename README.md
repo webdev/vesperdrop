@@ -1,4 +1,4 @@
-# Verceldrop
+# Vesperdrop
 
 AI lifestyle photography for Shopify and Amazon sellers. Upload a flatlay or rough product shot; get a 6-image batch of conversion-ready lifestyle photos in about 90 seconds.
 

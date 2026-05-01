@@ -6,7 +6,7 @@ import { AuthForm } from "@/components/app/auth-form";
 export const metadata: Metadata = {
   title: "Create account",
   description:
-    "Create your Verceldrop account and get 1 free HD lifestyle shot. No card required.",
+    "Create your Vesperdrop account and get 1 free HD lifestyle shot. No card required.",
   alternates: { canonical: "/sign-up" },
   robots: { index: false, follow: true },
 };

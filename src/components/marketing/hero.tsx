@@ -53,7 +53,7 @@ export function Hero() {
               <span className="text-[var(--color-ember)]">In minutes.</span>
             </h1>
             <p className="mt-7 max-w-lg font-serif text-xl font-light leading-snug text-[var(--color-ink-2)] md:text-[22px]">
-              Drop in a plain product shot. Verceldrop returns a library of
+              Drop in a plain product shot. Vesperdrop returns a library of
               lifestyle photographs &mdash; kitchens, counters, coffee tables,
               gardens &mdash; ready for your Amazon listing, A+ content, and
               ads.

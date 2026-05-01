@@ -2,13 +2,14 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 
@@ -23,6 +24,20 @@ import {
   type TileResult,
 } from "./develop-grid";
 import { ProgressScreen } from "./progress-screen";
+import { SignUpBar } from "./sign-up-bar";
+import { SavedBar } from "./saved-bar";
+import { AuthModal } from "./auth-modal";
+
+const LOCKED_TILE_SLUG = "__locked__";
+const PENDING_BATCH_KEY = "vd_pending_batch";
+
+type AuthIntent = "default" | "download" | "unlock";
+type AuthModalState = { open: boolean; intent: AuthIntent };
+
+type PendingBatch = {
+  source: { url?: string; name: string };
+  generations: Array<{ sceneSlug: string; sceneName: string; outputUrl: string }>;
+};
 
 const SAMPLE_SRC = "/marketing/before-after/cami_before.png";
 const SAMPLE_NAME = "CAM-BRN-S_SAMPLE.JPG";
@@ -34,10 +49,12 @@ export function TryFlow({
   scenes,
   firstName,
   isAdmin = false,
+  isAuthed = false,
 }: {
   scenes: Scene[];
   firstName: string | null;
   isAdmin?: boolean;
+  isAuthed?: boolean;
 }) {
   const sceneById = scenes.reduce<Record<string, Scene>>(
     (acc, s) => ({ ...acc, [s.slug]: s }),
@@ -109,7 +126,7 @@ export function TryFlow({
             href="/"
             className="font-serif text-2xl font-light italic tracking-tight text-[var(--color-ink)] hover:text-[var(--color-ember)]"
           >
-            ← Verceldrop
+            ← Vesperdrop
           </Link>
           <div className="flex items-center gap-4 font-mono text-[10px] tracking-[0.18em] text-[var(--color-ink-3)] uppercase">
             {firstName ? (
@@ -172,6 +189,7 @@ export function TryFlow({
             sceneById={sceneById}
             developDone={developDone}
             variant={variant}
+            isAuthed={isAuthed}
             onComplete={() => {
               setDevelopDone(true);
               track("try_develop_complete", {
@@ -187,17 +205,30 @@ export function TryFlow({
   );
 }
 
+const MOCK_CHANGE_EVENT = "vd_mock_change";
+
+function subscribeMockCookie(callback: () => void) {
+  window.addEventListener(MOCK_CHANGE_EVENT, callback);
+  return () => window.removeEventListener(MOCK_CHANGE_EVENT, callback);
+}
+function readMockCookie() {
+  return document.cookie.split("; ").some((c) => c === "vd_mock_gen=1");
+}
+function readMockCookieServer() {
+  return false;
+}
+
 function AdminMockToggle() {
-  const [on, setOn] = useState<boolean>(() => {
-    if (typeof document === "undefined") return false;
-    return document.cookie.split("; ").some((c) => c === "vd_mock_gen=1");
-  });
+  const on = useSyncExternalStore(
+    subscribeMockCookie,
+    readMockCookie,
+    readMockCookieServer,
+  );
   const toggle = () => {
-    const next = !on;
-    document.cookie = next
+    document.cookie = !on
       ? `vd_mock_gen=1; path=/; max-age=86400; samesite=lax`
       : `vd_mock_gen=; path=/; max-age=0; samesite=lax`;
-    setOn(next);
+    window.dispatchEvent(new Event(MOCK_CHANGE_EVENT));
   };
   return (
     <button
@@ -206,7 +237,13 @@ function AdminMockToggle() {
       className="fixed bottom-4 right-4 z-50 rounded-full border border-[var(--color-line)] bg-[var(--color-paper)] px-3 py-1.5 font-mono text-[10px] tracking-[0.18em] uppercase shadow-md hover:border-[var(--color-ember)]"
       aria-label="Toggle mock generation"
     >
-      Mock gen: <span className={on ? "text-[var(--color-ember)]" : "text-[var(--color-ink-3)]"}>{on ? "ON" : "OFF"}</span>
+      Mock gen:{" "}
+      <span
+        suppressHydrationWarning
+        className={on ? "text-[var(--color-ember)]" : "text-[var(--color-ink-3)]"}
+      >
+        {on ? "ON" : "OFF"}
+      </span>
     </button>
   );
 }
@@ -456,6 +493,7 @@ function DevelopStep({
   sceneById,
   developDone,
   variant,
+  isAuthed,
   onComplete,
   onReset,
 }: {
@@ -464,10 +502,13 @@ function DevelopStep({
   sceneById: Record<string, Scene>;
   developDone: boolean;
   variant: DevelopGridVariant;
+  isAuthed: boolean;
   onComplete: () => void;
   onReset: () => void;
 }) {
-  const [results, setResults] = useState<TileResult[]>(() =>
+  const router = useRouter();
+
+  const [generationResults, setGenerationResults] = useState<TileResult[]>(() =>
     picked.map((slug) => ({
       sceneSlug: slug,
       sceneName: sceneById[slug]?.name ?? slug,
@@ -475,12 +516,147 @@ function DevelopStep({
     })),
   );
 
+  const [authModal, setAuthModal] = useState<AuthModalState>({
+    open: false,
+    intent: "default",
+  });
+
+  const [saveStatus, setSaveStatus] = useState<"saving" | "saved" | "error">(
+    "saving",
+  );
+  const [savedRunId, setSavedRunId] = useState<string | null>(null);
+  const [serverSourceUrl, setServerSourceUrl] = useState<string | null>(null);
+  const claimRanRef = useRef(false);
+
   const allSettled =
-    results.length > 0 && results.every((r) => r.status !== "pending");
-  const anySucceeded = results.some((r) => r.status === "succeeded");
+    generationResults.length > 0 &&
+    generationResults.every((r) => r.status !== "pending");
+  const anySucceeded = generationResults.some((r) => r.status === "succeeded");
+
+  useEffect(() => {
+    if (allSettled && anySucceeded && !developDone) onComplete();
+  }, [allSettled, anySucceeded, developDone, onComplete]);
+
+  useEffect(() => {
+    if (isAuthed) return;
+    if (!photo || !anySucceeded) return;
+    if (typeof window === "undefined") return;
+    const succeeded = generationResults.filter(
+      (r) => r.status === "succeeded" && r.outputUrl,
+    );
+    if (succeeded.length === 0) return;
+    const payload: PendingBatch = {
+      source: serverSourceUrl
+        ? { url: serverSourceUrl, name: photo.name }
+        : { name: photo.name },
+      generations: succeeded.map((r) => ({
+        sceneSlug: r.sceneSlug,
+        sceneName: r.sceneName,
+        outputUrl: r.outputUrl as string,
+      })),
+    };
+    try {
+      window.sessionStorage.setItem(PENDING_BATCH_KEY, JSON.stringify(payload));
+    } catch {}
+  }, [generationResults, photo, anySucceeded, isAuthed, serverSourceUrl]);
+
+  // Authed: auto-claim once developDone fires. No modal, no prompt.
+  useEffect(() => {
+    if (!isAuthed || !developDone || !photo || claimRanRef.current) return;
+    const succeeded = generationResults.filter(
+      (r) => r.status === "succeeded" && r.outputUrl,
+    );
+    if (succeeded.length === 0) return;
+    claimRanRef.current = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/try/claim", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            source: serverSourceUrl
+              ? { url: serverSourceUrl, name: photo.name }
+              : { name: photo.name },
+            generations: succeeded.map((r) => ({
+              sceneSlug: r.sceneSlug,
+              sceneName: r.sceneName,
+              outputUrl: r.outputUrl as string,
+            })),
+          }),
+        });
+        if (!res.ok) {
+          setSaveStatus("error");
+          return;
+        }
+        const data = (await res.json()) as { runId?: string };
+        setSavedRunId(data.runId ?? null);
+        setSaveStatus("saved");
+      } catch {
+        setSaveStatus("error");
+      }
+    })();
+  }, [isAuthed, developDone, photo, generationResults, serverSourceUrl]);
+
+  const displayResults: TileResult[] = useMemo(() => {
+    if (!anySucceeded || isAuthed) return generationResults;
+    const lockedTile: TileResult = {
+      sceneSlug: LOCKED_TILE_SLUG,
+      sceneName: "BONUS",
+      status: "locked",
+    };
+    return [...generationResults, lockedTile];
+  }, [generationResults, anySucceeded, isAuthed]);
+
+  const openAuthModal = useCallback((intent: AuthIntent) => {
+    setAuthModal({ open: true, intent });
+  }, []);
+
+  const triggerDirectDownload = useCallback((url: string, filename: string) => {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }, []);
+
+  const handleDownloadClick = useCallback(
+    (slug: string) => {
+      track("try_tile_download_clicked", { slug });
+      if (isAuthed) {
+        const tile = generationResults.find((r) => r.sceneSlug === slug);
+        if (tile?.outputUrl) {
+          triggerDirectDownload(
+            tile.outputUrl,
+            `${tile.sceneName.toLowerCase().replace(/\s+/g, "-")}.png`,
+          );
+        }
+        return;
+      }
+      track("try_signup_clicked", { intent: "download", slug });
+      openAuthModal("download");
+    },
+    [isAuthed, generationResults, triggerDirectDownload, openAuthModal],
+  );
+
+  const handleLockedClick = useCallback(() => {
+    track("try_locked_tile_clicked");
+    track("try_signup_clicked", { intent: "unlock" });
+    openAuthModal("unlock");
+  }, [openAuthModal]);
+
+  const handleBarSignUpClick = useCallback(() => {
+    openAuthModal("default");
+  }, [openAuthModal]);
+
+  const handleAuthSuccess = useCallback(async () => {
+    setAuthModal((s) => ({ ...s, open: false }));
+    router.push("/app/history");
+  }, [router]);
 
   return (
-    <div className="relative">
+    <div className={`relative ${developDone ? "pb-40 md:pb-44" : ""}`}>
       <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
         <div>
           <p className="mb-3 font-mono text-[10px] tracking-[0.2em] text-[var(--color-ink-3)] uppercase">
@@ -529,7 +705,7 @@ function DevelopStep({
         </div>
 
         <div>
-          {results.every((r) => r.status === "pending") && photo?.file && sceneById[picked[0]] ? (
+          {generationResults.every((r) => r.status === "pending") && photo?.file && sceneById[picked[0]] ? (
             <ProgressScreen
               file={photo.file}
               sceneSlugs={picked}
@@ -554,9 +730,10 @@ function DevelopStep({
                 ]),
               )}
               variant={variant}
-              initialResults={results}
+              initialResults={generationResults}
+              onSourceUrl={(url) => setServerSourceUrl(url)}
               onSettled={(out) => {
-                setResults((prev) =>
+                setGenerationResults((prev) =>
                   prev.map((r) => {
                     const hit = out.find((o) => o.slug === r.sceneSlug);
                     if (!hit) return r;
@@ -573,64 +750,34 @@ function DevelopStep({
               }}
             />
           ) : (
-            <DevelopGrid results={results} variant={variant} sourceUrl={photo?.url} />
+            <DevelopGrid
+              results={displayResults}
+              variant={variant}
+              sourceUrl={photo?.url}
+              onDownloadClick={handleDownloadClick}
+              onLockedClick={handleLockedClick}
+            />
           )}
         </div>
       </div>
 
-      {allSettled && anySucceeded && !developDone ? (
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={onComplete}
-            className="inline-flex items-center rounded-full bg-[var(--color-ink)] px-7 py-3 text-sm font-medium text-[var(--color-cream)] transition-transform hover:scale-[1.02] hover:bg-[var(--color-ember)]"
-          >
-            Next →
-          </button>
-        </div>
+      {developDone ? (
+        isAuthed ? (
+          <SavedBar status={saveStatus} runId={savedRunId} onReset={onReset} />
+        ) : (
+          <SignUpBar onReset={onReset} onSignUpClick={handleBarSignUpClick} />
+        )
       ) : null}
 
-      {developDone ? <SignUpGate onReset={onReset} /> : null}
+      {isAuthed ? null : (
+        <AuthModal
+          open={authModal.open}
+          onOpenChange={(open) => setAuthModal((s) => ({ ...s, open }))}
+          intent={authModal.intent}
+          onAuthSuccess={handleAuthSuccess}
+        />
+      )}
     </div>
   );
 }
 
-function SignUpGate({ onReset }: { onReset: () => void }) {
-  useEffect(() => {
-    track("try_signup_gate_seen");
-  }, []);
-  return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-[var(--color-ink)]/55 px-6 py-10 backdrop-blur-sm">
-      <div className="w-full max-w-md border border-[var(--color-line)] bg-[var(--color-paper)] px-8 py-10 text-center shadow-[0_30px_80px_rgba(27,25,21,0.45)]">
-        <p className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-ink-3)] uppercase">
-          BATCH READY · N°01
-        </p>
-        <h2 className="mt-4 font-serif text-4xl font-light leading-tight text-[var(--color-ink)] md:text-5xl">
-          Save &amp; download your <span className="italic">batch</span>.
-        </h2>
-        <p className="mt-4 font-serif text-base font-light text-[var(--color-ink-2)]">
-          Create a free account and get <strong>1 free HD generation</strong> — no card required. Your batch is ready when you are.
-        </p>
-        <Link
-          href="/sign-up"
-          onClick={() => track("try_signup_clicked")}
-          className="mt-7 inline-flex items-center rounded-full bg-[var(--color-ember)] px-7 py-4 text-sm font-medium text-[var(--color-cream)] transition-transform hover:scale-[1.02] hover:bg-[#a83c18]"
-        >
-          Create your account →
-        </Link>
-        <div className="mt-5">
-          <button
-            type="button"
-            onClick={onReset}
-            className="font-mono text-[11px] tracking-[0.14em] text-[var(--color-ink-3)] uppercase underline-offset-4 hover:text-[var(--color-ember)] hover:underline"
-          >
-            ← Try with another product
-          </button>
-        </div>
-        <div className="mt-6 border-t border-[var(--color-line)] pt-5 font-mono text-[10px] tracking-[0.18em] text-[var(--color-ink-4)] uppercase">
-          FREE · 1 HD CREDIT · NO CARD · YOUR FIRST SHOT IS ON US
-        </div>
-      </div>
-    </div>
-  );
-}

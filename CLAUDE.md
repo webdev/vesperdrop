@@ -1,4 +1,4 @@
-# Verceldrop
+# Vesperdrop
 
 AI lifestyle photography tool for Shopify/Amazon sellers. Turns rough product photos into conversion-optimized 6-image batches using conversion-seeded presets.
 
@@ -157,7 +157,7 @@ Split layout: left panel carries brand wordmark, 4 benefit bullets, and 3 testim
 - ⏳ Supabase — provision via Vercel Marketplace
 - ⏳ Stripe — provision via Vercel Marketplace, test mode
 - ⏳ PostHog — cloud signup
-- ⏳ Domain: verceldrop.com (user to purchase)
+- ⏳ Domain: vesperdrop.com (user to purchase)
 
 ## Reference material
 

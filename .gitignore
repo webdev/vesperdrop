@@ -55,3 +55,6 @@ design-reference
 _current.jpg
 screenshots/
 /uploads/
+
+# auth-gated images (dev fallback for Vercel Blob private storage)
+.private-blob
