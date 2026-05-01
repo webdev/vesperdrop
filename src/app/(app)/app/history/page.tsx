@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { runs, generations, scenes } from "@/lib/db/schema";
 import { ClaimHandler } from "./claim-handler";
+import { RunFigure } from "@/components/app/run-figure";
 
 export const dynamic = "force-dynamic";
 
@@ -130,55 +131,40 @@ export default async function Page({
                   </p>
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {sourceProxyUrl ? (
-                      <figure className="space-y-2">
-                        <div className="relative block aspect-[4/5] overflow-hidden border border-orange-500/60 bg-zinc-50">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={sourceProxyUrl}
-                            alt="Your product"
-                            className="w-full h-full object-contain"
-                          />
-                          <span className="absolute top-2 left-2 font-mono text-[9px] tracking-[0.18em] uppercase bg-orange-500 text-white px-2 py-0.5">
-                            Yours
-                          </span>
-                        </div>
-                        <figcaption className="font-mono text-[10px] tracking-[0.18em] uppercase text-orange-500">
-                          Source
-                        </figcaption>
-                      </figure>
+                    {sourceProxyUrl && sourceCarrier ? (
+                      <RunFigure
+                        runId={run.id}
+                        generationId={sourceCarrier.id}
+                        imageUrl={sourceProxyUrl}
+                        downloadUrl={sourceProxyUrl}
+                        alt="Your product"
+                        caption="SOURCE"
+                        watermarked={false}
+                        hasSceneifyId={false}
+                        isSource
+                      />
                     ) : null}
                     {succeeded.map((g) => {
-                      const sceneName =
+                      const baseCaption =
                         sceneNameBySlug.get(g.presetId) ?? g.presetId;
+                      const caption = g.packRole
+                        ? `PACK · ${g.packRole.toUpperCase()}`
+                        : baseCaption;
                       const proxyUrl = `/api/images/${g.id}`;
                       const downloadUrl = `${proxyUrl}?download=1`;
                       return (
-                        <figure key={g.id} className="space-y-2">
-                          <a
-                            href={downloadUrl}
-                            download
-                            className="relative block aspect-[4/5] overflow-hidden border border-zinc-200 bg-zinc-50 group"
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={proxyUrl}
-                              alt={sceneName}
-                              className="w-full h-full object-contain transition-opacity group-hover:opacity-90"
-                            />
-                            {g.watermarked ? (
-                              <span className="absolute top-2 left-2 font-mono text-[9px] tracking-[0.18em] uppercase bg-black/70 text-white px-2 py-0.5">
-                                Preview
-                              </span>
-                            ) : null}
-                            <span className="absolute bottom-2 right-2 font-mono text-[9px] tracking-[0.18em] uppercase bg-white/90 text-zinc-900 px-2 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                              Download ↓
-                            </span>
-                          </a>
-                          <figcaption className="font-mono text-[10px] tracking-[0.18em] uppercase text-zinc-500">
-                            {sceneName}
-                          </figcaption>
-                        </figure>
+                        <RunFigure
+                          key={g.id}
+                          runId={g.runId}
+                          generationId={g.id}
+                          imageUrl={proxyUrl}
+                          downloadUrl={downloadUrl}
+                          alt={caption}
+                          caption={caption}
+                          watermarked={g.watermarked}
+                          hasSceneifyId={Boolean(g.sceneifyGenerationId)}
+                          isPackShot={Boolean(g.packId)}
+                        />
                       );
                     })}
                   </div>
