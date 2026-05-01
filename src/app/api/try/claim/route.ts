@@ -76,12 +76,16 @@ export async function POST(req: Request) {
   }
 
   // Copy each output's bytes from the public preview Blob to a private Blob.
+  // Prefer the raw (un-watermarked) URL when present so the stored canonical
+  // is raw; the watermark is applied at serve time by /api/images/[id] when
+  // `watermarked: true`. Falls back to the watermarked public URL only for
+  // legacy clients that didn't post `rawUrl`.
   // Failure aborts the claim — partial state is worse than a retry.
   let privateOutputUrls: string[];
   let privateSourceUrl = "";
   try {
     privateOutputUrls = await Promise.all(
-      incoming.map((g) => copyToPrivate(g.outputUrl, "watermarked-private")),
+      incoming.map((g) => copyToPrivate(g.rawUrl ?? g.outputUrl, "raw-private")),
     );
     if (parsed.data.source?.url) {
       privateSourceUrl = await copyToPrivate(

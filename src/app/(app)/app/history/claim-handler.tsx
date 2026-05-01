@@ -7,7 +7,12 @@ const PENDING_BATCH_KEY = "vd_pending_batch";
 
 type PendingBatch = {
   source: { url: string; name: string };
-  generations: Array<{ sceneSlug: string; sceneName: string; outputUrl: string }>;
+  generations: Array<{
+    sceneSlug: string;
+    sceneName: string;
+    outputUrl: string;
+    rawUrl?: string;
+  }>;
 };
 
 export function ClaimHandler() {

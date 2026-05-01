@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { generations } from "@/lib/db/schema";
 import { isLocalPrivate, localPrivatePath } from "@/lib/storage";
+import { applyWatermark } from "@/lib/watermark";
 
 export const runtime = "nodejs";
 
@@ -45,6 +46,12 @@ export async function GET(
     return NextResponse.json({ error: "no image" }, { status: 404 });
   }
 
+  // Watermark policy: when serving the output of a generation flagged
+  // `watermarked: true`, apply the watermark on the fly. Stored bytes are
+  // raw so the same image can be re-served with a different watermark
+  // (or none) without re-generation.
+  const shouldWatermark = type === "output" && gen.watermarked === true;
+
   let body: ReadableStream<Uint8Array> | Buffer | null = null;
   let contentType = "image/png";
   let contentLength: string | null = null;
@@ -57,6 +64,15 @@ export async function GET(
     } catch {
       return NextResponse.json({ error: "fetch failed" }, { status: 502 });
     }
+  } else if (shouldWatermark) {
+    const fetched = await fetch(stored);
+    if (!fetched.ok) {
+      return NextResponse.json({ error: "fetch failed" }, { status: 502 });
+    }
+    const raw = Buffer.from(await fetched.arrayBuffer());
+    body = raw;
+    contentType = fetched.headers.get("content-type") ?? contentType;
+    contentLength = raw.byteLength.toString();
   } else {
     const fetched = await fetch(stored);
     if (!fetched.ok || !fetched.body) {
@@ -65,6 +81,13 @@ export async function GET(
     body = fetched.body;
     contentType = fetched.headers.get("content-type") ?? contentType;
     contentLength = fetched.headers.get("content-length");
+  }
+
+  if (shouldWatermark && body && Buffer.isBuffer(body)) {
+    const watermarked = await applyWatermark(body, "VESPERDROP PREVIEW");
+    body = watermarked;
+    contentType = "image/png";
+    contentLength = watermarked.byteLength.toString();
   }
 
   const headers = new Headers();

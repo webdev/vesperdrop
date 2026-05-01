@@ -39,6 +39,7 @@ export type TileResult = {
   sceneName: string;
   status: "pending" | "succeeded" | "failed" | "locked";
   outputUrl?: string;
+  rawUrl?: string;
   error?: string;
   // Optional live-stream context. When `streamPhaseId` is set the tile shows
   // the rotating, slot-filled caption from our streaming events instead of

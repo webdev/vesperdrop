@@ -16,7 +16,7 @@ type Props = {
   initialResults: TileResult[];
   onSourceUrl?: (url: string) => void;
   onSettled: (
-    results: Array<{ slug: string; outputUrl?: string; error?: string }>,
+    results: Array<{ slug: string; outputUrl?: string; rawUrl?: string; error?: string }>,
   ) => void;
 };
 
@@ -86,7 +86,13 @@ export function ProgressScreen({
     });
     const out = stableSlugs.map((slug) => {
       const s = view.streams[slug];
-      if (s?.outputUrl) return { slug, outputUrl: s.outputUrl };
+      if (s?.outputUrl) {
+        return {
+          slug,
+          outputUrl: s.outputUrl,
+          rawUrl: s.rawUrl ?? undefined,
+        };
+      }
       return { slug, error: s?.error?.message ?? "generation failed" };
     });
     onSettled(out);

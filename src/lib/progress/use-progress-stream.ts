@@ -15,6 +15,7 @@ export type StreamState = {
   phaseId: PhaseId | null;
   elapsedMs: number;
   outputUrl: string | null;
+  rawUrl: string | null;
   sourceUrl: string | null;
   error: { message: string; retryable: boolean } | null;
 };
@@ -37,6 +38,7 @@ const initial: StreamState = {
   phaseId: null,
   elapsedMs: 0,
   outputUrl: null,
+  rawUrl: null,
   sourceUrl: null,
   error: null,
 };
@@ -109,8 +111,13 @@ export function useProgressStream({ file, sceneSlug, enabled = true }: Args): St
           } else if (event === "tick") {
             setState((s) => ({ ...s, elapsedMs: (data as { elapsedMs: number }).elapsedMs }));
           } else if (event === "done") {
-            const d = data as { outputUrl: string };
-            setState((s) => ({ ...s, status: "done", outputUrl: d.outputUrl }));
+            const d = data as { outputUrl: string; rawUrl?: string };
+            setState((s) => ({
+              ...s,
+              status: "done",
+              outputUrl: d.outputUrl,
+              rawUrl: d.rawUrl ?? null,
+            }));
           } else if (event === "error") {
             const d = data as { message: string; retryable: boolean };
             setState((s) => ({ ...s, status: "error", error: d }));

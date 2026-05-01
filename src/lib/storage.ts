@@ -21,6 +21,25 @@ export async function storeWatermarked(
   return `${origin}/watermarked/${key}`;
 }
 
+// Public store for the raw (un-watermarked) preview, written alongside the
+// watermarked version so /try/claim can copy the raw bytes into private
+// storage. Anonymous /try display still uses the watermarked URL.
+export async function storeRawPreview(
+  buffer: Buffer,
+  key: string,
+  origin: string,
+  contentType = "image/png",
+): Promise<string> {
+  if (env.BLOB_READ_WRITE_TOKEN) {
+    const result = await put(`raw-preview/${key}`, buffer, { access: "public", contentType });
+    return result.url;
+  }
+  const dir = path.join(process.cwd(), "public", "raw-preview");
+  await mkdir(dir, { recursive: true });
+  await writeFile(path.join(dir, key), buffer);
+  return `${origin}/raw-preview/${key}`;
+}
+
 // Stores at a path with a high-entropy random token. The returned URL must
 // never be exposed to the client — fetched server-side via the auth proxy.
 export async function storePrivate(

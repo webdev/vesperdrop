@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 import { generateViaSceneify, SceneifyError } from "@/lib/ai/sceneify";
 import { extractAttributes } from "@/lib/ai/extract-attributes";
 import { applyWatermark } from "@/lib/watermark";
-import { storeWatermarked } from "@/lib/storage";
+import { storeWatermarked, storeRawPreview } from "@/lib/storage";
 import { encodeSse } from "@/lib/progress/sse-encoder";
 import { phaseAtElapsed, type PhaseId } from "@/lib/progress/strings";
 import { isAdminEmail } from "@/lib/admin";
@@ -205,11 +205,14 @@ export async function POST(req: Request) {
         const fetched = await fetch(result.outputUrl);
         if (!fetched.ok) throw new Error(`fetch generated image failed: ${fetched.status}`);
         const buf = Buffer.from(await fetched.arrayBuffer());
-        const watermarked = await applyWatermark(buf, "VESPERDROP PREVIEW");
+        const [watermarked, rawUrl] = await Promise.all([
+          applyWatermark(buf, "VESPERDROP PREVIEW"),
+          storeRawPreview(buf, `${key}.png`, origin),
+        ]);
         const finalUrl = await storeWatermarked(watermarked, `${key}.png`, origin);
 
         clearInterval(tickInterval);
-        send("done", { outputUrl: finalUrl, sceneSlug: slug });
+        send("done", { outputUrl: finalUrl, rawUrl, sceneSlug: slug });
       } catch (e) {
         clearInterval(tickInterval);
         const status = e instanceof SceneifyError ? e.status : 502;

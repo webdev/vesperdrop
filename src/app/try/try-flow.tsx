@@ -40,7 +40,12 @@ type AuthModalState = { open: boolean; intent: AuthIntent };
 
 type PendingBatch = {
   source: { url?: string; name: string };
-  generations: Array<{ sceneSlug: string; sceneName: string; outputUrl: string }>;
+  generations: Array<{
+    sceneSlug: string;
+    sceneName: string;
+    outputUrl: string;
+    rawUrl?: string;
+  }>;
 };
 
 const SAMPLE_SRC = "/marketing/before-after/cami_before.png";
@@ -588,6 +593,7 @@ function DevelopStep({
         sceneSlug: r.sceneSlug,
         sceneName: r.sceneName,
         outputUrl: r.outputUrl as string,
+        ...(r.rawUrl ? { rawUrl: r.rawUrl } : {}),
       })),
     };
     try {
@@ -616,6 +622,7 @@ function DevelopStep({
               sceneSlug: r.sceneSlug,
               sceneName: r.sceneName,
               outputUrl: r.outputUrl as string,
+              ...(r.rawUrl ? { rawUrl: r.rawUrl } : {}),
             })),
           }),
         });
@@ -773,7 +780,12 @@ function DevelopStep({
                     const hit = out.find((o) => o.slug === r.sceneSlug);
                     if (!hit) return r;
                     if (hit.outputUrl) {
-                      return { ...r, status: "succeeded", outputUrl: hit.outputUrl };
+                      return {
+                        ...r,
+                        status: "succeeded",
+                        outputUrl: hit.outputUrl,
+                        rawUrl: hit.rawUrl,
+                      };
                     }
                     return { ...r, status: "failed", error: hit.error ?? "failed" };
                   }),

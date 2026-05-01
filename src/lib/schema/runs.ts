@@ -24,6 +24,7 @@ export const TryClaimSchema = z.object({
         sceneSlug: z.string().min(1).max(100),
         sceneName: z.string().min(1).max(200),
         outputUrl: HttpUrl,
+        rawUrl: HttpUrl.optional(),
       }),
     )
     .min(1)
