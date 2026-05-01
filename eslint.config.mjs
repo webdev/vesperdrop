@@ -14,6 +14,7 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "design-reference/**",
     "src/app/.well-known/**",
+    ".claude/**",
   ]),
 ]);
 

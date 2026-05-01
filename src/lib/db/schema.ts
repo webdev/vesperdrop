@@ -58,6 +58,10 @@ export const generations = pgTable(
     sceneifySourceId: text("sceneify_source_id").notNull(),
     sceneifyGenerationId: text("sceneify_generation_id"),
     presetId: text("preset_id").notNull(),
+    parentGenerationId: uuid("parent_generation_id"),
+    packId: uuid("pack_id"),
+    packRole: text("pack_role"),
+    packShotIndex: integer("pack_shot_index"),
     status: text("status", {
       enum: ["pending", "running", "succeeded", "failed"],
     })
@@ -79,6 +83,8 @@ export const generations = pgTable(
     index("generations_run_idx").on(t.runId),
     index("generations_user_created_idx").on(t.userId, t.createdAt.desc()),
     index("generations_status_idx").on(t.status),
+    index("generations_pack_idx").on(t.packId),
+    index("generations_parent_idx").on(t.parentGenerationId),
   ],
 );
 
@@ -136,10 +142,55 @@ export const scenes = pgTable(
   ],
 );
 
+export const completeLookPacks = pgTable(
+  "complete_look_packs",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    runId: uuid("run_id")
+      .notNull()
+      .references(() => runs.id, { onDelete: "cascade" }),
+    parentGenerationId: uuid("parent_generation_id")
+      .notNull()
+      .references(() => generations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    platform: text("platform", {
+      enum: ["amazon", "shopify", "instagram", "tiktok"],
+    }).notNull(),
+    sceneifyPackId: text("sceneify_pack_id").notNull(),
+    shotCount: integer("shot_count").notNull(),
+    creditsSpent: integer("credits_spent").notNull(),
+    status: text("status", {
+      enum: ["pending", "running", "succeeded", "partial", "failed"],
+    })
+      .notNull()
+      .default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [
+    uniqueIndex("complete_look_packs_parent_platform_key").on(
+      t.parentGenerationId,
+      t.platform,
+    ),
+    index("complete_look_packs_run_idx").on(t.runId),
+    index("complete_look_packs_user_created_idx").on(
+      t.userId,
+      t.createdAt.desc(),
+    ),
+  ],
+);
+
 export type Profile = typeof profiles.$inferSelect;
 export type Run = typeof runs.$inferSelect;
 export type Generation = typeof generations.$inferSelect;
 export type UsageMonthly = typeof usageMonthly.$inferSelect;
 export type StripeEvent = typeof stripeEvents.$inferSelect;
 export type RateLimit = typeof rateLimits.$inferSelect;
+export type CompleteLookPack = typeof completeLookPacks.$inferSelect;
 export type Scene = typeof scenes.$inferSelect;
