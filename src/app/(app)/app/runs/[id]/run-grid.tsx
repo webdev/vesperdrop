@@ -45,7 +45,7 @@ export function RunGrid({ runId, initial }: { runId: string; initial: Generation
           {g.status === "succeeded" && g.outputUrl ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={g.outputUrl} alt="" className="w-full h-full object-cover" />
+              <img src={g.outputUrl} alt="" className="w-full h-full object-contain" />
               {/* Watermark badge */}
               {g.watermarked ? (
                 <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent px-3 pt-8 pb-3 flex items-end justify-between">

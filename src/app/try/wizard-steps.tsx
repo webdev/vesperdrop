@@ -3,9 +3,9 @@
 export type StepId = "upload" | "scenes" | "develop";
 
 export const STEPS: { id: StepId; n: string; t: string }[] = [
-  { id: "upload", n: "I", t: "UPLOAD PRODUCT" },
-  { id: "scenes", n: "II", t: "PICK SCENES" },
-  { id: "develop", n: "III", t: "DEVELOP" },
+  { id: "upload", n: "1", t: "Upload product" },
+  { id: "scenes", n: "2", t: "Pick scenes" },
+  { id: "develop", n: "3", t: "Develop" },
 ];
 
 export function WizardSteps({ current }: { current: StepId }) {
@@ -13,38 +13,55 @@ export function WizardSteps({ current }: { current: StepId }) {
   const currentIdx = order.indexOf(current);
 
   return (
-    <div className="sticky top-0 z-30 border-b border-[var(--color-line)] bg-[var(--color-paper)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-paper)]/80">
-      <div className="mx-auto flex max-w-6xl items-center gap-4 px-6 py-4 md:gap-6 md:px-12">
+    <div className="sticky top-0 z-30 border-b border-zinc-200/70 bg-white/85 backdrop-blur-md">
+      <div className="mx-auto flex max-w-6xl items-center gap-3 px-6 py-3.5 md:gap-5 md:px-10">
         {STEPS.map((s, i) => {
           const done = i < currentIdx;
           const active = i === currentIdx;
-          const tone = active
-            ? "text-[var(--color-ink)]"
-            : done
-              ? "text-[var(--color-ink-2)]"
-              : "text-[var(--color-ink-4)]";
           return (
             <div key={s.id} className="flex items-center gap-3 md:gap-4">
-              <div className={`flex items-baseline gap-2 ${tone}`}>
+              <div className="flex items-center gap-2.5">
                 <span
-                  className={`font-serif text-xl italic md:text-2xl ${
-                    active ? "text-[var(--color-ember)]" : ""
+                  className={`flex h-6 w-6 items-center justify-center rounded-full text-[12px] font-semibold ${
+                    active
+                      ? "bg-zinc-900 text-white"
+                      : done
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-zinc-100 text-zinc-500"
                   }`}
                 >
-                  {s.n}.
+                  {done ? (
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden
+                    >
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                  ) : (
+                    s.n
+                  )}
                 </span>
-                <span className="hidden font-mono text-[10px] tracking-[0.18em] sm:inline md:text-[11px]">
+                <span
+                  className={`hidden text-[13px] font-medium tracking-tight sm:inline ${
+                    active
+                      ? "text-zinc-900"
+                      : done
+                        ? "text-zinc-700"
+                        : "text-zinc-400"
+                  }`}
+                >
                   {s.t}
                 </span>
-                {done ? (
-                  <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--color-ember)]" />
-                ) : null}
               </div>
               {i < STEPS.length - 1 ? (
-                <span
-                  aria-hidden
-                  className="h-px w-6 bg-[var(--color-line)] md:w-12"
-                />
+                <span aria-hidden className="h-px w-6 bg-zinc-200 md:w-10" />
               ) : null}
             </div>
           );

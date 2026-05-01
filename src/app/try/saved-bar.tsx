@@ -46,7 +46,7 @@ export function SavedBar({
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-line)] bg-[var(--color-paper)]"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white"
       style={{ boxShadow: "0 -4px 24px rgba(27,25,21,0.10)" }}
       role="region"
       aria-label="Batch saved"
@@ -56,16 +56,16 @@ export function SavedBar({
           <p
             className={`font-mono text-[10px] tracking-[0.2em] uppercase ${
               status === "error"
-                ? "text-[var(--color-ember)]"
-                : "text-[var(--color-ink-3)]"
+                ? "text-orange-500"
+                : "text-zinc-500"
             }`}
           >
             {eyebrow}
           </p>
-          <h2 className="mt-1.5 font-serif text-2xl font-light leading-tight text-[var(--color-ink)] md:text-3xl">
+          <h2 className="mt-1.5 text-2xl  leading-tight text-zinc-900 md:text-3xl">
             {headline}
           </h2>
-          <p className="mt-1.5 font-mono text-[10px] tracking-[0.16em] text-[var(--color-ink-3)] uppercase">
+          <p className="mt-1.5 font-mono text-[10px] tracking-[0.16em] text-zinc-500 uppercase">
             {microcopy}
           </p>
         </div>
@@ -75,8 +75,8 @@ export function SavedBar({
             href={historyHref}
             className={`inline-flex items-center justify-center rounded-full px-6 py-3.5 text-sm font-medium transition-transform md:px-8 md:py-4 ${
               status === "saving"
-                ? "pointer-events-none bg-[var(--color-ink-3)] text-[var(--color-cream)] opacity-70"
-                : "bg-[var(--color-ember)] text-[var(--color-cream)] hover:scale-[1.02] hover:bg-[#a83c18]"
+                ? "pointer-events-none bg-[var(--color-ink-3)] text-white opacity-70"
+                : "bg-orange-500 text-white hover:scale-[1.02] hover:bg-[#a83c18]"
             }`}
             aria-disabled={status === "saving"}
             tabIndex={status === "saving" ? -1 : 0}
@@ -86,14 +86,14 @@ export function SavedBar({
           <button
             type="button"
             onClick={onReset}
-            className="font-mono text-[11px] tracking-[0.14em] text-[var(--color-ink-3)] uppercase underline-offset-4 hover:text-[var(--color-ember)] hover:underline"
+            className="font-mono text-[11px] tracking-[0.14em] text-zinc-500 uppercase underline-offset-4 hover:text-orange-500 hover:underline"
           >
             ← Try with another product
           </button>
         </div>
       </div>
-      <div className="border-t border-[var(--color-line)] bg-[var(--color-paper-2)]/60">
-        <div className="mx-auto max-w-6xl px-6 py-2 text-center font-mono text-[10px] tracking-[0.18em] text-[var(--color-ink-4)] uppercase md:px-12">
+      <div className="border-t border-zinc-200 bg-zinc-50/60">
+        <div className="mx-auto max-w-6xl px-6 py-2 text-center font-mono text-[10px] tracking-[0.18em] text-zinc-400 uppercase md:px-12">
           {status === "saved"
             ? "FREE · BATCH IN YOUR LIBRARY · DOWNLOAD ANYTIME"
             : status === "saving"

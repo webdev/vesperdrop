@@ -51,18 +51,18 @@ export default function Page() {
   return (
     <>
       <PricingProductJsonLd offers={PRICING_OFFERS} />
-      <header className="mx-auto max-w-3xl px-6 pt-16 pb-12 text-center md:pt-20">
-        <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-ink-3)]">
-          Pricing &middot; simple credits
+      <header className="mx-auto max-w-3xl px-6 pt-20 pb-12 text-center md:pt-28">
+        <p className="text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase">
+          Pricing · simple credits
         </p>
-        <h1 className="mb-5 font-serif text-5xl font-light leading-[1.02] tracking-tight text-[var(--color-ink)] md:text-6xl">
+        <h1 className="mt-4 text-[clamp(40px,5.5vw,72px)] font-semibold leading-[1.05] tracking-[-0.02em] text-zinc-900">
           One credit.
           <br />
-          <span className="italic">One lifestyle shot.</span>
+          <span className="text-zinc-600">One lifestyle shot.</span>
         </h1>
-        <p className="mx-auto max-w-xl font-serif text-lg font-light leading-snug text-[var(--color-ink-2)]">
-          Try free — no card. Upgrade when you see the result.
-          Credits roll over and never expire within your billing period.
+        <p className="mx-auto mt-6 max-w-xl text-[16px] leading-[1.6] text-zinc-600">
+          Try free — no card. Upgrade when you see the result. Credits roll
+          over and never expire within your billing period.
         </p>
       </header>
       <PricingCards tiers={PAID_PLAN_SLUGS.map((slug) => PLAN_CATALOG[slug])} />

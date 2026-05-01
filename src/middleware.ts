@@ -12,7 +12,6 @@ const PUBLIC_PREFIXES = [
   "/unauthorized",
   "/mfa-verify",
   "/api/",
-  "/app/discover",
   ...(process.env.E2E_SCENEIFY_MOCK === "1" ? ["/try"] : []),
 ];
 

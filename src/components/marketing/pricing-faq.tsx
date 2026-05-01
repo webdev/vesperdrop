@@ -37,33 +37,36 @@ const FAQ = [
 
 export function PricingFaq() {
   return (
-    <section className="mx-auto max-w-3xl border-t border-[var(--color-line)] px-6 py-16">
-      <FaqJsonLd
-        questions={FAQ.map((f) => ({ question: f.q, answer: f.a }))}
-      />
-      <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-ink-3)]">
-        FAQ &middot; N&deg;03
-      </p>
-      <h2 className="mb-10 font-serif text-4xl font-light leading-tight tracking-tight text-[var(--color-ink)] md:text-5xl">
-        Frequently asked.
-      </h2>
-      <ul className="divide-y divide-[var(--color-line)]">
-        {FAQ.map((item) => (
-          <li key={item.q}>
-            <details className="group py-5">
-              <summary className="flex cursor-pointer items-center justify-between gap-4 list-none text-left font-serif text-xl font-light text-[var(--color-ink)]">
+    <section className="border-t border-zinc-200 bg-white py-20 md:py-28">
+      <div className="mx-auto max-w-3xl px-6 md:px-10">
+        <FaqJsonLd
+          questions={FAQ.map((f) => ({ question: f.q, answer: f.a }))}
+        />
+        <p className="text-center text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase">
+          FAQ
+        </p>
+        <h2 className="mt-3 text-center text-[clamp(28px,4vw,44px)] font-semibold leading-[1.1] tracking-[-0.02em] text-zinc-900">
+          Frequently asked.
+        </h2>
+        <div className="mt-12 divide-y divide-zinc-200 border-y border-zinc-200">
+          {FAQ.map((item) => (
+            <details key={item.q} className="group py-5">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-6 text-[17px] font-medium tracking-tight text-zinc-900">
                 <span>{item.q}</span>
-                <span className="font-mono text-2xl font-light text-[var(--color-ink-3)] transition-transform group-open:rotate-45">
+                <span
+                  aria-hidden
+                  className="text-zinc-400 transition-transform group-open:rotate-45"
+                >
                   +
                 </span>
               </summary>
-              <p className="mt-3 max-w-2xl font-serif text-base font-light leading-relaxed text-[var(--color-ink-2)]">
+              <p className="mt-3 text-[15px] leading-[1.6] text-zinc-600">
                 {item.a}
               </p>
             </details>
-          </li>
-        ))}
-      </ul>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }

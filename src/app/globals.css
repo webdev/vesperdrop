@@ -142,12 +142,7 @@
 
 body {
   font-family: var(--font-sans);
-  color: var(--color-ink);
-  background: var(--color-paper);
+  color: #18181b;
+  background: #ffffff;
   -webkit-font-smoothing: antialiased;
-  background-image:
-    radial-gradient(rgba(27, 25, 21, 0.035) 1px, transparent 1px),
-    radial-gradient(rgba(27, 25, 21, 0.02) 1px, transparent 1px);
-  background-size: 3px 3px, 7px 7px;
-  background-position: 0 0, 1px 1px;
 }

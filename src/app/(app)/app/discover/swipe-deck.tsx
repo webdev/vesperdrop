@@ -3,6 +3,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { SceneifyPublicPreset } from "@/lib/sceneify/types";
 import { applyPicks } from "./actions";
 
@@ -13,8 +14,14 @@ type Phase = "swipe" | "review";
 const EXIT_MS = 280;
 const SWIPE_THRESHOLD = 110;
 
+function parsePhase(raw: string | null): Phase {
+  return raw === "review" ? "review" : "swipe";
+}
+
 export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
   const [continuing, startContinue] = useTransition();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const presetIndex = useMemo(() => {
     const map = new Map<string, { preset: SceneifyPublicPreset; position: number }>();
     presets.forEach((p, i) => map.set(p.slug, { preset: p, position: i }));
@@ -30,8 +37,34 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
   const [exiting, setExiting] = useState<{ id: string; dir: Direction } | null>(
     null,
   );
-  const [phase, setPhase] = useState<Phase>("swipe");
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+
+  const urlPhase = parsePhase(searchParams.get("phase"));
+  const effectivePhase: Phase =
+    urlPhase === "review" && liked.length === 0 && skipped.length === 0
+      ? "swipe"
+      : urlPhase;
+  const phase = effectivePhase;
+
+  const goToPhase = useCallback(
+    (next: Phase, mode: "push" | "replace" = "push") => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (next === "swipe") params.delete("phase");
+      else params.set("phase", next);
+      const qs = params.toString();
+      const href = qs ? `/app/discover?${qs}` : "/app/discover";
+      if (mode === "replace") router.replace(href);
+      else router.push(href);
+    },
+    [router, searchParams],
+  );
+
+  // Reconcile URL when the URL phase isn't reachable given current state
+  useEffect(() => {
+    if (urlPhase !== effectivePhase) {
+      goToPhase(effectivePhase, "replace");
+    }
+  }, [urlPhase, effectivePhase, goToPhase]);
 
   const startRef = useRef({ x: 0, y: 0 });
 
@@ -68,13 +101,18 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
     });
   }, []);
 
-  // Auto-transition to review when deck empties
+  // Auto-transition to review when deck empties (replace, no history bloat)
   useEffect(() => {
-    if (deck.length === 0 && phase === "swipe" && !exiting) {
-      const t = window.setTimeout(() => setPhase("review"), 400);
+    if (
+      deck.length === 0 &&
+      phase === "swipe" &&
+      !exiting &&
+      (liked.length > 0 || skipped.length > 0)
+    ) {
+      const t = window.setTimeout(() => goToPhase("review", "replace"), 400);
       return () => window.clearTimeout(t);
     }
-  }, [deck.length, phase, exiting]);
+  }, [deck.length, phase, exiting, liked.length, skipped.length, goToPhase]);
 
   // Keyboard
   useEffect(() => {
@@ -113,7 +151,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
     setLiked([]);
     setSkipped([]);
     setHistory([]);
-    setPhase("swipe");
+    goToPhase("swipe", "replace");
   };
 
   const reconsiderSkipped = () => {
@@ -121,7 +159,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
     setDeck(skipped);
     setSkipped([]);
     setHistory([]);
-    setPhase("swipe");
+    goToPhase("swipe", "push");
   };
 
   const removeLiked = (id: string) =>
@@ -144,13 +182,13 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
       <div className="space-y-10">
         <div className="flex items-end justify-between gap-6">
           <div>
-            <div className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-ink-3)] uppercase mb-3">
+            <div className="font-mono text-[10px] tracking-[0.18em] text-zinc-500 uppercase mb-3">
               Your Moodboard · N°02
             </div>
-            <h1 className="font-serif text-5xl md:text-6xl font-light leading-none">
+            <h1 className="text-5xl md:text-6xl  leading-none">
               Your <em>aesthetic</em>.
             </h1>
-            <p className="font-serif text-lg font-light text-[var(--color-ink-2)] mt-3 max-w-xl leading-snug">
+            <p className="text-lg  text-zinc-700 mt-3 max-w-xl leading-snug">
               {likedPresets.length === 0 ? (
                 "You skipped everything. Try again with something — anything — that catches your eye."
               ) : (
@@ -165,7 +203,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
           <button
             type="button"
             onClick={reset}
-            className="font-mono text-[11px] tracking-[0.14em] text-[var(--color-ink-3)] hover:text-[var(--color-ink)] underline shrink-0"
+            className="font-mono text-[11px] tracking-[0.14em] text-zinc-500 hover:text-zinc-900 underline shrink-0"
           >
             ↺ Start over
           </button>
@@ -173,7 +211,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
 
         {likedPresets.length > 0 && (
           <div>
-            <div className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-ink-3)] uppercase mb-3">
+            <div className="font-mono text-[10px] tracking-[0.18em] text-zinc-500 uppercase mb-3">
               Liked · {likedPresets.length}
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
@@ -182,28 +220,28 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
                 const hero = p.heroImageUrl;
                 return (
                   <div key={p.slug} className="space-y-2">
-                    <div className="relative aspect-[4/5] overflow-hidden border border-[var(--color-line)] bg-[var(--color-paper-2)]">
+                    <div className="relative aspect-[4/5] overflow-hidden border border-zinc-200 bg-zinc-50">
                       {hero ? (
                         <img
                           src={hero}
                           alt={p.name}
                           loading="lazy"
-                          className="w-full h-full object-cover block"
+                          className="w-full h-full object-contain block"
                         />
                       ) : null}
-                      <div className="absolute top-2 left-2 font-mono text-[9px] tracking-[0.12em] text-[var(--color-cream)] bg-black/65 px-1.5 py-0.5">
+                      <div className="absolute top-2 left-2 font-mono text-[9px] tracking-[0.12em] text-white bg-black/65 px-1.5 py-0.5">
                         REF_{String(pos).padStart(3, "0")}
                       </div>
                       <button
                         type="button"
                         aria-label={`Remove ${p.name}`}
                         onClick={() => removeLiked(p.slug)}
-                        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[var(--color-cream)]/90 hover:bg-[var(--color-cream)] flex items-center justify-center text-[var(--color-ink)] text-xs leading-none cursor-pointer"
+                        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/90 hover:bg-white flex items-center justify-center text-zinc-900 text-xs leading-none cursor-pointer"
                       >
                         ✕
                       </button>
                     </div>
-                    <div className="font-serif text-base italic">{p.name}</div>
+                    <div className="text-base italic">{p.name}</div>
                   </div>
                 );
               })}
@@ -211,12 +249,12 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
           </div>
         )}
 
-        <div className="bg-[var(--color-ink)] text-[var(--color-cream)] px-6 py-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-zinc-900 text-white px-6 py-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="font-mono text-[11px] tracking-[0.14em] text-[var(--color-ink-4)] mb-1 uppercase">
+            <div className="font-mono text-[11px] tracking-[0.14em] text-zinc-400 mb-1 uppercase">
               Next · Upload your product
             </div>
-            <div className="font-serif text-xl md:text-2xl italic">
+            <div className="text-xl md:text-2xl italic">
               {likedPresets.length > 0
                 ? "Now let's see what you're selling."
                 : "Pick at least one look to continue."}
@@ -227,7 +265,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
               type="button"
               onClick={reconsiderSkipped}
               disabled={skipped.length === 0}
-              className="font-mono text-[11px] tracking-[0.12em] uppercase border border-[var(--color-ink-3)] text-[var(--color-cream)] px-4 py-2.5 hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="font-mono text-[11px] tracking-[0.12em] uppercase border border-[var(--color-ink-3)] text-white px-4 py-2.5 hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Reconsider {skipped.length} skipped
             </button>
@@ -235,7 +273,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
               type="button"
               onClick={continueToUpload}
               disabled={likedPresets.length === 0 || continuing}
-              className="font-mono text-[11px] tracking-[0.12em] uppercase bg-[var(--color-ember)] text-[var(--color-cream)] px-5 py-2.5 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="font-mono text-[11px] tracking-[0.12em] uppercase bg-orange-500 text-white px-5 py-2.5 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {continuing ? "Loading…" : "Continue → upload →"}
             </button>
@@ -291,31 +329,31 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-6">
         <div>
-          <div className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-ink-3)] uppercase mb-3">
+          <div className="font-mono text-[10px] tracking-[0.18em] text-zinc-500 uppercase mb-3">
             Style Discovery · N°01
           </div>
-          <h1 className="font-serif text-5xl md:text-6xl font-light leading-none">
+          <h1 className="text-5xl md:text-6xl  leading-none">
             Train your <em>eye</em>.
           </h1>
-          <p className="font-serif text-base md:text-lg font-light text-[var(--color-ink-2)] mt-2">
-            Swipe right on looks you&apos;d buy. Skip what doesn&apos;t speak to
+          <p className="text-base md:text-lg  text-zinc-700 mt-2">
+            Swipe right on looks you&apos;d try. Skip what doesn&apos;t speak to
             you.
           </p>
         </div>
 
         <div className="text-right shrink-0">
-          <div className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-ink-3)] uppercase mb-1.5">
+          <div className="font-mono text-[10px] tracking-[0.18em] text-zinc-500 uppercase mb-1.5">
             Progress
           </div>
-          <div className="font-serif text-3xl italic leading-none">
+          <div className="text-3xl italic leading-none">
             {totalDecided}{" "}
-            <span className="text-[var(--color-ink-3)]">/ {totalCards}</span>
+            <span className="text-zinc-500">/ {totalCards}</span>
           </div>
           <div className="mt-2 flex gap-3.5 justify-end font-mono text-[10px] tracking-[0.12em]">
-            <span className="text-[var(--color-ember)]">
+            <span className="text-orange-500">
               ♥ {liked.length} LIKED
             </span>
-            <span className="text-[var(--color-ink-3)]">
+            <span className="text-zinc-500">
               ✕ {skipped.length} SKIPPED
             </span>
           </div>
@@ -330,8 +368,8 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
             style={{
               background:
                 i < totalDecided
-                  ? "var(--color-ember)"
-                  : "var(--color-line)",
+                  ? "#f97316"
+                  : "#e4e4e7",
             }}
           />
         ))}
@@ -369,7 +407,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
                       }
                     : undefined
                 }
-                className="absolute inset-0 bg-[var(--color-cream)] border border-[var(--color-line)] overflow-hidden"
+                className="absolute inset-0 bg-white border border-zinc-200 overflow-hidden"
                 style={{
                   boxShadow: isTop
                     ? "0 12px 40px rgba(27,25,21,0.18)"
@@ -382,10 +420,10 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
                     src={hero}
                     alt={preset.name}
                     draggable={false}
-                    className="w-full h-full object-cover block pointer-events-none"
+                    className="w-full h-full object-contain block pointer-events-none"
                   />
                 ) : (
-                  <div className="w-full h-full bg-[var(--color-paper-2)]" />
+                  <div className="w-full h-full bg-zinc-50" />
                 )}
 
                 <div
@@ -396,12 +434,12 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
                   }}
                 />
 
-                <div className="absolute top-3.5 left-3.5 font-mono text-[10px] tracking-[0.14em] text-[var(--color-cream)] bg-black/55 px-2.5 py-1 backdrop-blur-sm">
+                <div className="absolute top-3.5 left-3.5 font-mono text-[10px] tracking-[0.14em] text-white bg-black/55 px-2.5 py-1 backdrop-blur-sm">
                   {refLabel}
                 </div>
 
-                <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 pt-5 text-[var(--color-cream)]">
-                  <div className="font-serif text-3xl md:text-4xl italic font-light leading-none">
+                <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 pt-5 text-white">
+                  <div className="text-3xl md:text-4xl italic  leading-none">
                     {preset.name}
                   </div>
                   <div className="font-mono text-[10px] tracking-[0.12em] mt-2 opacity-85 uppercase">
@@ -412,7 +450,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
                 {isTop && (
                   <>
                     <div
-                      className="absolute top-8 left-6 px-3.5 py-2 border-[3px] border-[var(--color-ember)] text-[var(--color-ember)] font-mono text-xl tracking-[0.18em] font-bold pointer-events-none"
+                      className="absolute top-8 left-6 px-3.5 py-2 border-[3px] border-orange-500 text-orange-500 font-mono text-xl tracking-[0.18em] font-bold pointer-events-none"
                       style={{
                         transform: "rotate(-12deg)",
                         opacity:
@@ -426,7 +464,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
                       LIKE
                     </div>
                     <div
-                      className="absolute top-8 right-6 px-3.5 py-2 border-[3px] border-[var(--color-ink)] text-[var(--color-ink)] font-mono text-xl tracking-[0.18em] font-bold pointer-events-none"
+                      className="absolute top-8 right-6 px-3.5 py-2 border-[3px] border-zinc-900 text-zinc-900 font-mono text-xl tracking-[0.18em] font-bold pointer-events-none"
                       style={{
                         transform: "rotate(12deg)",
                         opacity:
@@ -446,8 +484,8 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
           })}
 
           {!topId && !exiting && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-[var(--color-ink-3)]">
-              <div className="font-serif text-3xl italic">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-zinc-500">
+              <div className="text-3xl italic">
                 That&apos;s everything.
               </div>
               <div className="font-mono text-[11px] tracking-[0.12em] uppercase">
@@ -465,7 +503,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
           disabled={history.length === 0}
           title="Undo"
           aria-label="Undo"
-          className="w-12 h-12 rounded-full bg-[var(--color-cream)] border border-[var(--color-line)] text-[var(--color-ink-2)] text-lg flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:border-[var(--color-ink-3)]"
+          className="w-12 h-12 rounded-full bg-white border border-zinc-200 text-zinc-700 text-lg flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:border-[var(--color-ink-3)]"
         >
           ↺
         </button>
@@ -475,7 +513,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
           disabled={!topId || !!exiting}
           title="Skip"
           aria-label="Skip"
-          className="w-16 h-16 rounded-full bg-[var(--color-cream)] border-2 border-[var(--color-ink)] text-[var(--color-ink)] text-2xl flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 transition-transform"
+          className="w-16 h-16 rounded-full bg-white border-2 border-zinc-900 text-zinc-900 text-2xl flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 transition-transform"
         >
           ✕
         </button>
@@ -485,16 +523,16 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
           disabled={!topId || !!exiting}
           title="Like"
           aria-label="Like"
-          className="w-16 h-16 rounded-full bg-[var(--color-ember)] border-2 border-[var(--color-ember)] text-[var(--color-cream)] text-2xl flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 transition-transform"
+          className="w-16 h-16 rounded-full bg-orange-500 border-2 border-orange-500 text-white text-2xl flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 transition-transform"
         >
           ♥
         </button>
         <button
           type="button"
-          onClick={() => setPhase("review")}
+          onClick={() => goToPhase("review", "push")}
           disabled={liked.length === 0}
           title="Done — review moodboard"
-          className="w-12 h-12 rounded-full bg-[var(--color-ink)] text-[var(--color-cream)] font-mono text-[10px] tracking-[0.1em] flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-12 h-12 rounded-full bg-zinc-900 text-white font-mono text-[10px] tracking-[0.1em] flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
         >
           DONE
         </button>
@@ -503,7 +541,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
       <div className="text-center">
         <Link
           href="/app"
-          className="font-mono text-[11px] tracking-[0.14em] text-[var(--color-ink-3)] hover:text-[var(--color-ink)] underline"
+          className="font-mono text-[11px] tracking-[0.14em] text-zinc-500 hover:text-zinc-900 underline"
         >
           Cancel and go back
         </Link>

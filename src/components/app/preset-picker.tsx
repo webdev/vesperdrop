@@ -15,9 +15,9 @@ export function PresetPicker({
   }
   return (
     <section>
-      <h2 className="font-serif text-2xl mb-4">2. Scenes</h2>
+      <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 mb-4">2. Scenes</h2>
       {scenes.length === 0 ? (
-        <p className="text-sm text-[var(--color-ink-3)]">No scenes available yet.</p>
+        <p className="text-sm text-zinc-500">No scenes available yet.</p>
       ) : (
         <ul className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {scenes.map((s) => {
@@ -29,21 +29,19 @@ export function PresetPicker({
                   onClick={() => toggle(s.slug)}
                   className={`block w-full text-left border rounded-lg overflow-hidden transition-colors ${
                     selected
-                      ? "border-[var(--color-ember)] ring-2 ring-[var(--color-ember)]"
-                      : "border-[var(--color-line)]"
+                      ? "border-orange-500 ring-2 ring-orange-500"
+                      : "border-zinc-200 hover:border-zinc-300"
                   }`}
                 >
-                  <div className="aspect-[4/3] bg-[var(--color-paper-2)]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={s.imageUrl}
-                      alt={s.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={s.imageUrl}
+                    alt={s.name}
+                    className="block w-full h-auto"
+                  />
                   <div className="p-3">
-                    <p className="font-serif text-base">{s.name}</p>
-                    <p className="text-xs text-[var(--color-ink-3)] mt-1 font-mono tracking-wider uppercase">
+                    <p className="text-base font-medium text-zinc-900">{s.name}</p>
+                    <p className="text-xs text-zinc-500 mt-1 font-mono tracking-wider uppercase">
                       {s.mood}
                     </p>
                   </div>

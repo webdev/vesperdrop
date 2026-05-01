@@ -1,5 +1,4 @@
 "use client";
-import { useState } from "react";
 import Link from "next/link";
 import { track } from "@/lib/analytics";
 import type { PlanRecord } from "@/lib/plans";
@@ -8,25 +7,14 @@ interface Tier extends PlanRecord {
   id: string;
   cta: string;
   href: string;
-  monthlyPrice: number;
-  yearlyPrice: number;
-  effectivePerCredit: { monthly: string; yearly: string };
 }
 
 function toTier(record: PlanRecord): Tier {
-  const yearlyPrice = Math.round(record.price * 0.8);
-  const yearlyPerCredit =
-    record.credits > 0
-      ? `${Math.round((yearlyPrice * 100) / record.credits)}¢`
-      : record.perCredit;
   return {
     ...record,
     id: record.slug,
     cta: `Start ${record.label}`,
     href: `/api/stripe/checkout?plan=${record.slug}`,
-    monthlyPrice: record.price,
-    yearlyPrice,
-    effectivePerCredit: { monthly: record.perCredit, yearly: yearlyPerCredit },
   };
 }
 
@@ -39,49 +27,24 @@ const ONE_TIME_PACKS = [
 export function PricingCards({ tiers: tierRecords }: { tiers: PlanRecord[] }) {
   const tiers = tierRecords.map(toTier);
   const proTier = tiers.find((t) => t.slug === "pro");
-  const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
 
   return (
-    <div className="mx-auto max-w-5xl px-6 pb-20">
-      {/* Billing toggle */}
-      <div className="mb-10 flex justify-center">
-        <div className="inline-flex rounded-full bg-[var(--color-paper-2)] p-1">
-          {(
-            [
-              { id: "monthly", label: "Monthly" },
-              { id: "yearly", label: "Yearly · save 20%" },
-            ] as const
-          ).map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setBilling(t.id)}
-              className={`rounded-full px-4 py-2 text-sm transition-colors ${
-                billing === t.id
-                  ? "bg-[var(--color-cream)] text-[var(--color-ink)] shadow-sm"
-                  : "text-[var(--color-ink-3)]"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Free vs Pro hero cards */}
-      <div className="mb-5 grid grid-cols-1 gap-5 md:grid-cols-2">
-        {/* Free card */}
-        <div className="flex flex-col rounded-xl border border-[var(--color-line)] bg-[var(--color-cream)] p-7">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-ink-3)]">
+    <div className="mx-auto max-w-5xl px-6 pt-2 pb-20 md:px-10">
+      <div className="mb-6 grid grid-cols-1 gap-5 md:grid-cols-2">
+        <div className="flex flex-col rounded-[20px] border border-zinc-200 bg-white p-7 md:p-8">
+          <p className="text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase">
             Free
           </p>
           <div className="mt-4 mb-1 flex items-baseline gap-1.5">
-            <span className="font-serif text-5xl font-light text-[var(--color-ink)]">$0</span>
-            <span className="text-sm text-[var(--color-ink-3)]">/month</span>
+            <span className="text-[48px] font-semibold tracking-tight text-zinc-900">
+              $0
+            </span>
+            <span className="text-sm text-zinc-500">/month</span>
           </div>
-          <p className="mt-2 text-sm leading-relaxed text-[var(--color-ink-2)]">
+          <p className="mt-2 text-[14px] leading-[1.55] text-zinc-600">
             Try Vesperdrop. No card required.
           </p>
-          <ul className="mt-6 space-y-3 text-sm text-[var(--color-ink-2)]">
+          <ul className="mt-6 space-y-3 text-[14px] text-zinc-700">
             <Feature>1 full-resolution HD generation</Feature>
             <Feature>5 watermarked 720p previews</Feature>
             <Feature>All scene presets</Feature>
@@ -89,89 +52,93 @@ export function PricingCards({ tiers: tierRecords }: { tiers: PlanRecord[] }) {
           </ul>
           <Link
             href="/try"
-            className="mt-7 inline-flex justify-center rounded-full border border-[var(--color-ink)] px-5 py-3 text-sm font-medium text-[var(--color-ink)] transition-colors hover:bg-[var(--color-paper-2)]"
+            className="mt-7 inline-flex items-center justify-center gap-2 rounded-full border border-zinc-200 bg-white px-6 py-3.5 text-[14px] font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50"
           >
             Try free — no account needed
           </Link>
         </div>
 
-        {/* Pro card */}
-        <div className="relative flex flex-col rounded-xl border border-[var(--color-ink)] bg-[var(--color-ink)] p-7 text-[var(--color-cream)]">
-          <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--color-ember)] px-3 py-1 font-mono text-[10px] tracking-[0.14em] text-[var(--color-cream)]">
-            MOST POPULAR
+        <div className="relative flex flex-col rounded-[20px] border border-zinc-900 bg-zinc-900 p-7 text-white md:p-8">
+          <span className="absolute -top-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-orange-500 px-3 py-1 text-[10px] font-semibold tracking-[0.14em] text-white uppercase">
+            Most popular
           </span>
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-ink-4)]">
+          <p className="text-[11px] font-medium tracking-[0.2em] text-zinc-400 uppercase">
             Pro
           </p>
           <div className="mt-4 mb-1 flex items-baseline gap-1.5">
-            <span className="font-serif text-5xl font-light">
-              ${billing === "monthly" ? (proTier?.monthlyPrice ?? 49) : (proTier?.yearlyPrice ?? 39)}
+            <span className="text-[48px] font-semibold tracking-tight text-white">
+              ${proTier?.price ?? 49}
             </span>
-            <span className="text-sm text-[var(--color-ink-4)]">
-              {billing === "yearly" ? "/mo · billed yearly" : "/month"}
-            </span>
+            <span className="text-sm text-zinc-400">/month</span>
           </div>
-          <p className="mt-2 text-sm leading-relaxed text-white/70">
-            For sellers refreshing 30–100 SKUs/quarter. 200 credits covers it comfortably.
+          <p className="mt-2 text-[14px] leading-[1.55] text-zinc-300">
+            For sellers refreshing 30–100 SKUs/quarter. 200 credits covers it
+            comfortably.
           </p>
-          <ul className="mt-6 space-y-3 text-sm">
-            <Feature ember>200 credits / month</Feature>
-            <Feature ember>Full resolution, no watermark</Feature>
-            <Feature ember>All scene presets + custom prompts</Feature>
-            <Feature ember>Priority generation queue</Feature>
-            <Feature ember>Cancel any time</Feature>
+          <ul className="mt-6 space-y-3 text-[14px] text-zinc-200">
+            <Feature dark>200 credits / month</Feature>
+            <Feature dark>Full resolution, no watermark</Feature>
+            <Feature dark>All scene presets + custom prompts</Feature>
+            <Feature dark>Priority generation queue</Feature>
+            <Feature dark>Cancel any time</Feature>
           </ul>
           <a
             href="/api/stripe/checkout?plan=pro"
-            onClick={() => track("pricing_plan_clicked", { plan: "pro", billing })}
-            className="mt-7 inline-flex justify-center rounded-full bg-[var(--color-ink)] border border-[var(--color-cream)]/30 px-5 py-3 text-sm font-medium text-[var(--color-cream)] transition-colors hover:bg-[var(--color-ink-2)]"
+            onClick={() =>
+              track("pricing_plan_clicked", { plan: "pro", billing: "monthly" })
+            }
+            className="mt-7 inline-flex items-center justify-center gap-2 rounded-full bg-white px-7 py-3.5 text-[14px] font-medium text-zinc-900 transition-transform hover:scale-[1.02]"
           >
-            Start Pro &rarr;
+            Start Pro <span aria-hidden>→</span>
           </a>
-          <p className="mt-3 text-center font-mono text-[10px] tracking-[0.12em] text-[var(--color-cream)]/40">
-            {billing === "yearly" ? "25¢" : "25¢"} PER CREDIT &middot; CANCEL ANY TIME
+          <p className="mt-3 text-center text-[11px] tracking-wide text-zinc-400">
+            25¢ per credit · cancel any time
           </p>
         </div>
       </div>
 
-      {/* Full tier table */}
-      <div className="mb-5 overflow-hidden rounded-xl border border-[var(--color-line)] bg-[var(--color-cream)]">
-        <div className="border-b border-[var(--color-line)] px-6 py-4">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-ink-3)]">
-            All plans &middot; credits never expire within your billing period
+      <div className="mb-6 overflow-hidden rounded-[20px] border border-zinc-200 bg-white">
+        <div className="border-b border-zinc-200 px-6 py-4">
+          <p className="text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase">
+            All plans · credits never expire within your billing period
           </p>
         </div>
-        <div className="divide-y divide-[var(--color-line)]">
+        <div className="divide-y divide-zinc-200">
           {tiers.map((tier) => (
             <div
               key={tier.id}
-              className={`grid grid-cols-[1fr_auto] items-center gap-4 px-6 py-4 sm:grid-cols-[140px_1fr_80px_100px_120px] ${
-                tier.recommended ? "bg-[var(--color-paper-2)]" : ""
+              className={`grid grid-cols-[1fr_auto] items-center gap-4 px-6 py-5 sm:grid-cols-[160px_1fr_88px_100px_140px] ${
+                tier.recommended ? "bg-zinc-50/70" : ""
               }`}
             >
               <div className="flex items-center gap-2">
-                <span className="font-medium text-[var(--color-ink)]">{tier.label}</span>
+                <span className="font-medium text-zinc-900">{tier.label}</span>
                 {tier.recommended && (
-                  <span className="rounded-full bg-[var(--color-ember)] px-2 py-0.5 font-mono text-[9px] tracking-[0.12em] text-[var(--color-cream)]">
-                    POPULAR
+                  <span className="inline-flex items-center rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-semibold tracking-[0.12em] text-white uppercase">
+                    Popular
                   </span>
                 )}
               </div>
-              <div className="hidden sm:block text-sm text-[var(--color-ink-3)]">
+              <div className="hidden text-[14px] text-zinc-500 sm:block">
                 {tier.credits.toLocaleString()} credits / mo
               </div>
-              <div className="hidden sm:block font-mono text-[11px] text-[var(--color-ink-3)]">
-                {tier.effectivePerCredit[billing]} / credit
+              <div className="hidden text-[12px] text-zinc-500 sm:block">
+                {tier.perCredit} / credit
               </div>
-              <div className="text-right sm:text-left font-medium text-[var(--color-ink)]">
-                ${billing === "monthly" ? tier.monthlyPrice : tier.yearlyPrice}
-                <span className="text-xs font-normal text-[var(--color-ink-3)]">/mo</span>
+              <div className="text-right font-medium text-zinc-900 sm:text-left">
+                ${tier.price}
+                <span className="text-xs font-normal text-zinc-500">/mo</span>
               </div>
-              <div className="hidden sm:flex justify-end">
+              <div className="hidden justify-end sm:flex">
                 <a
                   href={tier.href}
-                  onClick={() => track("pricing_plan_clicked", { plan: tier.id, billing })}
-                  className="inline-flex items-center rounded-full border border-[var(--color-ink)] px-4 py-1.5 font-mono text-[10px] tracking-[0.08em] text-[var(--color-ink)] transition-colors hover:bg-[var(--color-ink)] hover:text-[var(--color-cream)]"
+                  onClick={() =>
+                    track("pricing_plan_clicked", {
+                      plan: tier.id,
+                      billing: "monthly",
+                    })
+                  }
+                  className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-[13px] font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50"
                 >
                   {tier.cta}
                 </a>
@@ -181,13 +148,12 @@ export function PricingCards({ tiers: tierRecords }: { tiers: PlanRecord[] }) {
         </div>
       </div>
 
-      {/* One-time packs */}
-      <div className="mb-10 overflow-hidden rounded-xl border border-dashed border-[var(--color-line)] bg-[var(--color-cream)] p-6">
+      <div className="mb-10 rounded-[20px] border border-dashed border-zinc-300 bg-zinc-50/60 p-7">
         <div className="mb-5">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-ink-3)]">
-            One-time packs &middot; no subscription
+          <p className="text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase">
+            One-time packs · no subscription
           </p>
-          <p className="mt-1 text-sm text-[var(--color-ink-2)]">
+          <p className="mt-1 text-[14px] text-zinc-600">
             Not ready to subscribe? Buy credits once. They don&rsquo;t expire.
           </p>
         </div>
@@ -196,45 +162,56 @@ export function PricingCards({ tiers: tierRecords }: { tiers: PlanRecord[] }) {
             <a
               key={pack.credits}
               href={`/api/stripe/checkout?plan=pack-${pack.credits}`}
-              onClick={() => track("pricing_pack_clicked", { credits: pack.credits })}
-              className="flex items-center justify-between rounded-lg border border-[var(--color-line)] bg-[var(--color-paper-2)] px-4 py-3 transition-colors hover:border-[var(--color-ink)]"
+              onClick={() =>
+                track("pricing_pack_clicked", { credits: pack.credits })
+              }
+              className="flex items-center justify-between rounded-[14px] border border-zinc-200 bg-white px-4 py-3.5 transition-colors hover:border-zinc-300 hover:bg-zinc-50"
             >
               <div>
-                <span className="font-medium text-[var(--color-ink)]">{pack.credits} credits</span>
-                <span className="ml-2 font-mono text-[10px] text-[var(--color-ink-3)]">
+                <span className="font-medium text-zinc-900">
+                  {pack.credits} credits
+                </span>
+                <span className="ml-2 text-[11px] text-zinc-500">
                   {pack.perCredit}/credit
                 </span>
               </div>
-              <span className="font-medium text-[var(--color-ink)]">${pack.price}</span>
+              <span className="font-medium text-zinc-900">${pack.price}</span>
             </a>
           ))}
         </div>
-        <p className="mt-4 font-mono text-[10px] tracking-[0.1em] text-[var(--color-ink-3)]">
+        <p className="mt-4 text-[11px] tracking-wide text-zinc-500">
           Subscribers pay less per credit — packs are the on-ramp to a plan.
         </p>
       </div>
 
-      {/* Trust footer */}
-      <div className="flex flex-col items-center justify-between gap-4 rounded-xl border border-dashed border-[var(--color-line)] px-6 py-5 sm:flex-row">
+      <div className="flex flex-col items-center justify-between gap-4 rounded-[20px] border border-dashed border-zinc-300 px-6 py-5 sm:flex-row">
         <div>
-          <p className="text-sm font-medium text-[var(--color-ink)]">Billing by Stripe</p>
-          <p className="text-xs text-[var(--color-ink-3)]">
+          <p className="text-[14px] font-medium text-zinc-900">Billing by Stripe</p>
+          <p className="text-[12px] text-zinc-500">
             Manage or cancel any time from your account. Prices in USD.
           </p>
         </div>
-        <p className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-ink-3)]">
-          SECURE &middot; CANCEL ANY TIME &middot; NO HIDDEN FEES
+        <p className="text-[11px] tracking-[0.2em] text-zinc-500 uppercase">
+          Secure · cancel any time · no hidden fees
         </p>
       </div>
     </div>
   );
 }
 
-function Feature({ children, ember }: { children: React.ReactNode; ember?: boolean }) {
+function Feature({
+  children,
+  dark,
+}: {
+  children: React.ReactNode;
+  dark?: boolean;
+}) {
   return (
     <li className="flex items-start gap-2.5">
       <svg
-        className={ember ? "mt-0.5 shrink-0 text-[var(--color-ember-soft)]" : "mt-0.5 shrink-0 text-[var(--color-ember)]"}
+        className={
+          dark ? "mt-0.5 shrink-0 text-orange-400" : "mt-0.5 shrink-0 text-emerald-600"
+        }
         width="14"
         height="14"
         viewBox="0 0 24 24"

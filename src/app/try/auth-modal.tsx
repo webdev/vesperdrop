@@ -51,16 +51,16 @@ export function AuthModal({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-[var(--color-paper)] text-[var(--color-ink)] p-6">
+      <DialogContent className="sm:max-w-md bg-white text-zinc-900 p-6">
         <div className="space-y-4">
           <div className="space-y-2">
-            <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[var(--color-ink-3)]">
+            <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-zinc-500">
               {eyebrow[intent]}
             </p>
-            <DialogTitle className="font-serif text-2xl leading-tight text-[var(--color-ink)]">
+            <DialogTitle className="text-2xl leading-tight text-zinc-900">
               {headline[intent]}
             </DialogTitle>
-            <DialogDescription className="font-serif text-sm text-[var(--color-ink-2)]">
+            <DialogDescription className="text-sm text-zinc-700">
               Free · 1 HD credit on us · no card required.
             </DialogDescription>
           </div>
@@ -92,7 +92,7 @@ export function AuthModal({
             </TabsContent>
           </Tabs>
 
-          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[var(--color-ink-4)] text-center pt-2">
+          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-zinc-400 text-center pt-2">
             Private · never sold · cancel anytime
           </p>
         </div>

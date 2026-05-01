@@ -47,7 +47,7 @@ export function RunForm({
       <UploadDropzone onChange={setFiles} files={files} />
       <PresetPicker scenes={scenes} value={sceneIds} onChange={setSceneIds} />
       {error && (
-        <div className="rounded border border-[var(--color-ember)]/40 bg-[var(--color-ember)]/5 px-4 py-3 text-sm text-[var(--color-ember)]">
+        <div className="rounded border border-orange-500/40 bg-orange-500/5 px-4 py-3 text-sm text-orange-500">
           {error}
           {error.includes("credits") && (
             <a href="/pricing" className="ml-2 underline underline-offset-4">
@@ -56,8 +56,8 @@ export function RunForm({
           )}
         </div>
       )}
-      <div className="flex items-center justify-between border-t border-[var(--color-line)] pt-6">
-        <p className="text-sm text-[var(--color-ink-3)]">
+      <div className="flex items-center justify-between border-t border-zinc-200 pt-6">
+        <p className="text-sm text-zinc-500">
           {files.length} photo{files.length === 1 ? "" : "s"} ×{" "}
           {sceneIds.length} scene{sceneIds.length === 1 ? "" : "s"} ={" "}
           <strong>{total}</strong>{" "}

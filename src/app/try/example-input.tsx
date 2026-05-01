@@ -52,29 +52,29 @@ export function ExampleInput({ paused }: { paused: boolean }) {
 
   return (
     <div>
-      <div className="mb-3 font-mono text-[10px] tracking-[0.18em] text-[var(--color-ink-3)] uppercase">
-        Example of a good input &rarr;
+      <div className="mb-3 text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase">
+        Example of a good input →
       </div>
-      <div className="relative aspect-square overflow-hidden border border-[var(--color-line)] bg-[var(--color-cream)]">
+      <div className="relative aspect-square overflow-hidden rounded-[16px] border border-zinc-200 bg-zinc-50">
         {SAMPLES.map((s, i) => (
           <img
             key={s.slug}
             src={s.src}
             alt={s.slug}
-            className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
+            className="absolute inset-0 h-full w-full object-contain transition-opacity duration-700"
             style={{ opacity: i === idx ? 1 : 0 }}
             draggable={false}
           />
         ))}
-        <div className="absolute top-3 left-3 bg-black/55 px-2 py-1 font-mono text-[9px] tracking-[0.16em] text-[var(--color-cream)] uppercase backdrop-blur-sm">
-          YOURS CAN LOOK LIKE THIS
+        <div className="absolute top-3 left-3 rounded-full bg-zinc-900/85 px-3 py-1 text-[10px] font-medium tracking-wide text-white backdrop-blur-sm">
+          Yours can look like this
         </div>
       </div>
-      <div className="mt-3 flex items-center justify-between font-mono text-[10px] tracking-[0.12em] text-[var(--color-ink-3)] uppercase">
+      <div className="mt-3 flex items-center justify-between text-[11px] tracking-wide text-zinc-500">
         <span>{SAMPLES[idx].filename}</span>
         <span>{SAMPLES[idx].size}</span>
       </div>
-      <p className="mt-3 font-mono text-[10px] leading-relaxed tracking-[0.1em] text-[var(--color-ink-3)]">
+      <p className="mt-3 text-[13px] leading-relaxed text-zinc-600">
         Hanger, mannequin, flat on the floor — any angle works.
       </p>
     </div>

@@ -43,7 +43,7 @@ export function BeforeAfter({ pairs }: { pairs: Pair[] }) {
           priority={idx === 0}
           sizes="(max-width: 768px) 100vw, 50vw"
           draggable={false}
-          className="object-cover"
+          className="object-contain"
         />
         <div
           className="absolute inset-0"
@@ -58,7 +58,7 @@ export function BeforeAfter({ pairs }: { pairs: Pair[] }) {
             priority={idx === 0}
             sizes="(max-width: 768px) 100vw, 50vw"
             draggable={false}
-            className="bg-[var(--color-paper)] object-cover"
+            className="bg-[var(--color-paper)] object-contain"
           />
         </div>
         <div

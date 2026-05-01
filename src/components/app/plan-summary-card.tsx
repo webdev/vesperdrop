@@ -47,38 +47,63 @@ export async function PlanSummaryCard({
   const renewsAtIso = live?.renewsAt ?? fallbackRenewsAt;
   const renewsAt = renewsAtIso ? new Date(renewsAtIso) : null;
   const cancelAtPeriodEnd = live?.cancelAtPeriodEnd ?? false;
+  const isFree = plan === "free";
 
   return (
-    <div className="border border-[var(--color-line)] rounded p-6 bg-[var(--color-cream)]">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-ink-3)]">
-            Current plan
-          </p>
-          <p className="font-serif text-3xl mt-1">{record.label}</p>
-          <p className="text-sm text-[var(--color-ink-2)] mt-2">
-            {creditsRemaining} credit{creditsRemaining === 1 ? "" : "s"} remaining
-            {renewsAt ? (
-              <>
-                {" · "}
-                {cancelAtPeriodEnd ? "Cancels" : "Renews"} {renewsAt.toLocaleDateString()}
-              </>
-            ) : null}
-          </p>
-          {cancelAtPeriodEnd ? (
-            <p className="mt-2 inline-block rounded-full bg-[var(--color-paper-2)] px-2 py-0.5 font-mono text-[10px] tracking-[0.12em] text-[var(--color-ink-3)]">
-              SCHEDULED TO CANCEL
+    <div className="rounded-2xl border border-zinc-200 bg-white p-6 md:p-8">
+      <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+        <div className="flex flex-col gap-5 md:flex-row md:items-start md:gap-10">
+          <div>
+            <p className="text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase">
+              Current plan
             </p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900">
+              {record.label}
+            </p>
+            {renewsAt ? (
+              <p className="mt-1 text-sm text-zinc-500">
+                {cancelAtPeriodEnd ? "Cancels" : "Renews"} {renewsAt.toLocaleDateString()}
+              </p>
+            ) : isFree ? (
+              <p className="mt-1 text-sm text-zinc-500">No active subscription</p>
+            ) : null}
+            {cancelAtPeriodEnd ? (
+              <span className="mt-3 inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-[10px] font-semibold tracking-[0.14em] text-zinc-600 uppercase">
+                Scheduled to cancel
+              </span>
+            ) : null}
+          </div>
+
+          <div className="md:border-l md:border-zinc-200 md:pl-10">
+            <p className="text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase">
+              Credits
+            </p>
+            <p className="mt-2 text-4xl font-semibold tracking-tight text-zinc-900 tabular-nums">
+              {creditsRemaining.toLocaleString()}
+            </p>
+            <p className="mt-1 text-sm text-zinc-500">
+              {creditsRemaining === 1 ? "credit remaining" : "credits remaining"}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-3">
+          {stripeCustomerId ? (
+            <Link
+              href="/api/stripe/portal"
+              className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-5 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50"
+            >
+              Manage subscription
+            </Link>
+          ) : isFree ? (
+            <a
+              href="/api/stripe/checkout?plan=pro"
+              className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-orange-600"
+            >
+              Upgrade to Pro <span aria-hidden>→</span>
+            </a>
           ) : null}
         </div>
-        {stripeCustomerId ? (
-          <Link
-            href="/api/stripe/portal"
-            className="text-sm underline text-[var(--color-ink-2)] hover:text-[var(--color-ember)]"
-          >
-            Manage billing →
-          </Link>
-        ) : null}
       </div>
     </div>
   );

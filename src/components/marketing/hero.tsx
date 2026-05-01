@@ -3,34 +3,34 @@ import { BeforeAfter, type Pair } from "./before-after";
 
 const PAIRS: Pair[] = [
   {
-    sku: "JKT-08",
-    name: "Cropped Denim Jacket",
-    surface: "Hung on door · iPhone",
-    scene: "Hotel banquette · golden hour",
-    before: "/marketing/before-after/jacket_before.png",
-    after: "/marketing/before-after/jacket_after.png",
-  },
-  {
-    sku: "SKT-14",
-    name: "Pleated Mini Skirt",
-    surface: "On bedsheet · phone flatlay",
-    scene: "Studio seamless · soft strobe",
-    before: "/marketing/before-after/skirt_before.png",
-    after: "/marketing/before-after/skirt_after.png",
-  },
-  {
-    sku: "CAM-BRN-S",
-    name: "Linen Cami Dress",
-    surface: "On mannequin · cellphone",
-    scene: "Studio · golden hour",
+    sku: "CAM-001",
+    name: "Cami",
+    surface: "Hanger flatlay",
+    scene: "Velvet glow",
     before: "/marketing/before-after/cami_before.png",
     after: "/marketing/before-after/cami_after.png",
   },
   {
-    sku: "BRL-RSE-M",
-    name: "Lace Bralette",
-    surface: "On wood table · phone flatlay",
-    scene: "Studio seamless · soft daylight",
+    sku: "JKT-204",
+    name: "Jacket",
+    surface: "Studio rack",
+    scene: "Urban canvas",
+    before: "/marketing/before-after/jacket_before.png",
+    after: "/marketing/before-after/jacket_after.png",
+  },
+  {
+    sku: "SKT-018",
+    name: "Skirt",
+    surface: "Floor flatlay",
+    scene: "Warm retreat",
+    before: "/marketing/before-after/skirt_before.png",
+    after: "/marketing/before-after/skirt_after.png",
+  },
+  {
+    sku: "LCE-115",
+    name: "Lace",
+    surface: "Studio floor",
+    scene: "Studio athletic",
     before: "/marketing/before-after/lace_before.png",
     after: "/marketing/before-after/lace_after.png",
   },
@@ -38,73 +38,86 @@ const PAIRS: Pair[] = [
 
 export function Hero() {
   return (
-    <section className="border-b border-[var(--color-ink)]">
-      <div className="grid grid-cols-1 md:grid-cols-[1.1fr_1fr]">
-        <div className="flex flex-col justify-between gap-12 border-b border-[var(--color-ink)] px-6 py-14 md:border-r md:border-b-0 md:px-12 md:py-16">
-          <div>
-            <p className="mb-8 font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-ink-3)]">
-              FEATURE &middot; N&deg;01
-            </p>
-            <h1 className="font-serif text-[clamp(56px,8vw,112px)] font-light leading-[0.96] tracking-tight text-[var(--color-ink)]">
-              Your product,
+    <section className="relative">
+      <div className="mx-auto max-w-7xl px-6 pt-16 pb-20 md:px-10 md:pt-24 md:pb-28">
+        <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-2 md:gap-16">
+          <div className="order-2 md:order-1">
+            <span className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[11px] font-medium tracking-wide text-zinc-600 uppercase">
+              <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              Live · 6 photos · 90 seconds
+            </span>
+            <h1 className="mt-5 text-[clamp(40px,6vw,84px)] font-semibold leading-[1.02] tracking-[-0.025em] text-zinc-900">
+              Lifestyle photography
               <br />
-              <span className="italic">on location</span>.
+              <span className="text-zinc-600">from a single</span>
               <br />
-              <span className="text-[var(--color-ember)]">In minutes.</span>
+              product shot.
             </h1>
-            <p className="mt-7 max-w-lg font-serif text-xl font-light leading-snug text-[var(--color-ink-2)] md:text-[22px]">
-              Drop in a plain product shot. Vesperdrop returns a library of
-              lifestyle photographs &mdash; kitchens, counters, coffee tables,
-              gardens &mdash; ready for your Amazon listing, A+ content, and
-              ads.
+            <p className="mt-6 max-w-md text-[18px] leading-[1.55] text-zinc-600">
+              Drop your flatlay. Pick a few looks. Get a 6-image batch — the
+              kind of photography agencies charge $1,200 for, finished while
+              you make coffee.
             </p>
-          </div>
-
-          <div>
-            <div className="mb-6 flex flex-wrap items-center gap-4">
+            <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
               <Link
                 href="/try"
-                className="inline-flex items-center rounded-full bg-[var(--color-ember)] px-7 py-4 text-sm md:text-base font-medium text-[var(--color-cream)] transition-transform hover:scale-[1.02] hover:bg-[#a83c18]"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-zinc-900 px-7 py-3.5 text-[15px] font-medium text-white transition-transform hover:scale-[1.02] hover:bg-zinc-800"
               >
-                Get your free shot &rarr;
+                Try with your photo
+                <span aria-hidden>→</span>
               </Link>
               <Link
-                href="/pricing"
-                className="border-b border-[var(--color-ink)] pb-1 text-sm text-[var(--color-ink)] transition-colors hover:border-[var(--color-ember)] hover:text-[var(--color-ember)]"
+                href="#how"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-200 bg-white px-6 py-3.5 text-[15px] font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50"
               >
-                See pricing
+                See how it works
               </Link>
             </div>
-
-            <div className="grid grid-cols-2 gap-4 border-t border-[var(--color-ink)] pt-4 font-mono text-[10px] tracking-[0.14em] text-[var(--color-ink-3)] sm:grid-cols-4">
-              <div>
-                1 FREE HD SHOT
-                <br />
-                <span className="text-[var(--color-ink)]">NO CARD</span>
-              </div>
-              <div>
-                A+ READY
-                <br />
-                <span className="text-[var(--color-ink)]">2000PX SQUARE</span>
-              </div>
-              <div>
-                ~90 SECONDS
-                <br />
-                <span className="text-[var(--color-ink)]">PER GENERATION</span>
-              </div>
-              <div>
-                PRO FROM $49
-                <br />
-                <span className="text-[var(--color-ink)]">CANCEL ANY TIME</span>
-              </div>
+            <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px] text-zinc-500">
+              <Trust label="3 free shots" />
+              <Trust label="No card" />
+              <Trust label="A+ ready" />
             </div>
           </div>
-        </div>
 
-        <div className="bg-[var(--color-ink)] p-6 md:p-10">
-          <BeforeAfter pairs={PAIRS} />
+          <div className="order-1 md:order-2">
+            <div className="relative">
+              <div
+                aria-hidden
+                className="absolute -inset-6 -z-10 rounded-[28px] bg-gradient-to-br from-orange-100 via-rose-100 to-amber-100 opacity-70 blur-2xl"
+              />
+              <div className="relative overflow-hidden rounded-[20px] border border-zinc-200 bg-white shadow-[0_30px_70px_-20px_rgba(15,15,15,0.20)]">
+                <BeforeAfter pairs={PAIRS} />
+              </div>
+              <p className="mt-3 text-center text-[12px] text-zinc-500">
+                Drag the slider — these are real generations.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </section>
+  );
+}
+
+function Trust({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+        className="text-emerald-600"
+      >
+        <path d="M20 6 9 17l-5-5" />
+      </svg>
+      {label}
+    </span>
   );
 }

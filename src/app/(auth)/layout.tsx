@@ -8,64 +8,77 @@ const QUOTES = [
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-screen grid grid-cols-1 md:grid-cols-2">
-      {/* Left panel — brand + social proof */}
-      <div className="hidden md:flex flex-col justify-between border-r border-[var(--color-line)] bg-[var(--color-paper-2)] px-12 py-14">
+    <main className="grid min-h-screen grid-cols-1 bg-white text-zinc-900 md:grid-cols-2">
+      <div className="relative hidden flex-col justify-between overflow-hidden border-r border-zinc-200 bg-zinc-50/60 px-10 py-12 md:flex md:px-14 md:py-16">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-gradient-to-br from-orange-200/60 via-rose-200/40 to-transparent blur-3xl"
+        />
         <Link
           href="/"
-          className="font-serif text-4xl font-light italic leading-none tracking-tight text-[var(--color-ink)]"
+          className="relative flex items-center gap-2 text-[18px] font-semibold tracking-tight text-zinc-900"
         >
+          <span aria-hidden className="inline-block h-6 w-6 rounded-full bg-zinc-900" />
           Vesperdrop
         </Link>
 
-        <div className="space-y-10">
-          <p className="font-serif text-2xl font-light leading-snug text-[var(--color-ink)]">
+        <div className="relative space-y-10">
+          <p className="text-[clamp(28px,3vw,40px)] font-semibold leading-[1.1] tracking-[-0.02em] text-zinc-900">
             Lifestyle photos from a product shot.{" "}
-            <span className="italic text-[var(--color-ember)]">In 90 seconds.</span>
+            <span className="text-zinc-500">In 90 seconds.</span>
           </p>
 
-          <ul className="space-y-3 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--color-ink-2)]">
-            <li className="flex items-center gap-3">
-              <span className="text-[var(--color-ember)]">✓</span>
-              3 free shots — no card required
-            </li>
-            <li className="flex items-center gap-3">
-              <span className="text-[var(--color-ember)]">✓</span>
-              Amazon A+ resolution (2000px)
-            </li>
-            <li className="flex items-center gap-3">
-              <span className="text-[var(--color-ember)]">✓</span>
-              First batch ready in ~90 seconds
-            </li>
-            <li className="flex items-center gap-3">
-              <span className="text-[var(--color-ember)]">✓</span>
-              Cancel any time
-            </li>
+          <ul className="space-y-3 text-[14px] text-zinc-600">
+            <Bullet>3 free shots — no card required</Bullet>
+            <Bullet>Amazon A+ resolution (2000px)</Bullet>
+            <Bullet>First batch ready in ~90 seconds</Bullet>
+            <Bullet>Cancel any time</Bullet>
           </ul>
 
-          <div className="space-y-6 border-t border-[var(--color-line)] pt-8">
+          <div className="space-y-5 border-t border-zinc-200 pt-7">
             {QUOTES.map((q) => (
-              <div key={q.handle}>
-                <p className="font-serif text-base italic leading-snug text-[var(--color-ink-2)]">
+              <figure key={q.handle}>
+                <blockquote className="text-[15px] leading-[1.5] text-zinc-700">
                   &ldquo;{q.text}&rdquo;
-                </p>
-                <p className="mt-2 font-mono text-[10px] tracking-[0.14em] text-[var(--color-ember)]">
+                </blockquote>
+                <figcaption className="mt-1 text-[12px] text-zinc-500">
                   — {q.handle}
-                </p>
-              </div>
+                </figcaption>
+              </figure>
             ))}
           </div>
         </div>
 
-        <p className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-ink-3)]">
-          &copy; 2026 VESPERDROP STUDIO
+        <p className="relative text-[11px] tracking-[0.18em] text-zinc-400 uppercase">
+          © 2026 Vesperdrop
         </p>
       </div>
 
-      {/* Right panel — form */}
       <div className="flex items-center justify-center px-6 py-16 md:px-12">
         <div className="w-full max-w-sm">{children}</div>
       </div>
     </main>
+  );
+}
+
+function Bullet({ children }: { children: React.ReactNode }) {
+  return (
+    <li className="flex items-center gap-3">
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+        className="shrink-0 text-emerald-600"
+      >
+        <path d="M20 6 9 17l-5-5" />
+      </svg>
+      {children}
+    </li>
   );
 }

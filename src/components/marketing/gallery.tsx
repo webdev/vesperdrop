@@ -1,157 +1,93 @@
-import Image from "next/image";
+/* eslint-disable @next/next/no-img-element */
+import Link from "next/link";
+import { sceneify } from "@/lib/sceneify/client";
+import type { SceneifyPublicPreset } from "@/lib/sceneify/types";
 
-const PAIRS = [
-  {
-    sku: "JKT-08",
-    name: "Cropped Denim Jacket",
-    surface: "Hung on door · iPhone",
-    scene: "Hotel banquette · golden hour",
-    before: "/marketing/before-after/jacket_before.png",
-    after: "/marketing/before-after/jacket_after.png",
-    quote: "Tripled my conversion rate the first week. No reshoots needed.",
-    handle: "@oakandlinen",
-  },
-  {
-    sku: "SKT-14",
-    name: "Pleated Mini Skirt",
-    surface: "On bedsheet · phone flatlay",
-    scene: "Studio seamless · soft strobe",
-    before: "/marketing/before-after/skirt_before.png",
-    after: "/marketing/before-after/skirt_after.png",
-    quote: "Sold out in three days. Buyers thought I had a real studio.",
-    handle: "@bloomintimates",
-  },
-  {
-    sku: "CAM-BRN-S",
-    name: "Linen Cami Dress",
-    surface: "On mannequin · cellphone",
-    scene: "Studio · golden hour",
-    before: "/marketing/before-after/cami_before.png",
-    after: "/marketing/before-after/cami_after.png",
-    quote: "Made the listing look like a fashion editorial.",
-    handle: "@northsider",
-  },
-  {
-    sku: "BRL-RSE-M",
-    name: "Lace Bralette",
-    surface: "On wood table · phone flatlay",
-    scene: "Studio seamless · soft daylight",
-    before: "/marketing/before-after/lace_before.png",
-    after: "/marketing/before-after/lace_after.png",
-    quote: "I shoot on a bedsheet. Customers see Vogue.",
-    handle: "@plisséstudio",
-  },
+const TONES = [
+  "from-zinc-100 to-zinc-50",
+  "from-orange-50 to-amber-50",
+  "from-rose-50 to-pink-50",
+  "from-emerald-50 to-teal-50",
+  "from-sky-50 to-indigo-50",
+  "from-violet-50 to-fuchsia-50",
+  "from-stone-100 to-neutral-50",
+  "from-yellow-50 to-orange-50",
 ];
 
-export function Gallery() {
+export async function Gallery() {
+  let presets: SceneifyPublicPreset[] = [];
+  try {
+    presets = await sceneify().listPublicPresets();
+  } catch {
+    presets = [];
+  }
+  const ordered = [...presets].sort((a, b) => a.displayOrder - b.displayOrder).slice(0, 8);
+
   return (
-    <section id="gallery" className="border-b border-[var(--color-ink)]">
-      <div className="grid grid-cols-1 border-b border-[var(--color-line)] md:grid-cols-[240px_1fr]">
-        <div className="flex flex-col justify-between gap-6 border-b border-[var(--color-line)] px-6 py-8 md:border-r md:border-b-0 md:px-8">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-ink-3)]">
-            CONTACT SHEET &middot; N&deg;02
-          </p>
-          <p className="font-mono text-[10px] uppercase leading-relaxed tracking-[0.14em] text-[var(--color-ink-3)]">
-            BATCH_2847
-            <br />
-            HERO PAIRS
-            <br />4 EXPOSURES
-          </p>
-        </div>
-        <div className="px-6 py-8 md:px-12">
-          <h2 className="font-serif text-5xl font-light leading-[1.02] tracking-tight text-[var(--color-ink)] md:text-[72px]">
-            Flat on the floor.
-            <br />
-            <span className="italic">Out in the world.</span>
-          </h2>
-          <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--color-ink-3)]">
-            Two phone snapshots. Eight seconds in the studio. Zero retouching.
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2">
-        {PAIRS.map((pair, idx) => (
-          <div
-            key={pair.sku}
-            className={`px-6 py-8 md:px-10 md:py-10 ${
-              idx % 2 === 0
-                ? "md:border-r md:border-[var(--color-line)]"
-                : ""
-            } ${idx < 2 ? "border-b border-[var(--color-line)]" : ""}`}
-          >
-            <div className="mb-4 flex items-baseline justify-between border-b border-[var(--color-line)] pb-3 font-mono text-[10px] tracking-[0.14em] text-[var(--color-ink-3)]">
-              <span>
-                FIG. 0{idx + 1} &middot; {pair.sku}
-              </span>
-              <span className="text-[var(--color-ink-2)]">
-                {pair.name.toUpperCase()}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-[1fr_28px_1fr] items-center">
-              <div className="relative">
-                <div className="relative aspect-square overflow-hidden bg-[var(--color-paper-2)]">
-                  <Image
-                    src={pair.before}
-                    alt={`${pair.name}: original product photo, ${pair.surface.toLowerCase()}`}
-                    fill
-                    sizes="(max-width: 768px) 50vw, 25vw"
-                    className="object-cover"
-                  />
-                </div>
-                <div className="absolute top-2.5 left-2.5 bg-[rgba(250,247,240,0.92)] px-2 py-1 font-mono text-[9px] tracking-[0.14em] text-[var(--color-ink)]">
-                  BEFORE &middot; INPUT
-                </div>
-                <div className="mt-2.5 font-mono text-[10px] tracking-[0.1em] text-[var(--color-ink-3)]">
-                  {pair.surface.toUpperCase()}
-                </div>
-              </div>
-
-              <div className="text-center text-[var(--color-ink-3)]">
-                <svg
-                  width="22"
-                  height="22"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1"
-                  strokeLinecap="round"
-                  className="mx-auto"
-                >
-                  <path d="M5 12h14M13 6l6 6-6 6" />
-                </svg>
-              </div>
-
-              <div className="relative">
-                <div className="relative aspect-square overflow-hidden bg-[var(--color-ink)]">
-                  <Image
-                    src={pair.after}
-                    alt={`${pair.name}: lifestyle photograph generated by Vesperdrop, ${pair.scene.toLowerCase()}`}
-                    fill
-                    sizes="(max-width: 768px) 50vw, 25vw"
-                    className="object-cover"
-                  />
-                </div>
-                <div className="absolute top-2.5 left-2.5 bg-[var(--color-ember)] px-2 py-1 font-mono text-[9px] tracking-[0.14em] text-[var(--color-cream)]">
-                  AFTER &middot; VESPERDROP
-                </div>
-                <div className="mt-2.5 font-mono text-[10px] tracking-[0.1em] text-[var(--color-ink-3)]">
-                  {pair.scene.toUpperCase()}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-5 flex items-center justify-between gap-4 border-t border-[var(--color-line)] pt-4">
-              <p className="font-serif text-base italic text-[var(--color-ink-2)]">
-                &ldquo;{pair.quote}&rdquo;
-              </p>
-              <span className="shrink-0 font-mono text-[10px] tracking-[0.1em] text-[var(--color-ink-3)]">
-                &mdash; {pair.handle}
-              </span>
-            </div>
+    <section
+      id="use-cases"
+      className="relative border-y border-zinc-100 bg-zinc-50/60 py-24 md:py-32"
+    >
+      <div className="mx-auto max-w-7xl px-6 md:px-10">
+        <div className="mb-14 flex flex-col items-start justify-between gap-6 md:mb-20 md:flex-row md:items-end">
+          <div className="max-w-2xl">
+            <p className="text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase">
+              The scene library
+            </p>
+            <h2 className="mt-3 text-[clamp(32px,4.5vw,56px)] font-semibold leading-[1.05] tracking-[-0.02em] text-zinc-900">
+              {ordered.length} scenes,
+              <br />
+              <span className="text-zinc-600">tested for conversion.</span>
+            </h2>
           </div>
-        ))}
+          <Link
+            href="/try"
+            className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-5 py-2.5 text-[14px] font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50"
+          >
+            Try them on your photo <span aria-hidden>→</span>
+          </Link>
+        </div>
+
+        {ordered.length === 0 ? (
+          <p className="text-center text-[14px] text-zinc-500">
+            Scenes loading. Refresh in a moment.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
+            {ordered.map((preset, i) => (
+              <article
+                key={preset.slug}
+                className="group relative overflow-hidden rounded-[20px] border border-zinc-200 bg-white p-5 transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_-20px_rgba(15,15,15,0.18)]"
+              >
+                <div
+                  className={`relative aspect-[4/5] overflow-hidden rounded-[12px] bg-gradient-to-br ${
+                    TONES[i % TONES.length]
+                  }`}
+                >
+                  {preset.heroImageUrl ? (
+                    <img
+                      src={preset.heroImageUrl}
+                      alt={preset.name}
+                      loading="lazy"
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                    />
+                  ) : null}
+                </div>
+                <div className="mt-4">
+                  <span className="text-[10px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                    {preset.category || preset.mood}
+                  </span>
+                  <h3 className="mt-1.5 text-[20px] font-semibold tracking-tight text-zinc-900">
+                    {preset.name}
+                  </h3>
+                  <p className="mt-2 line-clamp-2 text-[14px] leading-[1.5] text-zinc-600">
+                    {preset.description}
+                  </p>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

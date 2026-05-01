@@ -25,7 +25,7 @@ export function UploadDropzone({
 
   return (
     <section>
-      <h2 className="font-serif text-2xl mb-4">1. Photos</h2>
+      <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 mb-4">1. Photos</h2>
       <div
         onDragOver={(e) => {
           e.preventDefault();
@@ -40,11 +40,11 @@ export function UploadDropzone({
         onClick={() => inputRef.current?.click()}
         className={`border border-dashed rounded-lg p-10 text-center cursor-pointer transition-colors ${
           over
-            ? "border-[var(--color-ember)] bg-[var(--color-ember-soft)]/10"
-            : "border-[var(--color-line)] bg-[var(--color-paper-2)]"
+            ? "border-orange-500 bg-orange-50"
+            : "border-zinc-300 bg-zinc-50 hover:border-zinc-400"
         }`}
       >
-        <p className="text-sm text-[var(--color-ink-3)]">
+        <p className="text-sm text-zinc-500">
           Drop product photos here or click to browse
         </p>
         <input
@@ -61,18 +61,18 @@ export function UploadDropzone({
           {files.map((f, i) => (
             <li
               key={i}
-              className="relative aspect-square border border-[var(--color-line)] overflow-hidden"
+              className="relative border border-zinc-200 rounded overflow-hidden"
             >
               <img
                 src={URL.createObjectURL(f)}
                 alt={f.name}
-                className="w-full h-full object-cover"
+                className="block w-full h-auto"
               />
               <button
                 type="button"
                 onClick={() => removeAt(i)}
                 aria-label={`Remove ${f.name}`}
-                className="absolute top-1 right-1 bg-[var(--color-ink)]/70 text-[var(--color-cream)] text-xs px-2 py-1 rounded"
+                className="absolute top-1 right-1 bg-zinc-900/70 text-white text-xs px-2 py-1 rounded"
               >
                 ✕
               </button>

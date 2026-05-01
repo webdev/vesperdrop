@@ -1,61 +1,58 @@
-const STEPS = [
-  {
-    n: "01",
-    title: "Upload",
-    body: "Drop in your Amazon main image or any product shot on white. We auto-extract the subject.",
-  },
-  {
-    n: "02",
-    title: "Pick scenes",
-    body: "Choose from curated scene presets — studio, city, cafe, trail — or describe the mood in your own words.",
-  },
-  {
-    n: "03",
-    title: "Download",
-    body: "Get a batch of shots at Amazon A+ resolution. Relight, recompose, or regenerate any frame.",
-  },
-];
-
 export function HowItWorks() {
   return (
-    <section id="how" className="border-b border-[var(--color-ink)]">
-      <div className="grid grid-cols-1 border-b border-[var(--color-line)] md:grid-cols-[240px_1fr]">
-        <div className="border-b border-[var(--color-line)] px-6 py-8 md:border-r md:border-b-0 md:px-8">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-ink-3)]">
-            PROCESS &middot; N&deg;03
+    <section id="how" className="bg-white py-24 md:py-32">
+      <div className="mx-auto max-w-7xl px-6 md:px-10">
+        <div className="mb-12 grid grid-cols-1 items-end gap-6 md:mb-20 md:grid-cols-2">
+          <div>
+            <p className="text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase">
+              How it works
+            </p>
+            <h2 className="mt-3 text-[clamp(32px,4.5vw,56px)] font-semibold leading-[1.05] tracking-[-0.02em] text-zinc-900">
+              Three steps. <span className="text-zinc-600">No camera.</span>
+            </h2>
+          </div>
+          <p className="text-[16px] leading-[1.6] text-zinc-600 md:max-w-md md:justify-self-end">
+            We trained on 4,000+ conversion-tested references so your first
+            generation looks like a tenth one. No prompts, no tweaking, no
+            re-rolls.
           </p>
         </div>
-        <div className="px-6 py-8 md:px-12">
-          <h2 className="font-serif text-5xl font-light leading-[1.02] tracking-tight text-[var(--color-ink)] md:text-[72px]">
-            Three steps.
-            <br />
-            <span className="italic">No studio.</span>
-          </h2>
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          {[
+            {
+              n: "01",
+              t: "Drop a photo",
+              c: "Any flatlay, hanger, mannequin, or floor shot. Phone or studio. PNG or JPG up to 40MB.",
+            },
+            {
+              n: "02",
+              t: "Pick a few scenes",
+              c: "Velvet glow, urban canvas, warm retreat, studio athletic — choose up to five looks.",
+            },
+            {
+              n: "03",
+              t: "Get six photos",
+              c: "Watermarked previews in 90 seconds. One full-resolution HD shot free with sign-up.",
+            },
+          ].map((step) => (
+            <div
+              key={step.n}
+              className="rounded-[20px] border border-zinc-200 bg-zinc-50/60 p-7 md:p-8"
+            >
+              <div className="text-[14px] font-medium tracking-tight text-orange-600">
+                {step.n}
+              </div>
+              <h3 className="mt-3 text-[22px] font-semibold tracking-tight text-zinc-900">
+                {step.t}
+              </h3>
+              <p className="mt-3 text-[15px] leading-[1.55] text-zinc-600">
+                {step.c}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
-
-      <ol className="grid grid-cols-1 md:grid-cols-3">
-        {STEPS.map((step, i) => (
-          <li
-            key={step.n}
-            className={`px-6 py-12 md:px-10 md:py-14 ${
-              i < STEPS.length - 1
-                ? "border-b border-[var(--color-line)] md:border-r md:border-b-0"
-                : ""
-            }`}
-          >
-            <div className="mb-7 font-serif text-7xl font-light italic leading-none text-[var(--color-ember)]">
-              {step.n}.
-            </div>
-            <h3 className="mb-4 font-serif text-3xl font-normal text-[var(--color-ink)]">
-              {step.title}
-            </h3>
-            <p className="font-serif text-lg font-light leading-relaxed text-[var(--color-ink-2)]">
-              {step.body}
-            </p>
-          </li>
-        ))}
-      </ol>
     </section>
   );
 }

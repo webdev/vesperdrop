@@ -2,21 +2,35 @@ import Link from "next/link";
 
 export function ClosingCta() {
   return (
-    <section className="border-b border-[var(--color-ink)] px-6 py-28 text-center md:py-36">
-      <p className="mb-7 font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-ink-3)]">
-        COLOPHON &middot; N&deg;05
-      </p>
-      <h2 className="mx-auto max-w-5xl font-serif text-[clamp(64px,11vw,160px)] font-light leading-[0.95] tracking-tight text-[var(--color-ink)]">
-        Get <span className="italic text-[var(--color-ember)]">vesperdrop</span>.
-      </h2>
-      <Link
-        href="/try"
-        className="mt-12 inline-flex items-center rounded-full bg-[var(--color-ember)] px-9 py-5 text-base md:text-lg font-medium text-[var(--color-cream)] transition-transform hover:scale-[1.02] hover:bg-[#a83c18]"
-      >
-        Start with 1 free HD shot &rarr;
-      </Link>
-      <div className="mt-6 font-mono text-[10px] tracking-[0.2em] text-[var(--color-ink-3)]">
-        NO CARD &middot; FIRST RESULT IN ~90S &middot; UPGRADE WHEN YOU SEE IT
+    <section className="relative overflow-hidden bg-zinc-900 py-24 text-white md:py-32">
+      <div
+        aria-hidden
+        className="absolute inset-0 -z-0 bg-gradient-to-br from-orange-500/20 via-rose-500/10 to-transparent blur-3xl"
+      />
+      <div className="relative mx-auto max-w-3xl px-6 text-center md:px-10">
+        <p className="text-[11px] font-medium tracking-[0.2em] text-zinc-400 uppercase">
+          Three free shots, on us
+        </p>
+        <h2 className="mt-4 text-[clamp(36px,5.5vw,72px)] font-semibold leading-[1.05] tracking-[-0.025em] text-white">
+          Stop reshooting.
+          <br />
+          <span className="text-zinc-400">Start producing.</span>
+        </h2>
+        <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <Link
+            href="/try"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-7 py-3.5 text-[15px] font-medium text-zinc-900 transition-transform hover:scale-[1.02]"
+          >
+            Try with your photo
+            <span aria-hidden>→</span>
+          </Link>
+          <Link
+            href="/pricing"
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 bg-transparent px-6 py-3.5 text-[15px] font-medium text-white transition-colors hover:bg-white/5"
+          >
+            See pricing
+          </Link>
+        </div>
       </div>
     </section>
   );

@@ -17,6 +17,10 @@ import type { Scene } from "@/lib/db/scenes";
 import { track } from "@/lib/analytics";
 import { isNonProdEnv } from "@/lib/env.client";
 import { WizardSteps, type StepId } from "./wizard-steps";
+
+function parseStep(raw: string | null): StepId {
+  return raw === "scenes" || raw === "develop" ? raw : "upload";
+}
 import { ExampleInput } from "./example-input";
 import {
   DevelopGrid,
@@ -60,12 +64,43 @@ export function TryFlow({
     (acc, s) => ({ ...acc, [s.slug]: s }),
     {},
   );
-  const [step, setStep] = useState<StepId>("upload");
   const [photo, setPhoto] = useState<Photo | null>(null);
   const [pickedScenes, setPickedScenes] = useState<string[]>([]);
   const [developDone, setDevelopDone] = useState(false);
 
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const urlStep = parseStep(searchParams.get("step"));
+  const effectiveStep: StepId =
+    urlStep === "develop" && (!photo || pickedScenes.length === 0)
+      ? photo
+        ? "scenes"
+        : "upload"
+      : urlStep === "scenes" && !photo
+        ? "upload"
+        : urlStep;
+  const step = effectiveStep;
+
+  const goToStep = useCallback(
+    (next: StepId, mode: "push" | "replace" = "push") => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (next === "upload") params.delete("step");
+      else params.set("step", next);
+      const qs = params.toString();
+      const href = qs ? `/try?${qs}` : "/try";
+      if (mode === "replace") router.replace(href);
+      else router.push(href);
+    },
+    [router, searchParams],
+  );
+
+  // Sync URL back if the URL step is unreachable given current state
+  useEffect(() => {
+    if (urlStep !== effectiveStep) {
+      goToStep(effectiveStep, "replace");
+    }
+  }, [urlStep, effectiveStep, goToStep]);
+
   const variant: DevelopGridVariant = useMemo(() => {
     const fx = searchParams.get("fx");
     return fx === "grain" ? "grain" : "darkroom";
@@ -87,26 +122,26 @@ export function TryFlow({
       if (photo?.isObjectUrl) URL.revokeObjectURL(photo.url);
       const url = URL.createObjectURL(file);
       setPhoto({ url, name: file.name, isObjectUrl: true, file });
-      setStep("scenes");
+      goToStep("scenes");
       track("try_upload_started", { source });
     },
-    [photo],
+    [photo, goToStep],
   );
 
   const useSample = useCallback(() => {
     if (photo?.isObjectUrl) URL.revokeObjectURL(photo.url);
     setPhoto({ url: SAMPLE_SRC, name: SAMPLE_NAME, isObjectUrl: false, file: null });
-    setStep("scenes");
+    goToStep("scenes");
     track("try_upload_started", { source: "sample" });
-  }, [photo]);
+  }, [photo, goToStep]);
 
   const resetAll = useCallback(() => {
     if (photo?.isObjectUrl) URL.revokeObjectURL(photo.url);
     setPhoto(null);
     setPickedScenes([]);
     setDevelopDone(false);
-    setStep("upload");
-  }, [photo]);
+    goToStep("upload", "replace");
+  }, [photo, goToStep]);
 
   const togglePickedScene = useCallback((id: string) => {
     setPickedScenes((p) => {
@@ -119,23 +154,23 @@ export function TryFlow({
   }, []);
 
   return (
-    <div className="flex min-h-screen flex-col bg-[var(--color-paper)]">
-      <header className="border-b border-[var(--color-line)] bg-[var(--color-paper)]">
+    <div className="flex min-h-screen flex-col bg-white">
+      <header className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 md:px-12">
           <Link
             href="/"
-            className="font-serif text-2xl font-light italic tracking-tight text-[var(--color-ink)] hover:text-[var(--color-ember)]"
+            className="text-2xl  italic tracking-tight text-zinc-900 hover:text-orange-500"
           >
             ← Vesperdrop
           </Link>
-          <div className="flex items-center gap-4 font-mono text-[10px] tracking-[0.18em] text-[var(--color-ink-3)] uppercase">
+          <div className="flex items-center gap-4 font-mono text-[10px] tracking-[0.18em] text-zinc-500 uppercase">
             {firstName ? (
               <>
-                <span className="text-[var(--color-ink)]">Hello, {firstName}</span>
+                <span className="text-zinc-900">Hello, {firstName}</span>
                 <form action="/api/auth/sign-out" method="post">
                   <button
                     type="submit"
-                    className="text-[var(--color-ink-3)] underline-offset-4 hover:text-[var(--color-ember)] hover:underline"
+                    className="text-zinc-500 underline-offset-4 hover:text-orange-500 hover:underline"
                   >
                     Sign out
                   </button>
@@ -146,7 +181,7 @@ export function TryFlow({
                 Already have an account?{" "}
                 <Link
                   href="/sign-in"
-                  className="text-[var(--color-ink)] underline-offset-4 hover:text-[var(--color-ember)] hover:underline"
+                  className="text-zinc-900 underline-offset-4 hover:text-orange-500 hover:underline"
                 >
                   Sign in
                 </Link>
@@ -173,10 +208,10 @@ export function TryFlow({
             scenes={scenes}
             picked={pickedScenes}
             onToggle={togglePickedScene}
-            onBack={() => setStep("upload")}
+            onBack={() => goToStep("upload", "replace")}
             onContinue={() => {
               setDevelopDone(false);
-              setStep("develop");
+              goToStep("develop");
               track("try_develop_started", { scene_count: pickedScenes.length });
             }}
           />
@@ -234,13 +269,13 @@ function AdminMockToggle() {
     <button
       type="button"
       onClick={toggle}
-      className="fixed bottom-4 right-4 z-50 rounded-full border border-[var(--color-line)] bg-[var(--color-paper)] px-3 py-1.5 font-mono text-[10px] tracking-[0.18em] uppercase shadow-md hover:border-[var(--color-ember)]"
+      className="fixed bottom-4 right-4 z-50 rounded-full border border-zinc-200 bg-white px-3 py-1.5 font-mono text-[10px] tracking-[0.18em] uppercase shadow-md hover:border-orange-500"
       aria-label="Toggle mock generation"
     >
       Mock gen:{" "}
       <span
         suppressHydrationWarning
-        className={on ? "text-[var(--color-ember)]" : "text-[var(--color-ink-3)]"}
+        className={on ? "text-orange-500" : "text-zinc-500"}
       >
         {on ? "ON" : "OFF"}
       </span>
@@ -263,19 +298,19 @@ function UploadStep({
   return (
     <div className="grid grid-cols-1 gap-12 md:grid-cols-[1.2fr_1fr] md:gap-16">
       <div>
-        <p className="mb-5 font-mono text-[10px] tracking-[0.2em] text-[var(--color-ink-3)] uppercase">
+        <p className="mb-5 font-mono text-[10px] tracking-[0.2em] text-zinc-500 uppercase">
           NEW BATCH · N°01
         </p>
-        <h1 className="font-serif text-[clamp(48px,7vw,80px)] font-light leading-[0.98] tracking-tight text-[var(--color-ink)]">
+        <h1 className="text-[clamp(48px,7vw,80px)]  leading-[0.98] tracking-tight text-zinc-900">
           Drop your <span className="italic">product</span>.
         </h1>
-        <p className="mt-5 max-w-lg font-serif text-lg font-light leading-snug text-[var(--color-ink-2)] md:text-xl">
+        <p className="mt-5 max-w-lg text-lg  leading-snug text-zinc-700 md:text-xl">
           Any flatlay works — on the floor, on a rug, on your desk. Your Amazon
           main image is perfect.
         </p>
 
         {photo ? (
-          <p className="mt-5 font-mono text-[10px] tracking-[0.16em] text-[var(--color-ink-3)] uppercase">
+          <p className="mt-5 font-mono text-[10px] tracking-[0.16em] text-zinc-500 uppercase">
             ON FILE · {photo.name} · DROP A DIFFERENT ONE TO REPLACE
           </p>
         ) : null}
@@ -326,32 +361,32 @@ function Dropzone({
           setDragging(false);
           onFiles(e.dataTransfer.files, "drop");
         }}
-        className="block w-full cursor-pointer border-[1.5px] border-dashed bg-[var(--color-cream)] px-8 py-14 text-center transition-colors"
+        className="block w-full cursor-pointer border-[1.5px] border-dashed bg-white px-8 py-14 text-center transition-colors"
         style={{
           borderColor: dragging
-            ? "var(--color-ember)"
+            ? "#f97316"
             : "var(--color-ink-3)",
           background: dragging
             ? "rgba(194,69,28,0.04)"
-            : "var(--color-cream)",
+            : "#ffffff",
         }}
       >
-        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-paper-2)]">
-          <span className="font-serif text-2xl italic text-[var(--color-ink-2)]">
+        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-50">
+          <span className="text-2xl italic text-zinc-700">
             ↑
           </span>
         </div>
-        <div className="text-base text-[var(--color-ink)]">
+        <div className="text-base text-zinc-900">
           Drag a product photo here
         </div>
-        <div className="mt-1.5 text-sm text-[var(--color-ink-3)]">
+        <div className="mt-1.5 text-sm text-zinc-500">
           or{" "}
-          <span className="text-[var(--color-ember)] underline underline-offset-4">
+          <span className="text-orange-500 underline underline-offset-4">
             browse files
           </span>{" "}
           · PNG, JPG up to 40MB
         </div>
-        <div className="mt-6 border-t border-[var(--color-line)] pt-5 font-mono text-[10px] tracking-[0.16em] text-[var(--color-ink-4)] uppercase">
+        <div className="mt-6 border-t border-zinc-200 pt-5 font-mono text-[10px] tracking-[0.16em] text-zinc-400 uppercase">
           NO ACCOUNT · NO CARD · STAYS IN YOUR BROWSER
         </div>
       </button>
@@ -362,12 +397,12 @@ function Dropzone({
         className="hidden"
         onChange={(e) => onFiles(e.target.files, "browse")}
       />
-      <div className="mt-4 text-sm text-[var(--color-ink-3)]">
+      <div className="mt-4 text-sm text-zinc-500">
         Don&apos;t have one handy?{" "}
         <button
           type="button"
           onClick={onUseSample}
-          className="text-[var(--color-ember)] underline underline-offset-4 hover:text-[var(--color-ink)]"
+          className="text-orange-500 underline underline-offset-4 hover:text-zinc-900"
         >
           Use a sample product →
         </button>
@@ -399,13 +434,13 @@ function ScenesStep({
     <div>
       <div className="mb-10 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="mb-3 font-mono text-[10px] tracking-[0.2em] text-[var(--color-ink-3)] uppercase">
+          <p className="mb-3 font-mono text-[10px] tracking-[0.2em] text-zinc-500 uppercase">
             SCENES · N°02
           </p>
-          <h1 className="font-serif text-[clamp(40px,6vw,72px)] font-light leading-[0.98] tracking-tight text-[var(--color-ink)]">
+          <h1 className="text-[clamp(40px,6vw,72px)]  leading-[0.98] tracking-tight text-zinc-900">
             Pick your <span className="italic">scenes</span>.
           </h1>
-          <p className="mt-3 max-w-xl font-serif text-base font-light leading-snug text-[var(--color-ink-2)] md:text-lg">
+          <p className="mt-3 max-w-xl text-base  leading-snug text-zinc-700 md:text-lg">
             Choose the looks you want. We&apos;ll spread your batch across
             them.
           </p>
@@ -413,7 +448,7 @@ function ScenesStep({
         <button
           type="button"
           onClick={onBack}
-          className="self-start font-mono text-[11px] tracking-[0.14em] text-[var(--color-ink-3)] uppercase underline-offset-4 hover:text-[var(--color-ember)] hover:underline md:self-end"
+          className="self-start font-mono text-[11px] tracking-[0.14em] text-zinc-500 uppercase underline-offset-4 hover:text-orange-500 hover:underline md:self-end"
         >
           ← Back to upload
         </button>
@@ -435,11 +470,11 @@ function ScenesStep({
               aria-pressed={on}
             >
               <div
-                className="relative aspect-[4/5] overflow-hidden bg-[var(--color-cream)] transition-all"
+                className="relative aspect-[4/5] overflow-hidden bg-white transition-all"
                 style={{
                   outline: on
-                    ? "3px solid var(--color-ember)"
-                    : "1px solid var(--color-line)",
+                    ? "3px solid #f97316"
+                    : "1px solid #e4e4e7",
                   outlineOffset: on ? -3 : -1,
                 }}
               >
@@ -451,12 +486,12 @@ function ScenesStep({
                 />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/55" />
                 {on ? (
-                  <div className="absolute top-3 right-3 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-ember)] font-mono text-xs font-bold text-[var(--color-cream)]">
+                  <div className="absolute top-3 right-3 flex h-7 w-7 items-center justify-center rounded-full bg-orange-500 font-mono text-xs font-bold text-white">
                     ✓
                   </div>
                 ) : null}
-                <div className="absolute right-0 bottom-0 left-0 px-4 pt-10 pb-4 text-[var(--color-cream)]">
-                  <h3 className="font-serif text-2xl font-light italic">
+                <div className="absolute right-0 bottom-0 left-0 px-4 pt-10 pb-4 text-white">
+                  <h3 className="text-2xl  italic">
                     {s.name}
                   </h3>
                   <p className="mt-1 font-mono text-[10px] tracking-[0.14em] opacity-85 uppercase">
@@ -469,8 +504,8 @@ function ScenesStep({
         })}
       </div>
 
-      <div className="mt-10 flex items-center justify-between border-t border-[var(--color-line)] pt-6">
-        <p className="font-mono text-[11px] tracking-[0.14em] text-[var(--color-ink-3)] uppercase">
+      <div className="mt-10 flex items-center justify-between border-t border-zinc-200 pt-6">
+        <p className="font-mono text-[11px] tracking-[0.14em] text-zinc-500 uppercase">
           {picked.length} of {MAX_TRY_SCENES} scene{picked.length === 1 ? "" : "s"} picked
         </p>
         <button
@@ -478,7 +513,7 @@ function ScenesStep({
           data-testid="generate-button"
           disabled={picked.length === 0}
           onClick={onContinue}
-          className="inline-flex items-center rounded-full bg-[var(--color-ember)] px-6 py-3 text-sm font-medium text-[var(--color-cream)] transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+          className="inline-flex items-center rounded-full bg-orange-500 px-6 py-3 text-sm font-medium text-white transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
         >
           Develop my batch →
         </button>
@@ -659,10 +694,10 @@ function DevelopStep({
     <div className={`relative ${developDone ? "pb-40 md:pb-44" : ""}`}>
       <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
         <div>
-          <p className="mb-3 font-mono text-[10px] tracking-[0.2em] text-[var(--color-ink-3)] uppercase">
+          <p className="mb-3 font-mono text-[10px] tracking-[0.2em] text-zinc-500 uppercase">
             DEVELOPING · N°03
           </p>
-          <h1 className="font-serif text-[clamp(40px,6vw,72px)] font-light leading-[0.98] tracking-tight text-[var(--color-ink)]">
+          <h1 className="text-[clamp(40px,6vw,72px)]  leading-[0.98] tracking-tight text-zinc-900">
             In the <span className="italic">studio</span>.
           </h1>
         </div>
@@ -670,32 +705,32 @@ function DevelopStep({
 
       <div className="mb-10 grid grid-cols-1 items-start gap-8 md:grid-cols-[260px_1fr] md:gap-12">
         <div>
-          <p className="mb-3 font-mono text-[10px] tracking-[0.18em] text-[var(--color-ink-3)] uppercase">
+          <p className="mb-3 font-mono text-[10px] tracking-[0.18em] text-zinc-500 uppercase">
             Your product
           </p>
           {photo ? (
-            <div className="aspect-square overflow-hidden border border-[var(--color-line)] bg-[var(--color-cream)]">
+            <div className="aspect-square overflow-hidden border border-zinc-200 bg-white">
               <img
                 src={photo.url}
                 alt={photo.name}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-contain"
               />
             </div>
           ) : (
-            <div className="flex aspect-square items-center justify-center border border-[var(--color-line)] bg-[var(--color-paper-2)] font-mono text-[10px] text-[var(--color-ink-3)] uppercase">
+            <div className="flex aspect-square items-center justify-center border border-zinc-200 bg-zinc-50 font-mono text-[10px] text-zinc-500 uppercase">
               No product
             </div>
           )}
 
           <div className="mt-4">
-            <p className="mb-2 font-mono text-[10px] tracking-[0.18em] text-[var(--color-ink-3)] uppercase">
+            <p className="mb-2 font-mono text-[10px] tracking-[0.18em] text-zinc-500 uppercase">
               Scenes · {picked.length}
             </p>
             <div className="flex flex-wrap gap-1.5">
               {picked.map((id) => (
                 <span
                   key={id}
-                  className="border border-[var(--color-ember)] bg-[var(--color-ember)]/10 px-2 py-1 font-mono text-[10px] tracking-[0.12em] text-[var(--color-ember)] uppercase"
+                  className="border border-orange-500 bg-orange-500/10 px-2 py-1 font-mono text-[10px] tracking-[0.12em] text-orange-500 uppercase"
                 >
                   {sceneById[id]?.name ?? id}
                 </span>

@@ -65,7 +65,7 @@ export function DevelopGrid({
 }) {
   if (results.length === 0) {
     return (
-      <div className="border border-dashed border-[var(--color-line)] bg-[var(--color-paper-2)] px-6 py-12 text-center font-mono text-[11px] tracking-[0.16em] text-[var(--color-ink-3)] uppercase">
+      <div className="border border-dashed border-zinc-200 bg-zinc-50 px-6 py-12 text-center font-mono text-[11px] tracking-[0.16em] text-zinc-500 uppercase">
         Pick at least one scene to develop
       </div>
     );
@@ -183,7 +183,7 @@ function Tile({
   return (
     <div className="group flex flex-col gap-2">
     <div
-      className="relative aspect-[4/5] overflow-hidden border border-[var(--color-line)] bg-[var(--color-ink)]"
+      className="relative aspect-[4/5] overflow-hidden border border-zinc-200 bg-zinc-900"
       style={{ cursor: isDone && onDownloadClick ? "pointer" : "default" }}
       onClick={handleDownloadClick}
       onKeyDown={(e) => {
@@ -202,7 +202,7 @@ function Tile({
           src={tile.outputUrl}
           alt={tile.sceneName}
           draggable={false}
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-contain"
           style={{
             opacity: isDone ? 1 : 0,
             filter,
@@ -237,11 +237,11 @@ function Tile({
       ) : null}
 
       {isFailed ? (
-        <div className="pointer-events-none absolute inset-0 bg-[var(--color-ink)]" style={{ zIndex: 20 }} />
+        <div className="pointer-events-none absolute inset-0 bg-zinc-900" style={{ zIndex: 20 }} />
       ) : null}
 
       <div
-        className="absolute top-2 left-2 bg-black/55 px-2 py-1 font-mono text-[9px] tracking-[0.16em] text-[var(--color-cream)] uppercase backdrop-blur-sm"
+        className="absolute top-2 left-2 bg-black/55 px-2 py-1 font-mono text-[9px] tracking-[0.16em] text-white uppercase backdrop-blur-sm"
         style={{ zIndex: 40 }}
       >
         {tile.sceneName} · {String(index + 1).padStart(2, "0")} /{" "}
@@ -255,7 +255,7 @@ function Tile({
             style={{ zIndex: 35 }}
           />
           <div
-            className="pointer-events-none absolute right-2 bottom-2 inline-flex items-center gap-1.5 bg-[var(--color-ember)] px-2.5 py-1.5 font-mono text-[10px] font-medium tracking-[0.16em] text-[var(--color-cream)] uppercase shadow-md transition-all duration-300 md:translate-y-1 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100"
+            className="pointer-events-none absolute right-2 bottom-2 inline-flex items-center gap-1.5 bg-orange-500 px-2.5 py-1.5 font-mono text-[10px] font-medium tracking-[0.16em] text-white uppercase shadow-md transition-all duration-300 md:translate-y-1 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100"
             style={{ zIndex: 41 }}
           >
             <span aria-hidden>↓</span>
@@ -269,16 +269,16 @@ function Tile({
     {!isDone ? (
       <div className="min-h-[18px] font-mono text-[10px]">
         {isFailed ? (
-          <span className="tracking-[0.16em] text-[var(--color-ember)] uppercase">
+          <span className="tracking-[0.16em] text-orange-500 uppercase">
             RESHOOT NEEDED
           </span>
         ) : liveMode ? (
-          <span className="inline-flex items-center gap-1.5 text-[var(--color-ink-2)]">
+          <span className="inline-flex items-center gap-1.5 text-zinc-700">
             <span className="vd-spin inline-block">⟳</span>
             <span className="normal-case tracking-normal">{liveLine || "starting…"}</span>
           </span>
         ) : (
-          <span className="tracking-[0.18em] text-[var(--color-ink-3)] uppercase">
+          <span className="tracking-[0.18em] text-zinc-500 uppercase">
             {phase}
             <span className="ml-1 opacity-70">
               {Math.min(99, Math.round(progress * 100))
@@ -310,7 +310,7 @@ function LockedTile({
       <button
         type="button"
         onClick={onClick}
-        className="relative block aspect-[4/5] w-full overflow-hidden border border-[var(--color-line)] bg-[var(--color-ink)] text-left transition-transform hover:scale-[1.005]"
+        className="relative block aspect-[4/5] w-full overflow-hidden border border-zinc-200 bg-zinc-900 text-left transition-transform hover:scale-[1.005]"
         style={{ cursor: onClick ? "pointer" : "default" }}
         aria-label="Sign up to unlock your bonus shot"
       >
@@ -320,7 +320,7 @@ function LockedTile({
             alt=""
             aria-hidden
             draggable={false}
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-contain"
             style={{
               opacity: 0.45,
               filter: "blur(28px) saturate(0.4) brightness(0.55)",
@@ -350,7 +350,7 @@ function LockedTile({
         />
 
         <div
-          className="absolute top-2 left-2 bg-black/55 px-2 py-1 font-mono text-[9px] tracking-[0.16em] text-[var(--color-cream)] uppercase backdrop-blur-sm"
+          className="absolute top-2 left-2 bg-black/55 px-2 py-1 font-mono text-[9px] tracking-[0.16em] text-white uppercase backdrop-blur-sm"
           style={{ zIndex: 40 }}
         >
           BONUS · {String(index + 1).padStart(2, "0")} /{" "}
@@ -361,7 +361,7 @@ function LockedTile({
           className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4 text-center"
           style={{ zIndex: 41 }}
         >
-          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--color-cream)]/40 bg-[var(--color-ink)]/70 backdrop-blur-sm">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#ffffff]/40 bg-zinc-900/70 backdrop-blur-sm">
             <svg
               width="20"
               height="20"
@@ -371,25 +371,25 @@ function LockedTile({
               strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-[var(--color-cream)]"
+              className="text-white"
               aria-hidden
             >
               <rect x="4" y="11" width="16" height="10" rx="1.5" />
               <path d="M8 11V7a4 4 0 0 1 8 0v4" />
             </svg>
           </div>
-          <p className="font-serif text-xl font-light leading-tight text-[var(--color-cream)] italic md:text-2xl">
+          <p className="text-xl  leading-tight text-white italic md:text-2xl">
             Your bonus <span className="not-italic">shot</span>
           </p>
-          <p className="max-w-[180px] font-mono text-[10px] tracking-[0.14em] text-[var(--color-cream)]/75 uppercase">
+          <p className="max-w-[180px] font-mono text-[10px] tracking-[0.14em] text-white/75 uppercase">
             Sign up to unlock — free
           </p>
-          <span className="mt-1 inline-flex items-center gap-1.5 bg-[var(--color-ember)] px-3 py-1.5 font-mono text-[10px] font-medium tracking-[0.16em] text-[var(--color-cream)] uppercase">
+          <span className="mt-1 inline-flex items-center gap-1.5 bg-orange-500 px-3 py-1.5 font-mono text-[10px] font-medium tracking-[0.16em] text-white uppercase">
             Unlock <span aria-hidden>→</span>
           </span>
         </div>
       </button>
-      <div className="min-h-[18px] font-mono text-[10px] tracking-[0.16em] text-[var(--color-ember)] uppercase">
+      <div className="min-h-[18px] font-mono text-[10px] tracking-[0.16em] text-orange-500 uppercase">
         Locked · 1 free credit on signup
       </div>
     </div>
@@ -425,7 +425,7 @@ function DarkroomTile({
           alt=""
           aria-hidden
           draggable={false}
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-contain"
           style={{
             ...ghostStyle,
             zIndex: 5,
@@ -516,7 +516,7 @@ function GrainTile({
           alt=""
           aria-hidden
           draggable={false}
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-contain"
           style={{
             ...ghostStyle,
             zIndex: 5,
@@ -808,7 +808,7 @@ function Reticle({
 }
 
 function TravelingBorder() {
-  const color = "var(--color-ember)";
+  const color = "#f97316";
   return (
     <svg
       className="pointer-events-none absolute inset-0 h-full w-full"
@@ -847,7 +847,7 @@ function ProgressBar({
         style={{ zIndex: 15 }}
       >
         <div
-          className="h-full bg-[var(--color-ember)]"
+          className="h-full bg-orange-500"
           style={{
             width: `${progress * 100}%`,
             transition: "width 240ms ease-out",
@@ -863,7 +863,7 @@ function ProgressBar({
       style={{ zIndex: 15 }}
     >
       <div
-        className="absolute right-0 bottom-0 left-0 bg-[var(--color-ember)]"
+        className="absolute right-0 bottom-0 left-0 bg-orange-500"
         style={{
           height: `${progress * 100}%`,
           transition: "height 240ms ease-out",

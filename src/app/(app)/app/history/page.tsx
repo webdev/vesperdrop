@@ -64,22 +64,22 @@ export default async function Page({
     <div className="space-y-10">
       <ClaimHandler />
       <header>
-        <h1 className="font-serif text-[clamp(2rem,4vw,3rem)] leading-tight">
+        <h1 className="text-[clamp(2rem,4vw,3rem)] leading-tight">
           Your <em className="italic">batches</em>
         </h1>
-        <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[var(--color-ink-3)] mt-2">
+        <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-zinc-500 mt-2">
           {userRuns.length} {userRuns.length === 1 ? "run" : "runs"} · most recent first
         </p>
       </header>
 
       {userRuns.length === 0 ? (
-        <div className="border border-[var(--color-line)] bg-[var(--color-cream)] rounded p-12 text-center max-w-xl mx-auto">
-          <p className="font-serif text-xl italic font-light text-[var(--color-ink-2)]">
+        <div className="border border-zinc-200 bg-white rounded p-12 text-center max-w-xl mx-auto">
+          <p className="text-xl italic  text-zinc-700">
             No batches yet — drop a product to develop your first.
           </p>
           <Link
             href="/try"
-            className="inline-block mt-6 bg-[var(--color-ink)] text-[var(--color-paper)] px-6 py-3 font-mono text-xs tracking-[0.18em] uppercase hover:bg-[var(--color-ember)] transition-colors"
+            className="inline-block mt-6 bg-zinc-900 text-white px-6 py-3 font-mono text-xs tracking-[0.18em] uppercase hover:bg-orange-500 transition-colors"
           >
             Start a batch →
           </Link>
@@ -110,40 +110,40 @@ export default async function Page({
             return (
               <li key={run.id} className="space-y-3">
                 {isClaimed ? (
-                  <div className="border border-[var(--color-ember)]/40 bg-[var(--color-ember)]/5 px-4 py-3 rounded">
-                    <p className="font-mono text-[11px] tracking-[0.18em] uppercase text-[var(--color-ember)]">
+                  <div className="border border-orange-500/40 bg-orange-500/5 px-4 py-3 rounded">
+                    <p className="font-mono text-[11px] tracking-[0.18em] uppercase text-orange-500">
                       Your first batch is saved.
                     </p>
                   </div>
                 ) : null}
-                <div className="flex items-baseline justify-between gap-4 border-b border-[var(--color-line)] pb-2">
-                  <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-[var(--color-ink-2)]">
+                <div className="flex items-baseline justify-between gap-4 border-b border-zinc-200 pb-2">
+                  <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-zinc-700">
                     {formatDate(new Date(run.createdAt))}
                   </div>
-                  <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-[var(--color-ink-3)]">
+                  <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-zinc-500">
                     {qualityLabel}
                   </div>
                 </div>
                 {succeeded.length === 0 ? (
-                  <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--color-ink-3)] py-4">
+                  <p className="font-mono text-[10px] tracking-[0.18em] uppercase text-zinc-500 py-4">
                     No completed images
                   </p>
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {sourceProxyUrl ? (
                       <figure className="space-y-2">
-                        <div className="relative block aspect-[4/5] overflow-hidden border border-[var(--color-ember)]/60 bg-[var(--color-paper-2)]">
+                        <div className="relative block aspect-[4/5] overflow-hidden border border-orange-500/60 bg-zinc-50">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={sourceProxyUrl}
                             alt="Your product"
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-contain"
                           />
-                          <span className="absolute top-2 left-2 font-mono text-[9px] tracking-[0.18em] uppercase bg-[var(--color-ember)] text-[var(--color-cream)] px-2 py-0.5">
+                          <span className="absolute top-2 left-2 font-mono text-[9px] tracking-[0.18em] uppercase bg-orange-500 text-white px-2 py-0.5">
                             Yours
                           </span>
                         </div>
-                        <figcaption className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--color-ember)]">
+                        <figcaption className="font-mono text-[10px] tracking-[0.18em] uppercase text-orange-500">
                           Source
                         </figcaption>
                       </figure>
@@ -158,24 +158,24 @@ export default async function Page({
                           <a
                             href={downloadUrl}
                             download
-                            className="relative block aspect-[4/5] overflow-hidden border border-[var(--color-line)] bg-[var(--color-paper-2)] group"
+                            className="relative block aspect-[4/5] overflow-hidden border border-zinc-200 bg-zinc-50 group"
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={proxyUrl}
                               alt={sceneName}
-                              className="w-full h-full object-cover transition-opacity group-hover:opacity-90"
+                              className="w-full h-full object-contain transition-opacity group-hover:opacity-90"
                             />
                             {g.watermarked ? (
                               <span className="absolute top-2 left-2 font-mono text-[9px] tracking-[0.18em] uppercase bg-black/70 text-white px-2 py-0.5">
                                 Preview
                               </span>
                             ) : null}
-                            <span className="absolute bottom-2 right-2 font-mono text-[9px] tracking-[0.18em] uppercase bg-[var(--color-paper)]/90 text-[var(--color-ink)] px-2 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span className="absolute bottom-2 right-2 font-mono text-[9px] tracking-[0.18em] uppercase bg-white/90 text-zinc-900 px-2 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                               Download ↓
                             </span>
                           </a>
-                          <figcaption className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--color-ink-3)]">
+                          <figcaption className="font-mono text-[10px] tracking-[0.18em] uppercase text-zinc-500">
                             {sceneName}
                           </figcaption>
                         </figure>

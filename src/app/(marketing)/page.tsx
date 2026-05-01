@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { Hero } from "@/components/marketing/hero";
+import { BeforeAfterSection } from "@/components/marketing/before-after-section";
 import { Gallery } from "@/components/marketing/gallery";
 import { HowItWorks } from "@/components/marketing/how-it-works";
 import { Testimonials } from "@/components/marketing/testimonials";
+import { Faq } from "@/components/marketing/faq";
 import { ClosingCta } from "@/components/marketing/closing-cta";
-import { CtaBand } from "@/components/marketing/cta-band";
 
 export const metadata: Metadata = {
   title: {
@@ -26,21 +27,11 @@ export default function Page() {
   return (
     <>
       <Hero />
-      <HowItWorks />
+      <BeforeAfterSection />
       <Gallery />
+      <HowItWorks />
       <Testimonials />
-      <CtaBand
-        eyebrow="DEVELOP YOUR LIBRARY"
-        headline={
-          <>
-            Stop reshooting. <em>Start producing.</em>
-          </>
-        }
-        ctaLabel="Get your free shot"
-        ctaHref="/try"
-        caption="1 FREE HD SHOT · NO CARD · UPGRADE WHEN YOU SEE IT"
-        tone="ink"
-      />
+      <Faq />
       <ClosingCta />
     </>
   );
