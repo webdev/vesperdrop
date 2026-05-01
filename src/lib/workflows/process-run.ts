@@ -3,7 +3,6 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { updateGeneration } from "@/lib/db/generations";
 import { applyWatermark } from "@/lib/watermark";
 import { storeWatermarked } from "@/lib/storage";
-import { type GenerationScene } from "@/lib/ai/generate";
 import { generateViaSceneify } from "@/lib/ai/sceneify";
 import { env } from "@/lib/env";
 
@@ -27,23 +26,6 @@ async function listPendingForRun(runId: string): Promise<
   return data ?? [];
 }
 
-async function getSceneBySlug(slug: string): Promise<GenerationScene | null> {
-  "use step";
-  const { data, error } = await supabaseAdmin
-    .from("scenes")
-    .select("slug, name, mood, category, image_url")
-    .eq("slug", slug)
-    .single();
-  if (error || !data) return null;
-  return {
-    slug: data.slug,
-    name: data.name,
-    mood: data.mood,
-    category: data.category,
-    imageUrl: data.image_url,
-  };
-}
-
 async function mapUploadToUrl(
   placeholderKey: string,
   uploads: SourceUpload[],
@@ -60,14 +42,11 @@ async function generateOne(
   "use step";
   await updateGeneration(row.id, { status: "running" });
   try {
-    const scene = await getSceneBySlug(row.preset_id);
-    if (!scene) throw new Error(`Scene not found: ${row.preset_id}`);
-
     const sourceImageUrl = await mapUploadToUrl(row.sceneify_source_id, sourceUploads);
 
     const result = await generateViaSceneify({
       sourceUrl: sourceImageUrl,
-      presetSlug: scene.slug,
+      presetSlug: row.preset_id,
       model: "nano-banana-2",
       quality: "high",
       callerRef: row.id,
