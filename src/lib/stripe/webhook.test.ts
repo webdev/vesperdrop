@@ -30,33 +30,33 @@ vi.mock("@/lib/supabase/admin", () => ({
       }
       throw new Error("unexpected table " + table);
     },
-    rpc: (name: string, args: unknown) => {
-      if (name === "refill_credits") return rpcRefill(args);
-      throw new Error("unexpected rpc " + name);
-    },
   },
 }));
 
-// Stripe SDK — return a canned subscription object
+vi.mock("@/lib/db/credits", () => ({
+  refillCredits: (...a: unknown[]) => rpcRefill(...a),
+}));
+
+vi.mock("@/lib/posthog-server", () => ({
+  getPostHogClient: () => ({ capture: vi.fn() }),
+}));
+
+// Stripe SDK — return a canned subscription object (per-test mutable)
+const subscriptionRetrieve = vi.fn();
 vi.mock("@/lib/stripe/server", () => ({
   stripe: {
     subscriptions: {
-      retrieve: vi.fn().mockResolvedValue({
-        id: "sub_Y",
-        status: "active",
-        items: { data: [{ price: { id: "price_dummy" } }] },
-        current_period_end: 1800000000,
-      }),
+      retrieve: (...a: unknown[]) => subscriptionRetrieve(...a),
     },
   },
 }));
 
 vi.mock("@/lib/env", () => ({
   env: {
-    STRIPE_PRO_PRICE_ID: "price_dummy",
-    STRIPE_STARTER_PRICE_ID: undefined,
-    STRIPE_STUDIO_PRICE_ID: undefined,
-    STRIPE_AGENCY_PRICE_ID: undefined,
+    STRIPE_STARTER_PRICE_ID: "price_starter",
+    STRIPE_PRO_PRICE_ID: "price_pro",
+    STRIPE_STUDIO_PRICE_ID: "price_studio",
+    STRIPE_AGENCY_PRICE_ID: "price_agency",
   },
 }));
 
@@ -79,6 +79,12 @@ beforeEach(() => {
   updateProfile.mockReset().mockResolvedValue({ error: null });
   rpcRefill.mockReset().mockResolvedValue({ error: null });
   selectProfile.mockReset().mockResolvedValue({ data: { id: "user-uuid" }, error: null });
+  subscriptionRetrieve.mockReset().mockResolvedValue({
+    id: "sub_Y",
+    status: "active",
+    items: { data: [{ price: { id: "price_pro" } }] },
+    current_period_end: 1800000000,
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -127,11 +133,41 @@ describe("handleStripeEvent", () => {
       },
     } as never);
     expect(rpcRefill).toHaveBeenCalledWith(
-      expect.objectContaining({
-        p_user_id: "user-uuid",
-        p_plan: "pro",
-        p_credits: 200,
-      }),
+      "user-uuid",
+      "pro",
+      200,
+      expect.any(String),
+    );
+  });
+
+  it.each([
+    { priceId: "price_starter", plan: "starter", credits: 50 },
+    { priceId: "price_pro",     plan: "pro",     credits: 200 },
+    { priceId: "price_studio",  plan: "studio",  credits: 1000 },
+    { priceId: "price_agency",  plan: "agency",  credits: 5000 },
+  ])("maps $priceId to $plan with $credits credits", async ({ priceId, plan, credits }) => {
+    subscriptionRetrieve.mockResolvedValueOnce({
+      id: "sub_Y",
+      status: "active",
+      items: { data: [{ price: { id: priceId } }] },
+      current_period_end: 1800000000,
+    });
+    await handleStripeEvent({
+      id: `evt_tier_${plan}`,
+      type: "invoice.payment_succeeded",
+      data: {
+        object: {
+          customer: "cus_X",
+          subscription: "sub_Y",
+          billing_reason: "subscription_create",
+        },
+      },
+    } as never);
+    expect(rpcRefill).toHaveBeenCalledWith(
+      "user-uuid",
+      plan,
+      credits,
+      expect.any(String),
     );
   });
 
