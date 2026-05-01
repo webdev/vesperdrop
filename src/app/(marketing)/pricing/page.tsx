@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PricingCards } from "@/components/marketing/pricing-cards";
 import { PricingFaq } from "@/components/marketing/pricing-faq";
 import { PricingProductJsonLd } from "@/components/marketing/structured-data";
+import { PLAN_CATALOG, PAID_PLAN_SLUGS } from "@/lib/plans";
 
 export const metadata: Metadata = {
   title: "Pricing",
@@ -64,7 +65,7 @@ export default function Page() {
           Credits roll over and never expire within your billing period.
         </p>
       </header>
-      <PricingCards />
+      <PricingCards tiers={PAID_PLAN_SLUGS.map((slug) => PLAN_CATALOG[slug])} />
       <PricingFaq />
     </>
   );

@@ -2,79 +2,33 @@
 import { useState } from "react";
 import Link from "next/link";
 import { track } from "@/lib/analytics";
+import type { PlanRecord } from "@/lib/plans";
 
-const TIERS = [
-  {
-    id: "starter",
-    label: "Starter",
-    price: { monthly: 19, yearly: 16 },
-    credits: 50,
-    effectivePerCredit: { monthly: "38¢", yearly: "31¢" },
-    features: [
-      "50 credits / month",
-      "Full resolution, no watermark",
-      "All scene presets",
-      "Email support",
-    ],
-    cta: "Start Starter",
-    href: "/api/stripe/checkout?plan=starter",
-    recommended: false,
-  },
-  {
-    id: "pro",
-    label: "Pro",
-    price: { monthly: 49, yearly: 39 },
-    credits: 200,
-    effectivePerCredit: { monthly: "25¢", yearly: "20¢" },
-    features: [
-      "200 credits / month",
-      "Full resolution, no watermark",
-      "All scene presets + custom prompts",
-      "Priority generation queue",
-      "Cancel any time",
-    ],
-    cta: "Start Pro",
-    href: "/api/stripe/checkout?plan=pro",
-    recommended: true,
-  },
-  {
-    id: "studio",
-    label: "Studio",
-    price: { monthly: 149, yearly: 119 },
-    credits: 1000,
-    effectivePerCredit: { monthly: "15¢", yearly: "12¢" },
-    features: [
-      "1,000 credits / month",
-      "Full resolution, no watermark",
-      "All scene presets + custom prompts",
-      "Priority generation queue",
-      "Bulk download & CSV export",
-      "Cancel any time",
-    ],
-    cta: "Start Studio",
-    href: "/api/stripe/checkout?plan=studio",
-    recommended: false,
-  },
-  {
-    id: "agency",
-    label: "Agency",
-    price: { monthly: 499, yearly: 399 },
-    credits: 5000,
-    effectivePerCredit: { monthly: "10¢", yearly: "8¢" },
-    features: [
-      "5,000 credits / month",
-      "Full resolution, no watermark",
-      "All scene presets + custom prompts",
-      "Priority generation queue",
-      "Bulk download & CSV export",
-      "Dedicated Slack support",
-      "Cancel any time",
-    ],
-    cta: "Start Agency",
-    href: "/api/stripe/checkout?plan=agency",
-    recommended: false,
-  },
-];
+interface Tier extends PlanRecord {
+  id: string;
+  cta: string;
+  href: string;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  effectivePerCredit: { monthly: string; yearly: string };
+}
+
+function toTier(record: PlanRecord): Tier {
+  const yearlyPrice = Math.round(record.price * 0.8);
+  const yearlyPerCredit =
+    record.credits > 0
+      ? `${Math.round((yearlyPrice * 100) / record.credits)}¢`
+      : record.perCredit;
+  return {
+    ...record,
+    id: record.slug,
+    cta: `Start ${record.label}`,
+    href: `/api/stripe/checkout?plan=${record.slug}`,
+    monthlyPrice: record.price,
+    yearlyPrice,
+    effectivePerCredit: { monthly: record.perCredit, yearly: yearlyPerCredit },
+  };
+}
 
 const ONE_TIME_PACKS = [
   { credits: 10, price: 9, perCredit: "90¢" },
@@ -82,7 +36,9 @@ const ONE_TIME_PACKS = [
   { credits: 100, price: 59, perCredit: "59¢" },
 ];
 
-export function PricingCards() {
+export function PricingCards({ tiers: tierRecords }: { tiers: PlanRecord[] }) {
+  const tiers = tierRecords.map(toTier);
+  const proTier = tiers.find((t) => t.slug === "pro");
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
 
   return (
@@ -149,7 +105,7 @@ export function PricingCards() {
           </p>
           <div className="mt-4 mb-1 flex items-baseline gap-1.5">
             <span className="font-serif text-5xl font-light">
-              ${billing === "monthly" ? 49 : 39}
+              ${billing === "monthly" ? (proTier?.monthlyPrice ?? 49) : (proTier?.yearlyPrice ?? 39)}
             </span>
             <span className="text-sm text-[var(--color-ink-4)]">
               {billing === "yearly" ? "/mo · billed yearly" : "/month"}
@@ -186,7 +142,7 @@ export function PricingCards() {
           </p>
         </div>
         <div className="divide-y divide-[var(--color-line)]">
-          {TIERS.map((tier) => (
+          {tiers.map((tier) => (
             <div
               key={tier.id}
               className={`grid grid-cols-[1fr_auto] items-center gap-4 px-6 py-4 sm:grid-cols-[140px_1fr_80px_100px_120px] ${
@@ -208,7 +164,7 @@ export function PricingCards() {
                 {tier.effectivePerCredit[billing]} / credit
               </div>
               <div className="text-right sm:text-left font-medium text-[var(--color-ink)]">
-                ${billing === "monthly" ? tier.price.monthly : tier.price.yearly}
+                ${billing === "monthly" ? tier.monthlyPrice : tier.yearlyPrice}
                 <span className="text-xs font-normal text-[var(--color-ink-3)]">/mo</span>
               </div>
               <div className="hidden sm:flex justify-end">
