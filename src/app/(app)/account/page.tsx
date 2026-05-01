@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { CheckoutSuccessTracker } from "@/components/checkout-success-tracker";
-import { UpgradeButton } from "@/components/app/upgrade-button";
+import { PlanSummaryCard } from "@/components/app/plan-summary-card";
+import { PlanGrid } from "@/components/app/plan-grid";
+import { PAID_PLAN_SLUGS, PLAN_CATALOG, type PlanSlug } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -25,14 +27,30 @@ export default async function Page({
     .single();
 
   const { upgraded } = await searchParams;
+  const plan: PlanSlug = (profile?.plan as PlanSlug | undefined) ?? "free";
+  const tiers = PAID_PLAN_SLUGS.map((slug) => PLAN_CATALOG[slug]);
 
   return (
-    <div className="space-y-8 max-w-xl">
+    <div className="space-y-8 max-w-5xl">
       {upgraded === "1" ? <CheckoutSuccessTracker source="subscription" /> : null}
       <header>
         <h1 className="font-serif text-3xl">Account</h1>
         <p className="text-sm text-[var(--color-ink-3)]">{user.email}</p>
       </header>
+
+      <section className="space-y-5">
+        <PlanSummaryCard
+          plan={plan}
+          creditsRemaining={profile?.credits_balance ?? 0}
+          stripeCustomerId={profile?.stripe_customer_id ?? null}
+          fallbackRenewsAt={profile?.plan_renews_at ?? null}
+        />
+        <PlanGrid tiers={tiers} currentPlan={plan} />
+        <p className="text-xs text-[var(--color-ink-3)]">
+          Need more this month? Top-up packs coming soon.
+        </p>
+      </section>
+
       <section className="border border-[var(--color-line)] rounded p-6 bg-[var(--color-cream)]">
         <h2 className="font-serif text-xl mb-4">Security</h2>
         <Link
@@ -42,32 +60,12 @@ export default async function Page({
           Two-factor authentication (TOTP) →
         </Link>
       </section>
-      <section className="border border-[var(--color-line)] rounded p-6 bg-[var(--color-cream)]">
-        <h2 className="font-serif text-xl mb-4">Plan</h2>
-        <p className="capitalize">{profile?.plan ?? "free"}</p>
-        <p className="text-sm text-[var(--color-ink-3)] mt-2">
-          {profile?.credits_balance ?? 0} credit{(profile?.credits_balance ?? 0) === 1 ? "" : "s"} remaining
-        </p>
-        {profile?.plan_renews_at && (
-          <p className="text-xs text-[var(--color-ink-3)] mt-1">
-            Renews {new Date(profile.plan_renews_at).toLocaleDateString()}
-          </p>
-        )}
-        <div className="mt-6 flex items-center gap-4">
-          {profile?.plan === "pro" ? (
-            <a href="/api/stripe/portal" className="underline">
-              Manage subscription
-            </a>
-          ) : (
-            <UpgradeButton />
-          )}
-          <form action="/api/auth/sign-out" method="post">
-            <button className="underline text-[var(--color-ink-3)]">
-              Sign out
-            </button>
-          </form>
-        </div>
-      </section>
+
+      <form action="/api/auth/sign-out" method="post">
+        <button className="underline text-sm text-[var(--color-ink-3)]">
+          Sign out
+        </button>
+      </form>
     </div>
   );
 }
