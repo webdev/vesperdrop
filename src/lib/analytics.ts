@@ -19,8 +19,9 @@ export type AnalyticsEvent =
   | { name: "upgrade_clicked"; props: { location: "account" | "try" | "pricing" } }
   | { name: "plan_choose_clicked"; props: { plan: string; location: "account" } }
   | { name: "plan_switch_clicked"; props: { plan: string; location: "account" } }
-  | { name: "complete_look_clicked"; props: { parent_id: string } }
+  | { name: "complete_look_clicked"; props: { parent_id: string; locked: boolean } }
   | { name: "complete_look_submitted"; props: { platform: string; parent_id: string } }
+  | { name: "paywall_upgrade_clicked"; props: { feature: "complete_look"; parent_id: string } }
   | { name: "user_signed_up"; props: { method: "email" | "google" | "facebook" | "apple" } }
   | { name: "user_signed_in"; props: { method: "email" | "google" | "facebook" | "apple" } }
   | { name: "run_complete"; props: { run_id: string; succeeded: number; failed: number; total: number } }

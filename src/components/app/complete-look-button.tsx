@@ -17,6 +17,8 @@ interface Props {
   runId: string;
   parentGenerationId: string;
   disabled?: boolean;
+  /** When true, the popover shows a paywall instead of the platform picker. */
+  locked?: boolean;
   onPackCreated: (pack: Pack, shots: Generation[]) => void;
 }
 
@@ -24,6 +26,7 @@ export function CompleteLookButton({
   runId,
   parentGenerationId,
   disabled,
+  locked,
   onPackCreated,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -95,24 +98,79 @@ export function CompleteLookButton({
           if (disabled) return;
           setOpen((v) => !v);
           if (!open) {
-            track("complete_look_clicked", { parent_id: parentGenerationId });
+            track("complete_look_clicked", {
+              parent_id: parentGenerationId,
+              locked: locked ?? false,
+            });
           }
         }}
-        className={`inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-[11px] font-medium tracking-tight text-zinc-900 shadow-sm transition-colors ${
+        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium tracking-tight shadow-sm transition-colors ${
           disabled
-            ? "opacity-50 cursor-not-allowed"
-            : "hover:bg-white hover:shadow"
+            ? "bg-white/95 text-zinc-900 opacity-50 cursor-not-allowed"
+            : locked
+              ? "bg-zinc-900/85 text-white hover:bg-zinc-900"
+              : "bg-white/95 text-zinc-900 hover:bg-white hover:shadow"
         }`}
         title={
           disabled
             ? "Complete the look isn't available for this image"
-            : "Generate a full marketplace pack from this shot"
+            : locked
+              ? "Complete the look · Pro feature"
+              : "Generate a full marketplace pack from this shot"
         }
       >
+        {locked ? <span aria-hidden>🔒</span> : null}
         Complete the look <span aria-hidden>→</span>
       </button>
 
-      {open ? (
+      {open && locked ? (
+        <div
+          ref={popoverRef}
+          className="absolute top-full mt-2 left-0 z-20 w-[300px] rounded-xl border border-zinc-200 bg-white p-4 shadow-lg"
+        >
+          <p className="text-[11px] font-medium tracking-[0.16em] text-zinc-500 uppercase">
+            Pro feature
+          </p>
+          <h3 className="mt-1 text-[15px] font-semibold text-zinc-900">
+            Get the full marketplace pack
+          </h3>
+          <p className="mt-2 text-[13px] leading-[1.5] text-zinc-600">
+            Subscribe to generate 3-6 coordinated shots from any HD image —
+            ready for Amazon, Shopify, Instagram, or TikTok.
+          </p>
+          <ul className="mt-3 space-y-1.5 text-[12px] text-zinc-700">
+            <li className="flex items-start gap-2">
+              <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-orange-500" />
+              Hero, lifestyle, and detail crops at platform-native sizes
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-orange-500" />
+              Color and styling matched to your hero shot
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-orange-500" />
+              No watermark, full resolution
+            </li>
+          </ul>
+          <Link
+            href="/pricing"
+            onClick={() =>
+              track("paywall_upgrade_clicked", {
+                feature: "complete_look",
+                parent_id: parentGenerationId,
+              })
+            }
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-zinc-900 px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-zinc-800"
+          >
+            See plans <span aria-hidden>→</span>
+          </Link>
+          <p className="mt-3 text-center text-[10px] tracking-wide text-zinc-400">
+            Pro from $49/mo · 200 credits · cancel any time
+          </p>
+        </div>
+      ) : null}
+
+      {open && !locked ? (
         <div
           ref={popoverRef}
           className="absolute top-full mt-2 left-0 z-20 w-[280px] rounded-xl border border-zinc-200 bg-white p-3 shadow-lg"

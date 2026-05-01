@@ -149,17 +149,25 @@ function Tile({
             className="w-full h-full object-contain"
           />
           {g.watermarked ? (
-            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent px-3 pt-8 pb-3 flex items-end justify-between">
-              <span className="font-mono text-[9px] tracking-[0.14em] text-white/80 uppercase">
-                Preview · watermarked
-              </span>
-              <Link
-                href="/pricing"
-                className="font-mono text-[9px] tracking-[0.14em] text-orange-400 uppercase underline-offset-4 hover:underline"
-              >
-                Upgrade →
-              </Link>
-            </div>
+            <>
+              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent px-3 pt-8 pb-3 flex items-end justify-between">
+                <span className="font-mono text-[9px] tracking-[0.14em] text-white/80 uppercase">
+                  Preview · watermarked
+                </span>
+                <Link
+                  href="/pricing"
+                  className="font-mono text-[9px] tracking-[0.14em] text-orange-400 uppercase underline-offset-4 hover:underline"
+                >
+                  Upgrade →
+                </Link>
+              </div>
+              <CompleteLookButton
+                runId={runId}
+                parentGenerationId={g.id}
+                locked
+                onPackCreated={onPackCreated}
+              />
+            </>
           ) : (
             <>
               <div className="absolute top-2 right-2 bg-orange-500 px-2 py-0.5 font-mono text-[9px] tracking-[0.14em] text-white uppercase rounded">
