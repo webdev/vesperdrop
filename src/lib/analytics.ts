@@ -17,6 +17,8 @@ export type AnalyticsEvent =
   | { name: "pricing_pack_clicked"; props: { credits: number } }
   | { name: "checkout_success"; props: { source: "subscription" | "pack" } }
   | { name: "upgrade_clicked"; props: { location: "account" | "try" | "pricing" } }
+  | { name: "plan_choose_clicked"; props: { plan: string; location: "account" } }
+  | { name: "plan_switch_clicked"; props: { plan: string; location: "account" } }
   | { name: "user_signed_up"; props: { method: "email" | "google" | "facebook" | "apple" } }
   | { name: "user_signed_in"; props: { method: "email" | "google" | "facebook" | "apple" } }
   | { name: "run_complete"; props: { run_id: string; succeeded: number; failed: number; total: number } }
