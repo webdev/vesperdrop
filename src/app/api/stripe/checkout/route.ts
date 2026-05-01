@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe/server";
-import { env } from "@/lib/env";
+import { isPaidPlanSlug, priceIdForPlan, type PaidPlanSlug } from "@/lib/plans";
 
 export const runtime = "nodejs";
+
+const DEFAULT_PLAN: PaidPlanSlug = "pro";
 
 export async function GET(req: Request) {
   const supabase = await createSupabaseServerClient();
@@ -14,6 +16,14 @@ export async function GET(req: Request) {
   if (!user) {
     return NextResponse.redirect(new URL("/sign-in?next=/pricing", req.url), { status: 303 });
   }
+
+  const url = new URL(req.url);
+  const requestedPlan = url.searchParams.get("plan");
+  if (requestedPlan && !isPaidPlanSlug(requestedPlan)) {
+    return NextResponse.redirect(new URL("/pricing", req.url), { status: 303 });
+  }
+  const plan: PaidPlanSlug = (requestedPlan as PaidPlanSlug | null) ?? DEFAULT_PLAN;
+  const priceId = priceIdForPlan(plan);
 
   const { data: profile } = await supabaseAdmin
     .from("profiles")
@@ -38,10 +48,11 @@ export async function GET(req: Request) {
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer: customerId,
-    line_items: [{ price: env.STRIPE_PRO_PRICE_ID, quantity: 1 }],
+    line_items: [{ price: priceId, quantity: 1 }],
     success_url: `${origin}/account?upgraded=1`,
     cancel_url: `${origin}/pricing`,
     allow_promotion_codes: true,
+    metadata: { plan_slug: plan, user_id: user.id },
   });
   return NextResponse.redirect(session.url!, { status: 303 });
 }
