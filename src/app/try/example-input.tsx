@@ -52,10 +52,10 @@ export function ExampleInput({ paused }: { paused: boolean }) {
 
   return (
     <div>
-      <div className="mb-3 text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase">
+      <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
         Example of a good input →
-      </div>
-      <div className="relative aspect-square overflow-hidden rounded-[16px] border border-zinc-200 bg-zinc-50">
+      </p>
+      <div className="relative aspect-square overflow-hidden rounded-lg border border-line-soft bg-paper-2">
         {SAMPLES.map((s, i) => (
           <img
             key={s.slug}
@@ -66,15 +66,15 @@ export function ExampleInput({ paused }: { paused: boolean }) {
             draggable={false}
           />
         ))}
-        <div className="absolute top-3 left-3 rounded-full bg-zinc-900/85 px-3 py-1 text-[10px] font-medium tracking-wide text-white backdrop-blur-sm">
+        <div className="absolute left-3 top-3 inline-flex items-center rounded-full bg-cream/95 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-ink shadow-subtle">
           Yours can look like this
         </div>
       </div>
-      <div className="mt-3 flex items-center justify-between text-[11px] tracking-wide text-zinc-500">
-        <span>{SAMPLES[idx].filename}</span>
-        <span>{SAMPLES[idx].size}</span>
+      <div className="mt-3 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4">
+        <span>{SAMPLES[idx]!.filename}</span>
+        <span>{SAMPLES[idx]!.size}</span>
       </div>
-      <p className="mt-3 text-[13px] leading-relaxed text-zinc-600">
+      <p className="mt-3 text-[14px] leading-[1.55] text-ink-3">
         Hanger, mannequin, flat on the floor — any angle works.
       </p>
     </div>

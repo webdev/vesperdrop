@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { AppNav } from "@/components/app/app-nav";
-import { IdentifyUser } from "@/components/identify-user";
 import { Container } from "@/components/ui/container";
 import { firstNameFrom } from "@/lib/user-display";
 import { getCreditsBalance } from "@/lib/db/credits";
 
 export const metadata: Metadata = {
-  robots: { index: false, follow: false, nocache: true },
+  title: "Discover styles",
+  description:
+    "Swipe through scene presets and find the look that fits your product. Try Vesperdrop with one preset, free.",
+  alternates: { canonical: "/discover" },
 };
 
 export default async function Layout({ children }: { children: React.ReactNode }) {
@@ -19,11 +21,11 @@ export default async function Layout({ children }: { children: React.ReactNode }
 
   return (
     <div className="flex min-h-screen flex-col bg-paper text-ink">
-      {user ? <IdentifyUser id={user.id} email={user.email ?? ""} /> : null}
       <AppNav
         firstName={user ? firstNameFrom(user) : null}
         email={user?.email ?? ""}
         credits={credits}
+        active="discover"
       />
       <Container as="main" width="app" className="flex-1 py-10 md:py-14">
         {children}

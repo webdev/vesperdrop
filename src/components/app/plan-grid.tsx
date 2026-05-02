@@ -21,59 +21,59 @@ export function PlanGrid({ tiers, currentPlan }: Props) {
         return (
           <div
             key={tier.slug}
-            className={`relative flex flex-col rounded-2xl border p-6 ${
+            className={`relative flex flex-col rounded-xl border p-6 ${
               isDark
-                ? "border-zinc-900 bg-zinc-900 text-white"
-                : "border-zinc-200 bg-white text-zinc-900"
+                ? "border-ink bg-ink text-cream"
+                : "border-line bg-surface text-ink"
             }`}
           >
             {isRecommended ? (
-              <span className="absolute -top-3 left-6 inline-flex items-center rounded-full bg-orange-500 px-3 py-1 text-[10px] font-semibold tracking-[0.14em] text-white uppercase">
+              <span className="absolute -top-3 left-6 inline-flex items-center rounded-full bg-terracotta px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-cream">
                 Most popular
               </span>
             ) : null}
 
             <p
-              className={`text-[11px] font-medium tracking-[0.2em] uppercase ${
-                isDark ? "text-zinc-400" : "text-zinc-500"
+              className={`font-mono text-[11px] uppercase tracking-[0.12em] ${
+                isDark ? "text-cream/60" : "text-ink-3"
               }`}
             >
               {tier.label}
             </p>
 
-            <div className="mt-3 flex items-baseline gap-1.5">
+            <div className="mt-4 flex items-baseline gap-1.5">
               <span
-                className={`text-[40px] font-semibold tracking-tight ${
-                  isDark ? "text-white" : "text-zinc-900"
+                className={`font-serif text-[clamp(2.25rem,3vw,2.75rem)] leading-none tracking-[-0.02em] ${
+                  isDark ? "text-cream" : "text-ink"
                 }`}
               >
                 ${tier.price}
               </span>
               <span
-                className={`text-sm ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
+                className={`text-[14px] ${isDark ? "text-cream/55" : "text-ink-3"}`}
               >
                 /mo
               </span>
             </div>
 
             <p
-              className={`mt-1 text-[12px] ${
-                isDark ? "text-zinc-400" : "text-zinc-500"
+              className={`mt-2 font-mono text-[11px] uppercase tracking-[0.08em] ${
+                isDark ? "text-cream/55" : "text-ink-4"
               }`}
             >
               {tier.credits.toLocaleString()} credits · {tier.perCredit}/credit
             </p>
 
             <ul
-              className={`mt-5 space-y-2.5 text-[14px] ${
-                isDark ? "text-zinc-200" : "text-zinc-700"
+              className={`mt-6 space-y-2.5 text-[14px] ${
+                isDark ? "text-cream/85" : "text-ink-2"
               }`}
             >
               {tier.features.slice(0, 4).map((f) => (
                 <li key={f} className="flex items-start gap-2.5">
                   <svg
                     className={`mt-0.5 shrink-0 ${
-                      isDark ? "text-orange-400" : "text-orange-500"
+                      isDark ? "text-terracotta-soft" : "text-terracotta"
                     }`}
                     width="14"
                     height="14"
@@ -91,7 +91,7 @@ export function PlanGrid({ tiers, currentPlan }: Props) {
               ))}
             </ul>
 
-            <div className="mt-6">{cta}</div>
+            <div className="mt-7">{cta}</div>
           </div>
         );
       })}
@@ -113,10 +113,10 @@ function ctaFor({
   if (isCurrent) {
     return (
       <span
-        className={`inline-flex w-full items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium ${
+        className={`inline-flex w-full items-center justify-center rounded-full px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] ${
           isDark
-            ? "bg-white/10 text-zinc-200"
-            : "border border-zinc-200 bg-zinc-50 text-zinc-500"
+            ? "bg-cream/10 text-cream/85"
+            : "border border-line bg-paper-soft text-ink-3"
         }`}
       >
         Current plan
@@ -129,8 +129,10 @@ function ctaFor({
       return (
         <a
           href={`/api/stripe/checkout?plan=${tier.slug}`}
-          onClick={() => track("plan_choose_clicked", { plan: tier.slug, location: "account" })}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-medium text-zinc-900 transition-transform hover:scale-[1.02]"
+          onClick={() =>
+            track("plan_choose_clicked", { plan: tier.slug, location: "account" })
+          }
+          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-terracotta px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark"
         >
           Choose {tier.label} <span aria-hidden>→</span>
         </a>
@@ -139,8 +141,10 @@ function ctaFor({
     return (
       <a
         href={`/api/stripe/checkout?plan=${tier.slug}`}
-        onClick={() => track("plan_choose_clicked", { plan: tier.slug, location: "account" })}
-        className="inline-flex w-full items-center justify-center rounded-full border border-zinc-200 bg-white px-5 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50"
+        onClick={() =>
+          track("plan_choose_clicked", { plan: tier.slug, location: "account" })
+        }
+        className="inline-flex w-full items-center justify-center rounded-full border border-line bg-paper-soft px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink transition-colors hover:bg-paper-2"
       >
         Choose {tier.label}
       </a>
@@ -151,8 +155,10 @@ function ctaFor({
     return (
       <a
         href={`/api/stripe/portal?to=${tier.slug}`}
-        onClick={() => track("plan_switch_clicked", { plan: tier.slug, location: "account" })}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-medium text-zinc-900 transition-transform hover:scale-[1.02]"
+        onClick={() =>
+          track("plan_switch_clicked", { plan: tier.slug, location: "account" })
+        }
+        className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-terracotta px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark"
       >
         Switch to {tier.label} <span aria-hidden>→</span>
       </a>
@@ -161,8 +167,10 @@ function ctaFor({
   return (
     <a
       href={`/api/stripe/portal?to=${tier.slug}`}
-      onClick={() => track("plan_switch_clicked", { plan: tier.slug, location: "account" })}
-      className="inline-flex w-full items-center justify-center rounded-full border border-zinc-200 bg-white px-5 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50"
+      onClick={() =>
+        track("plan_switch_clicked", { plan: tier.slug, location: "account" })
+      }
+      className="inline-flex w-full items-center justify-center rounded-full border border-line bg-paper-soft px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink transition-colors hover:bg-paper-2"
     >
       Switch to {tier.label}
     </a>

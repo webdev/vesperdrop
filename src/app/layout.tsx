@@ -1,12 +1,17 @@
 import { Suspense } from "react";
 import type { Metadata, Viewport } from "next";
-import { Geist, Newsreader, JetBrains_Mono } from "next/font/google";
+import { Geist, Fraunces, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { PostHogProvider } from "@/components/posthog-provider";
 import { env } from "@/lib/env";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
-const newsreader = Newsreader({ subsets: ["latin"], variable: "--font-serif" });
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-serif",
+  display: "swap",
+  axes: ["opsz", "SOFT"],
+});
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 const SITE_URL = env.SITE_URL.replace(/\/$/, "");
@@ -79,7 +84,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geist.variable} ${newsreader.variable} ${mono.variable} h-full antialiased`}
+      className={`${geist.variable} ${fraunces.variable} ${mono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <Suspense fallback={null}>

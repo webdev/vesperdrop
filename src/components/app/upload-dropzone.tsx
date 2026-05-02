@@ -25,7 +25,12 @@ export function UploadDropzone({
 
   return (
     <section>
-      <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 mb-4">1. Photos</h2>
+      <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+        Step 01
+      </p>
+      <h2 className="mt-2 mb-5 font-serif text-[clamp(1.5rem,2vw,1.875rem)] leading-[1.1] tracking-[-0.01em] text-ink">
+        Upload photos
+      </h2>
       <div
         onDragOver={(e) => {
           e.preventDefault();
@@ -38,14 +43,20 @@ export function UploadDropzone({
           add(e.dataTransfer.files);
         }}
         onClick={() => inputRef.current?.click()}
-        className={`border border-dashed rounded-lg p-10 text-center cursor-pointer transition-colors ${
+        className={`cursor-pointer rounded-lg border border-dashed p-10 text-center transition-colors ${
           over
-            ? "border-orange-500 bg-orange-50"
-            : "border-zinc-300 bg-zinc-50 hover:border-zinc-400"
+            ? "border-terracotta bg-terracotta-wash/40"
+            : "border-line bg-surface hover:border-ink-4"
         }`}
       >
-        <p className="text-sm text-zinc-500">
-          Drop product photos here or click to browse
+        <p className="text-[14px] text-ink-3">
+          Drop product photos here or{" "}
+          <span className="text-terracotta underline underline-offset-4">
+            click to browse
+          </span>
+        </p>
+        <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4">
+          PNG, JPG · multiple files
         </p>
         <input
           ref={inputRef}
@@ -57,24 +68,25 @@ export function UploadDropzone({
         />
       </div>
       {files.length > 0 && (
-        <ul className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+        <ul className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
           {files.map((f, i) => (
             <li
               key={i}
-              className="relative border border-zinc-200 rounded overflow-hidden"
+              className="relative overflow-hidden rounded-md border border-line-soft bg-paper-2"
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={URL.createObjectURL(f)}
                 alt={f.name}
-                className="block w-full h-auto"
+                className="block aspect-[4/5] h-full w-full object-cover"
               />
               <button
                 type="button"
                 onClick={() => removeAt(i)}
                 aria-label={`Remove ${f.name}`}
-                className="absolute top-1 right-1 bg-zinc-900/70 text-white text-xs px-2 py-1 rounded"
+                className="absolute right-1.5 top-1.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-ink/80 font-mono text-[11px] text-cream transition-colors hover:bg-ink"
               >
-                ✕
+                <span aria-hidden>×</span>
               </button>
             </li>
           ))}

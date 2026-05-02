@@ -1,24 +1,29 @@
+import { Container } from "@/components/ui/container";
+
 export function HowItWorks() {
   return (
-    <section id="how" className="bg-white py-24 md:py-32">
-      <div className="mx-auto max-w-7xl px-6 md:px-10">
-        <div className="mb-12 grid grid-cols-1 items-end gap-6 md:mb-20 md:grid-cols-2">
-          <div>
-            <p className="text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase">
+    <section id="how" className="bg-paper py-24 md:py-32">
+      <Container width="marketing">
+        <div className="mb-14 flex flex-col items-end justify-between gap-6 md:mb-20 md:flex-row">
+          <div className="md:max-w-2xl">
+            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
               How it works
             </p>
-            <h2 className="mt-3 text-[clamp(32px,4.5vw,56px)] font-semibold leading-[1.05] tracking-[-0.02em] text-zinc-900">
-              Three steps. <span className="text-zinc-600">No camera.</span>
+            <h2 className="mt-4 font-serif text-[clamp(2.25rem,4.5vw,3.5rem)] leading-[1.05] tracking-[-0.02em] text-ink">
+              Three steps.{" "}
+              <em className="not-italic font-serif italic text-terracotta-dark">
+                No camera.
+              </em>
             </h2>
           </div>
-          <p className="text-[16px] leading-[1.6] text-zinc-600 md:max-w-md md:justify-self-end">
+          <p className="text-[15px] leading-[1.6] text-ink-3 md:max-w-sm md:text-right">
             We trained on 4,000+ conversion-tested references so your first
             generation looks like a tenth one. No prompts, no tweaking, no
             re-rolls.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <ol className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-line-soft bg-line-soft md:grid-cols-3">
           {[
             {
               n: "01",
@@ -36,23 +41,20 @@ export function HowItWorks() {
               c: "Watermarked previews in 90 seconds. One full-resolution HD shot free with sign-up.",
             },
           ].map((step) => (
-            <div
-              key={step.n}
-              className="rounded-[20px] border border-zinc-200 bg-zinc-50/60 p-7 md:p-8"
-            >
-              <div className="text-[14px] font-medium tracking-tight text-orange-600">
-                {step.n}
-              </div>
-              <h3 className="mt-3 text-[22px] font-semibold tracking-tight text-zinc-900">
+            <li key={step.n} className="bg-surface p-8 md:p-10">
+              <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-terracotta">
+                Step {step.n}
+              </p>
+              <h3 className="mt-4 font-serif text-[clamp(1.5rem,2vw,1.875rem)] leading-[1.1] tracking-[-0.01em] text-ink">
                 {step.t}
               </h3>
-              <p className="mt-3 text-[15px] leading-[1.55] text-zinc-600">
+              <p className="mt-3 text-[14px] leading-[1.6] text-ink-3">
                 {step.c}
               </p>
-            </div>
+            </li>
           ))}
-        </div>
-      </div>
+        </ol>
+      </Container>
     </section>
   );
 }

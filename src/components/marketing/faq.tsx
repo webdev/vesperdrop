@@ -17,35 +17,37 @@ const ITEMS = [
   },
 ];
 
+import { Container } from "@/components/ui/container";
+
 export function Faq() {
   return (
-    <section className="bg-white py-24 md:py-32">
-      <div className="mx-auto max-w-3xl px-6 md:px-10">
-        <p className="text-center text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase">
+    <section className="bg-paper-soft py-24 md:py-32">
+      <Container width="reading">
+        <p className="text-center font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
           Frequently asked
         </p>
-        <h2 className="mt-3 text-center text-[clamp(28px,4vw,44px)] font-semibold leading-[1.1] tracking-[-0.02em] text-zinc-900">
+        <h2 className="mt-4 text-center font-serif text-[clamp(2rem,4vw,3rem)] leading-[1.05] tracking-[-0.02em] text-ink">
           Anything else?
         </h2>
-        <div className="mt-12 divide-y divide-zinc-200 border-y border-zinc-200">
+        <div className="mt-14 divide-y divide-line-soft border-y border-line-soft">
           {ITEMS.map((it) => (
-            <details key={it.q} className="group py-5">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-6 text-[17px] font-medium tracking-tight text-zinc-900">
+            <details key={it.q} className="group py-6">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-6 font-serif text-[clamp(1.125rem,1.4vw,1.25rem)] leading-[1.3] tracking-[-0.01em] text-ink">
                 <span>{it.q}</span>
                 <span
                   aria-hidden
-                  className="text-zinc-400 transition-transform group-open:rotate-45"
+                  className="font-mono text-[20px] leading-none text-ink-3 transition-transform group-open:rotate-45"
                 >
                   +
                 </span>
               </summary>
-              <p className="mt-3 text-[15px] leading-[1.6] text-zinc-600">
+              <p className="mt-4 max-w-2xl text-[15px] leading-[1.6] text-ink-3">
                 {it.a}
               </p>
             </details>
           ))}
         </div>
-      </div>
+      </Container>
     </section>
   );
 }

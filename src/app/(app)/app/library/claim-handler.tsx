@@ -48,7 +48,7 @@ export function ClaimHandler() {
         const data = (await res.json()) as { runId?: string };
         window.sessionStorage.removeItem(PENDING_BATCH_KEY);
         if (data.runId) {
-          router.replace(`/app/history?claim=${encodeURIComponent(data.runId)}`);
+          router.replace(`/app/library?claim=${encodeURIComponent(data.runId)}`);
           router.refresh();
         } else {
           router.refresh();

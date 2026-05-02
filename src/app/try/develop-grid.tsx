@@ -66,7 +66,7 @@ export function DevelopGrid({
 }) {
   if (results.length === 0) {
     return (
-      <div className="border border-dashed border-zinc-200 bg-zinc-50 px-6 py-12 text-center font-mono text-[11px] tracking-[0.16em] text-zinc-500 uppercase">
+      <div className="rounded-lg border border-dashed border-line bg-paper-soft px-6 py-12 text-center font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
         Pick at least one scene to develop
       </div>
     );

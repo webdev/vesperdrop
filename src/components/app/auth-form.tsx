@@ -125,7 +125,7 @@ export function AuthForm({
   if (step === "mfa") {
     return (
       <div className="space-y-5">
-        <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
+        <div className="rounded-md border border-line-soft bg-paper-soft px-4 py-3 text-[14px] text-ink-2">
           Enter the 6-digit code from your authenticator app.
         </div>
         <form onSubmit={submitMfa} className="space-y-4">
@@ -141,10 +141,10 @@ export function AuthForm({
               required
               value={totpCode}
               onChange={(e) => setTotpCode(e.target.value)}
-              className="text-center tracking-[0.3em] text-lg"
+              className="text-center text-lg tracking-[0.3em]"
             />
           </div>
-          {error && <p className="text-sm text-orange-500">{error}</p>}
+          {error && <p className="text-sm text-terracotta">{error}</p>}
           <Button type="submit" disabled={pending} className="w-full">
             {pending ? "Verifying…" : "Verify"}
           </Button>
@@ -152,7 +152,7 @@ export function AuthForm({
         <button
           type="button"
           onClick={() => { setStep("credentials"); setError(null); setTotpCode(""); }}
-          className="w-full text-center text-xs text-zinc-500 hover:text-zinc-900 transition-colors"
+          className="w-full text-center font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3 transition-colors hover:text-ink"
         >
           ← Back to sign in
         </button>
@@ -171,9 +171,11 @@ export function AuthForm({
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="h-px flex-1 bg-[#e4e4e7]" />
-        <span className="font-mono text-[10px] tracking-[0.18em] text-zinc-400">OR EMAIL</span>
-        <div className="h-px flex-1 bg-[#e4e4e7]" />
+        <div className="h-px flex-1 bg-line-soft" />
+        <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4">
+          or email
+        </span>
+        <div className="h-px flex-1 bg-line-soft" />
       </div>
 
       <form onSubmit={submitCredentials} className="space-y-4">
@@ -200,7 +202,7 @@ export function AuthForm({
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
-        {error && <p className="text-sm text-orange-500">{error}</p>}
+        {error && <p className="text-sm text-terracotta">{error}</p>}
         <Button type="submit" disabled={pending} className="w-full">
           {pending ? "…" : mode === "sign-in" ? "Sign in" : "Create account"}
         </Button>
@@ -214,7 +216,7 @@ function SocialButton({ icon, label, onClick }: { icon: React.ReactNode; label: 
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center justify-center gap-3 rounded-md border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-50"
+      className="flex w-full items-center justify-center gap-3 rounded-md border border-line bg-surface px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-paper-soft"
     >
       {icon}
       {label}

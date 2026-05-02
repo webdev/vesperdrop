@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { CheckoutSuccessTracker } from "@/components/checkout-success-tracker";
 import { PlanSummaryCard } from "@/components/app/plan-summary-card";
 import { PlanGrid } from "@/components/app/plan-grid";
+import { PageShell } from "@/components/ui/page-shell";
 import { PAID_PLAN_SLUGS, PLAN_CATALOG, type PlanSlug } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
@@ -30,24 +31,29 @@ export default async function Page({
   const tiers = PAID_PLAN_SLUGS.map((slug) => PLAN_CATALOG[slug]);
 
   return (
-    <div className="space-y-12 max-w-5xl">
+    <PageShell rhythm="loose">
       {upgraded === "1" ? <CheckoutSuccessTracker source="subscription" /> : null}
-      <header className="space-y-2">
-        <p className="text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase">
+
+      <header>
+        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
           Account
         </p>
-        <h1 className="text-[clamp(2rem,4vw,2.75rem)] font-semibold tracking-tight text-zinc-900">
+        <h1 className="mt-3 font-serif text-[clamp(2.5rem,5vw,3.75rem)] leading-[0.98] tracking-[-0.02em] text-ink">
           Your workspace
         </h1>
-        <p className="text-sm text-zinc-500">{user.email}</p>
+        <p className="mt-3 font-mono text-[12px] uppercase tracking-[0.08em] text-ink-4">
+          {user.email}
+        </p>
       </header>
 
-      <section className="space-y-4">
-        <div className="space-y-1">
-          <p className="text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase">
+      <section className="space-y-5">
+        <div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
             Plan
           </p>
-          <h2 className="text-xl font-semibold text-zinc-900">Current subscription</h2>
+          <h2 className="mt-2 font-serif text-[clamp(1.5rem,2vw,1.875rem)] leading-[1.1] tracking-[-0.01em] text-ink">
+            Current subscription
+          </h2>
         </div>
         <PlanSummaryCard
           plan={plan}
@@ -57,15 +63,15 @@ export default async function Page({
         />
       </section>
 
-      <section className="space-y-4">
-        <div className="space-y-1">
-          <p className="text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase">
+      <section className="space-y-5">
+        <div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
             Plans
           </p>
-          <h2 className="text-xl font-semibold text-zinc-900">
+          <h2 className="mt-2 font-serif text-[clamp(1.5rem,2vw,1.875rem)] leading-[1.1] tracking-[-0.01em] text-ink">
             {plan === "free" ? "Pick a plan" : "Switch plans"}
           </h2>
-          <p className="text-sm text-zinc-500">
+          <p className="mt-2 text-[14px] leading-[1.55] text-ink-3">
             Pro is the sweet spot for most sellers. Top-up packs coming soon.
           </p>
         </div>
@@ -73,10 +79,10 @@ export default async function Page({
       </section>
 
       <form action="/api/auth/sign-out" method="post" className="pt-2">
-        <button className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors">
+        <button className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3 transition-colors hover:text-ink">
           Sign out
         </button>
       </form>
-    </div>
+    </PageShell>
   );
 }

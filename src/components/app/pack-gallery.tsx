@@ -57,25 +57,25 @@ export function PackGallery({
   const allTerminal = succeeded + failed === total && shots.length === total;
 
   return (
-    <section className="space-y-3">
-      <div className="flex items-baseline justify-between gap-4 border-b border-zinc-200 pb-2">
-        <div className="flex items-baseline gap-2">
-          <p className="text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase">
+    <section className="space-y-4">
+      <div className="flex items-baseline justify-between gap-4 border-b border-line-soft pb-3">
+        <div className="flex items-baseline gap-3">
+          <h3 className="font-mono text-[12px] uppercase tracking-[0.12em] text-ink">
             {PLATFORM_LABELS[pack.platform]} pack
-          </p>
-          <span className="text-[11px] text-zinc-400">
+          </h3>
+          <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-4">
             · {succeeded}/{total} ready{failed > 0 ? ` · ${failed} failed` : ""}
           </span>
         </div>
         {!allTerminal ? (
-          <div className="flex items-center gap-2 text-[11px] text-zinc-500">
-            <div className="h-3 w-3 rounded-full border-2 border-zinc-400 border-t-transparent animate-spin" />
+          <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-4">
+            <div className="h-3 w-3 rounded-full border-2 border-ink-4 border-t-transparent animate-spin" />
             <span>Generating…</span>
           </div>
         ) : null}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
         {Array.from({ length: total }).map((_, i) => {
           const shot = shots.find((s) => (s.packShotIndex ?? -1) === i);
           return <PackTile key={i} index={i} shot={shot} />;
@@ -87,29 +87,34 @@ export function PackGallery({
 
 function PackTile({ shot, index }: { shot: Generation | undefined; index: number }) {
   return (
-    <div className="relative aspect-square border border-zinc-200 bg-zinc-50 grid place-items-center overflow-hidden rounded-lg">
+    <div className="relative aspect-[4/5] overflow-hidden rounded-md border border-line-soft bg-paper-2">
       {shot?.status === "succeeded" && shot.outputUrl ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={shot.outputUrl}
             alt={shot.packRole ?? `Shot ${index + 1}`}
-            className="w-full h-full object-contain"
+            className="h-full w-full object-cover"
           />
           {shot.packRole ? (
-            <span className="absolute bottom-2 left-2 rounded bg-white/90 px-2 py-0.5 text-[10px] font-medium tracking-tight text-zinc-700">
+            <span className="absolute bottom-2 left-2 rounded-full bg-cream/95 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-ink">
               {shot.packRole}
             </span>
           ) : null}
         </>
       ) : shot?.status === "failed" ? (
-        <span className="text-xs text-orange-500 p-4 text-center">
-          {shot.error ?? "Shot failed"}
-        </span>
+        <div className="flex h-full flex-col items-center justify-center p-4 text-center">
+          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-terracotta">
+            Failed
+          </span>
+          <span className="mt-2 text-[12px] leading-[1.4] text-ink-3">
+            {shot.error ?? "Shot failed"}
+          </span>
+        </div>
       ) : (
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-5 w-5 rounded-full border-2 border-zinc-400 border-t-transparent animate-spin" />
-          <span className="text-xs text-zinc-500 capitalize">
+        <div className="flex h-full flex-col items-center justify-center gap-2">
+          <div className="h-5 w-5 rounded-full border-2 border-ink-4 border-t-transparent animate-spin" />
+          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4 capitalize">
             {shot?.status ?? "pending"}
           </span>
         </div>
@@ -139,6 +144,10 @@ function mapShot(raw: unknown): Generation {
     error: (r.error as string | null) ?? null,
     watermarked: Boolean(r.watermarked),
     quality: (r.quality as Generation["quality"]) ?? "hd",
+    sceneifySourceId:
+      (r.sceneifySourceId as string | null) ??
+      (r.sceneify_source_id as string | null) ??
+      null,
     sceneifyGenerationId:
       (r.sceneifyGenerationId as string | null) ??
       (r.sceneify_generation_id as string | null) ??

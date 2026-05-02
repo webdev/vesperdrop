@@ -8,40 +8,41 @@ const QUOTES = [
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <main className="grid min-h-screen grid-cols-1 bg-white text-zinc-900 md:grid-cols-2">
-      <div className="relative hidden flex-col justify-between overflow-hidden border-r border-zinc-200 bg-zinc-50/60 px-10 py-12 md:flex md:px-14 md:py-16">
+    <main className="grid min-h-screen grid-cols-1 bg-paper text-ink md:grid-cols-2">
+      <div className="relative hidden flex-col justify-between overflow-hidden border-r border-line-soft bg-paper-soft px-10 py-12 md:flex md:px-14 md:py-16">
         <div
           aria-hidden
-          className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-gradient-to-br from-orange-200/60 via-rose-200/40 to-transparent blur-3xl"
+          className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-gradient-to-br from-terracotta-soft/55 via-terracotta-wash/40 to-transparent blur-3xl"
         />
         <Link
           href="/"
-          className="relative flex items-center gap-2 text-[18px] font-semibold tracking-tight text-zinc-900"
+          className="relative font-serif text-[22px] font-medium tracking-tight text-ink"
         >
-          <span aria-hidden className="inline-block h-6 w-6 rounded-full bg-zinc-900" />
           Vesperdrop
         </Link>
 
         <div className="relative space-y-10">
-          <p className="text-[clamp(28px,3vw,40px)] font-semibold leading-[1.1] tracking-[-0.02em] text-zinc-900">
+          <p className="font-serif text-[clamp(2rem,3vw,2.75rem)] leading-[1.05] tracking-[-0.02em] text-ink">
             Lifestyle photos from a product shot.{" "}
-            <span className="text-zinc-500">In 90 seconds.</span>
+            <em className="not-italic font-serif italic text-terracotta-dark">
+              In 90 seconds.
+            </em>
           </p>
 
-          <ul className="space-y-3 text-[14px] text-zinc-600">
+          <ul className="space-y-3 text-[14px] text-ink-2">
             <Bullet>3 free shots — no card required</Bullet>
             <Bullet>Amazon A+ resolution (2000px)</Bullet>
             <Bullet>First batch ready in ~90 seconds</Bullet>
             <Bullet>Cancel any time</Bullet>
           </ul>
 
-          <div className="space-y-5 border-t border-zinc-200 pt-7">
+          <div className="space-y-5 border-t border-line-soft pt-7">
             {QUOTES.map((q) => (
               <figure key={q.handle}>
-                <blockquote className="text-[15px] leading-[1.5] text-zinc-700">
+                <blockquote className="font-serif text-[16px] leading-[1.45] tracking-[-0.005em] text-ink">
                   &ldquo;{q.text}&rdquo;
                 </blockquote>
-                <figcaption className="mt-1 text-[12px] text-zinc-500">
+                <figcaption className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3">
                   — {q.handle}
                 </figcaption>
               </figure>
@@ -49,7 +50,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </div>
         </div>
 
-        <p className="relative text-[11px] tracking-[0.18em] text-zinc-400 uppercase">
+        <p className="relative font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4">
           © 2026 Vesperdrop
         </p>
       </div>
@@ -74,7 +75,7 @@ function Bullet({ children }: { children: React.ReactNode }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         aria-hidden
-        className="shrink-0 text-emerald-600"
+        className="shrink-0 text-terracotta"
       >
         <path d="M20 6 9 17l-5-5" />
       </svg>

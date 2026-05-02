@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PricingCards } from "@/components/marketing/pricing-cards";
 import { PricingFaq } from "@/components/marketing/pricing-faq";
 import { PricingProductJsonLd } from "@/components/marketing/structured-data";
+import { Container } from "@/components/ui/container";
 import { PLAN_CATALOG, PAID_PLAN_SLUGS } from "@/lib/plans";
 
 export const metadata: Metadata = {
@@ -51,20 +52,21 @@ export default function Page() {
   return (
     <>
       <PricingProductJsonLd offers={PRICING_OFFERS} />
-      <header className="mx-auto max-w-3xl px-6 pt-20 pb-12 text-center md:pt-28">
-        <p className="text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase">
+      <Container as="header" width="reading" className="pb-12 pt-20 text-center md:pt-28">
+        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
           Pricing · simple credits
         </p>
-        <h1 className="mt-4 text-[clamp(40px,5.5vw,72px)] font-semibold leading-[1.05] tracking-[-0.02em] text-zinc-900">
-          One credit.
-          <br />
-          <span className="text-zinc-600">One lifestyle shot.</span>
+        <h1 className="mt-5 font-serif text-[clamp(3rem,6vw,4.5rem)] leading-[0.98] tracking-[-0.02em] text-ink">
+          One credit.{" "}
+          <em className="not-italic font-serif italic text-terracotta-dark">
+            One lifestyle shot.
+          </em>
         </h1>
-        <p className="mx-auto mt-6 max-w-xl text-[16px] leading-[1.6] text-zinc-600">
+        <p className="mx-auto mt-6 max-w-xl text-[16px] leading-[1.6] text-ink-3">
           Try free — no card. Upgrade when you see the result. Credits roll
           over and never expire within your billing period.
         </p>
-      </header>
+      </Container>
       <PricingCards tiers={PAID_PLAN_SLUGS.map((slug) => PLAN_CATALOG[slug])} />
       <PricingFaq />
     </>

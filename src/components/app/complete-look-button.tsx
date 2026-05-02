@@ -90,7 +90,7 @@ export function CompleteLookButton({
   }
 
   return (
-    <div className="absolute top-2 left-2">
+    <div className="absolute left-2 top-2 z-10">
       <button
         type="button"
         disabled={disabled}
@@ -104,12 +104,12 @@ export function CompleteLookButton({
             });
           }
         }}
-        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium tracking-tight shadow-sm transition-colors ${
+        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] shadow-subtle transition-colors ${
           disabled
-            ? "bg-white/95 text-zinc-900 opacity-50 cursor-not-allowed"
+            ? "cursor-not-allowed bg-cream/95 text-ink opacity-50"
             : locked
-              ? "bg-zinc-900/85 text-white hover:bg-zinc-900"
-              : "bg-white/95 text-zinc-900 hover:bg-white hover:shadow"
+              ? "bg-ink/90 text-cream hover:bg-ink"
+              : "bg-cream/95 text-ink hover:bg-cream"
         }`}
         title={
           disabled
@@ -119,36 +119,35 @@ export function CompleteLookButton({
               : "Generate a full marketplace pack from this shot"
         }
       >
-        {locked ? <span aria-hidden>🔒</span> : null}
         Complete the look <span aria-hidden>→</span>
       </button>
 
       {open && locked ? (
         <div
           ref={popoverRef}
-          className="absolute top-full mt-2 left-0 z-20 w-[300px] rounded-xl border border-zinc-200 bg-white p-4 shadow-lg"
+          className="absolute left-0 top-full z-20 mt-2 w-[300px] rounded-xl border border-line bg-surface p-4 shadow-card"
         >
-          <p className="text-[11px] font-medium tracking-[0.16em] text-zinc-500 uppercase">
+          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-terracotta">
             Pro feature
           </p>
-          <h3 className="mt-1 text-[15px] font-semibold text-zinc-900">
+          <h3 className="mt-2 font-serif text-[18px] leading-[1.2] text-ink">
             Get the full marketplace pack
           </h3>
-          <p className="mt-2 text-[13px] leading-[1.5] text-zinc-600">
-            Subscribe to generate 3-6 coordinated shots from any HD image —
+          <p className="mt-2 text-[13px] leading-[1.5] text-ink-3">
+            Subscribe to generate 3–6 coordinated shots from any HD image —
             ready for Amazon, Shopify, Instagram, or TikTok.
           </p>
-          <ul className="mt-3 space-y-1.5 text-[12px] text-zinc-700">
+          <ul className="mt-3 space-y-1.5 text-[12px] text-ink-2">
             <li className="flex items-start gap-2">
-              <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-orange-500" />
+              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-terracotta" />
               Hero, lifestyle, and detail crops at platform-native sizes
             </li>
             <li className="flex items-start gap-2">
-              <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-orange-500" />
+              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-terracotta" />
               Color and styling matched to your hero shot
             </li>
             <li className="flex items-start gap-2">
-              <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-orange-500" />
+              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-terracotta" />
               No watermark, full resolution
             </li>
           </ul>
@@ -160,11 +159,11 @@ export function CompleteLookButton({
                 parent_id: parentGenerationId,
               })
             }
-            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-zinc-900 px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-zinc-800"
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-ink-2"
           >
             See plans <span aria-hidden>→</span>
           </Link>
-          <p className="mt-3 text-center text-[10px] tracking-wide text-zinc-400">
+          <p className="mt-3 text-center font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4">
             Pro from $49/mo · 200 credits · cancel any time
           </p>
         </div>
@@ -173,9 +172,9 @@ export function CompleteLookButton({
       {open && !locked ? (
         <div
           ref={popoverRef}
-          className="absolute top-full mt-2 left-0 z-20 w-[280px] rounded-xl border border-zinc-200 bg-white p-3 shadow-lg"
+          className="absolute left-0 top-full z-20 mt-2 w-[280px] rounded-xl border border-line bg-surface p-3 shadow-card"
         >
-          <p className="px-1 pb-2 text-[11px] font-medium tracking-[0.16em] text-zinc-500 uppercase">
+          <p className="px-1 pb-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
             Generate marketplace pack
           </p>
           <ul className="space-y-1">
@@ -187,28 +186,28 @@ export function CompleteLookButton({
                   disabled={Boolean(submitting)}
                   className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
                     submitting === p.id
-                      ? "bg-zinc-100"
-                      : "hover:bg-zinc-50 disabled:opacity-50 disabled:hover:bg-transparent"
+                      ? "bg-paper-2"
+                      : "hover:bg-paper-soft disabled:opacity-50 disabled:hover:bg-transparent"
                   }`}
                 >
                   <div className="min-w-0">
-                    <div className="text-[13px] font-medium text-zinc-900">
+                    <div className="text-[13px] font-medium text-ink">
                       {p.label}
                     </div>
-                    <div className="text-[11px] text-zinc-500">{p.hint}</div>
+                    <div className="text-[11px] text-ink-3">{p.hint}</div>
                   </div>
                   <div className="shrink-0 text-right">
-                    <div className="text-[12px] font-medium text-zinc-900 tabular-nums">
+                    <div className="text-[12px] font-medium text-ink tabular-nums">
                       {p.shots} credits
                     </div>
-                    <div className="text-[10px] text-zinc-500">{p.shots} shots</div>
+                    <div className="text-[10px] text-ink-3">{p.shots} shots</div>
                   </div>
                 </button>
               </li>
             ))}
           </ul>
           {error ? (
-            <div className="mt-3 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-[12px] text-orange-700">
+            <div className="mt-3 rounded-lg border border-terracotta/30 bg-terracotta-wash px-3 py-2 text-[12px] text-terracotta-dark">
               {error}
               {error.includes("credits") ? (
                 <>
@@ -247,6 +246,10 @@ function mapShot(raw: unknown): Generation {
     error: (r.error as string | null) ?? null,
     watermarked: Boolean(r.watermarked),
     quality: (r.quality as Generation["quality"]) ?? "hd",
+    sceneifySourceId:
+      (r.sceneifySourceId as string | null) ??
+      (r.sceneify_source_id as string | null) ??
+      null,
     sceneifyGenerationId:
       (r.sceneifyGenerationId as string | null) ??
       (r.sceneify_generation_id as string | null) ??

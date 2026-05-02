@@ -1,5 +1,7 @@
 "use client";
 
+import { Container } from "@/components/ui/container";
+
 export type StepId = "upload" | "scenes" | "develop";
 
 export const STEPS: { id: StepId; n: string; t: string }[] = [
@@ -13,8 +15,8 @@ export function WizardSteps({ current }: { current: StepId }) {
   const currentIdx = order.indexOf(current);
 
   return (
-    <div className="sticky top-0 z-30 border-b border-zinc-200/70 bg-white/85 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center gap-3 px-6 py-3.5 md:gap-5 md:px-10">
+    <div className="sticky top-0 z-30 border-b border-line-soft bg-paper/85 backdrop-blur-md">
+      <Container width="app" className="flex items-center gap-3 py-3.5 md:gap-5">
         {STEPS.map((s, i) => {
           const done = i < currentIdx;
           const active = i === currentIdx;
@@ -22,18 +24,18 @@ export function WizardSteps({ current }: { current: StepId }) {
             <div key={s.id} className="flex items-center gap-3 md:gap-4">
               <div className="flex items-center gap-2.5">
                 <span
-                  className={`flex h-6 w-6 items-center justify-center rounded-full text-[12px] font-semibold ${
+                  className={`flex h-6 w-6 items-center justify-center rounded-full font-mono text-[11px] tracking-[0.04em] ${
                     active
-                      ? "bg-zinc-900 text-white"
+                      ? "bg-ink text-cream"
                       : done
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-zinc-100 text-zinc-500"
+                        ? "bg-terracotta-wash text-terracotta-dark"
+                        : "border border-line-soft bg-paper-soft text-ink-4"
                   }`}
                 >
                   {done ? (
                     <svg
-                      width="12"
-                      height="12"
+                      width="11"
+                      height="11"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -49,24 +51,24 @@ export function WizardSteps({ current }: { current: StepId }) {
                   )}
                 </span>
                 <span
-                  className={`hidden text-[13px] font-medium tracking-tight sm:inline ${
+                  className={`hidden font-mono text-[11px] uppercase tracking-[0.12em] sm:inline ${
                     active
-                      ? "text-zinc-900"
+                      ? "text-ink"
                       : done
-                        ? "text-zinc-700"
-                        : "text-zinc-400"
+                        ? "text-ink-3"
+                        : "text-ink-4"
                   }`}
                 >
                   {s.t}
                 </span>
               </div>
               {i < STEPS.length - 1 ? (
-                <span aria-hidden className="h-px w-6 bg-zinc-200 md:w-10" />
+                <span aria-hidden className="h-px w-6 bg-line-soft md:w-10" />
               ) : null}
             </div>
           );
         })}
-      </div>
+      </Container>
     </div>
   );
 }

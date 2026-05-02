@@ -1,26 +1,33 @@
 import Link from "next/link";
+import { Container } from "@/components/ui/container";
 
 export function Footer() {
   return (
-    <footer className="border-t border-zinc-200 bg-white py-12">
-      <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 px-6 text-[13px] text-zinc-500 md:flex-row md:items-center md:px-10">
-        <div className="flex items-center gap-2">
-          <span aria-hidden className="inline-block h-5 w-5 rounded-full bg-zinc-900" />
-          <span className="font-medium text-zinc-900">Vesperdrop</span>
-          <span className="ml-2">© 2026</span>
+    <footer className="border-t border-line-soft bg-paper py-12">
+      <Container width="marketing" className="flex flex-col items-start justify-between gap-6 text-[13px] text-ink-3 md:flex-row md:items-center">
+        <div className="flex items-center gap-3">
+          <span className="font-serif text-[18px] font-medium tracking-tight text-ink">
+            Vesperdrop
+          </span>
+          <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-4">
+            © 2026
+          </span>
         </div>
-        <div className="flex flex-wrap gap-6">
-          <Link href="/pricing" className="hover:text-zinc-900">
+        <div className="flex flex-wrap gap-6 font-mono text-[11px] uppercase tracking-[0.12em]">
+          <Link href="/discover" className="text-ink-3 transition-colors hover:text-ink">
+            Discover
+          </Link>
+          <Link href="/pricing" className="text-ink-3 transition-colors hover:text-ink">
             Pricing
           </Link>
-          <Link href="/try" className="hover:text-zinc-900">
+          <Link href="/try" className="text-ink-3 transition-colors hover:text-ink">
             Try free
           </Link>
-          <Link href="/sign-in" className="hover:text-zinc-900">
+          <Link href="/sign-in" className="text-ink-3 transition-colors hover:text-ink">
             Sign in
           </Link>
         </div>
-      </div>
+      </Container>
     </footer>
   );
 }

@@ -13,18 +13,24 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <>
-      <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-zinc-900">
+      <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
         Sign in
-      </h1>
-      <p className="mt-2 mb-7 text-[14px] text-zinc-600">
+      </p>
+      <h1 className="mt-3 font-serif text-[clamp(1.875rem,3vw,2.25rem)] leading-[1.05] tracking-[-0.02em] text-ink">
         Welcome back.
+      </h1>
+      <p className="mb-7 mt-2 text-[14px] text-ink-3">
+        Pick up where you left off.
       </p>
       <Suspense>
         <AuthForm mode="sign-in" />
       </Suspense>
-      <p className="mt-6 text-[14px] text-zinc-600">
+      <p className="mt-7 text-[14px] text-ink-3">
         No account?{" "}
-        <Link href="/sign-up" className="font-medium text-zinc-900 underline-offset-4 hover:underline">
+        <Link
+          href="/sign-up"
+          className="font-medium text-ink underline-offset-4 hover:underline"
+        >
           Create one
         </Link>
       </p>

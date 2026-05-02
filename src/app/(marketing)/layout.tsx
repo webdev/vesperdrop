@@ -7,7 +7,7 @@ import {
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-white text-zinc-900">
+    <div className="min-h-screen bg-paper text-ink">
       <OrganizationJsonLd />
       <WebSiteJsonLd />
       <SiteNav />

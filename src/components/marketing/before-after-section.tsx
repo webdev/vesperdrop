@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
+import { Container } from "@/components/ui/container";
 
 const PAIRS = [
   {
@@ -27,72 +28,93 @@ const PAIRS = [
 
 export function BeforeAfterSection() {
   return (
-    <section className="bg-white py-24 md:py-32">
-      <div className="mx-auto max-w-7xl px-6 md:px-10">
-        <div className="mb-14 grid grid-cols-1 items-end gap-6 md:mb-20 md:grid-cols-2">
-          <div>
-            <p className="text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase">
+    <section className="bg-paper-soft py-24 md:py-32">
+      <Container width="marketing">
+        <div className="mb-14 flex flex-col items-end justify-between gap-6 md:mb-20 md:flex-row">
+          <div className="md:max-w-2xl">
+            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
               Real before / after
             </p>
-            <h2 className="mt-3 text-[clamp(32px,4.5vw,56px)] font-semibold leading-[1.05] tracking-[-0.02em] text-zinc-900">
+            <h2 className="mt-4 font-serif text-[clamp(2.25rem,4.5vw,3.5rem)] leading-[1.05] tracking-[-0.02em] text-ink">
               Flatlays in.{" "}
-              <span className="text-zinc-600">Lifestyle out.</span>
+              <em className="not-italic font-serif italic text-terracotta-dark">
+                Lifestyle
+              </em>{" "}
+              out.
             </h2>
           </div>
-          <p className="text-[16px] leading-[1.6] text-zinc-600 md:max-w-md md:justify-self-end">
+          <p className="text-[15px] leading-[1.6] text-ink-3 md:max-w-sm md:text-right">
             Same product, same upload — three different scenes. No props,
             no models, no studio. Ninety seconds each.
           </p>
         </div>
 
-        <div className="space-y-6">
-          {PAIRS.map((p) => (
+        <div className="space-y-16 md:space-y-20">
+          {PAIRS.map((p, i) => (
             <article
               key={p.sku}
-              className="overflow-hidden rounded-[20px] border border-zinc-200 bg-zinc-50/60"
+              className={`flex flex-col gap-6 md:items-center md:gap-12 ${
+                i % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse"
+              }`}
             >
-              <div className="grid grid-cols-1 md:grid-cols-2">
-                <figure className="relative aspect-[4/5] bg-white">
-                  <img
-                    src={p.before}
-                    alt={`${p.label} — original flatlay`}
-                    className="absolute inset-0 h-full w-full object-contain"
-                  />
-                  <figcaption className="absolute top-4 left-4 inline-flex items-center gap-2 rounded-full bg-zinc-900/85 px-3 py-1 text-[10px] font-medium tracking-wide text-white backdrop-blur-sm">
-                    Before · Your photo
-                  </figcaption>
-                </figure>
-                <figure className="relative aspect-[4/5] bg-white">
+              {/* Editorial composition: dominant after + smaller before peek */}
+              <div className="relative flex-1">
+                <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-line-soft bg-paper-2 shadow-soft">
                   <img
                     src={p.after}
                     alt={`${p.label} — lifestyle generation in ${p.scene.toLowerCase()}`}
-                    className="absolute inset-0 h-full w-full object-contain"
+                    className="absolute inset-0 h-full w-full object-cover"
                   />
-                  <figcaption className="absolute top-4 left-4 inline-flex items-center gap-2 rounded-full bg-orange-500 px-3 py-1 text-[10px] font-medium tracking-wide text-white">
+                  <span className="absolute bottom-4 left-4 inline-flex items-center rounded-full bg-cream/95 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-ink shadow-subtle">
                     After · Vesperdrop
-                  </figcaption>
-                </figure>
+                  </span>
+                </div>
+                <div
+                  className="absolute -top-4 right-4 w-[28%] overflow-hidden rounded-md border border-line bg-cream shadow-card md:-top-6 md:right-6"
+                  style={{ transform: "rotate(3deg)" }}
+                >
+                  <div className="relative aspect-[4/5]">
+                    <img
+                      src={p.before}
+                      alt={`${p.label} — original flatlay`}
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                    <span className="absolute left-2 top-2 inline-flex items-center rounded-sm bg-ink/85 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.16em] text-cream backdrop-blur-sm">
+                      Before
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-baseline justify-between gap-4 border-t border-zinc-200 bg-white px-5 py-4 text-[12px] tracking-wide text-zinc-500">
-                <span className="text-zinc-700">
-                  <span className="font-medium text-zinc-900">{p.label}</span>{" "}
-                  · {p.sku}
-                </span>
-                <span>Scene · {p.scene}</span>
+
+              {/* Caption side */}
+              <div className="md:w-[280px] md:shrink-0">
+                <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-4">
+                  {p.sku}
+                </p>
+                <h3 className="mt-3 font-serif text-[clamp(1.625rem,2.5vw,2rem)] leading-[1.1] tracking-[-0.01em] text-ink">
+                  {p.label}
+                </h3>
+                <p className="mt-2 font-mono text-[12px] uppercase tracking-[0.08em] text-ink-3">
+                  Scene · {p.scene}
+                </p>
+                <p className="mt-4 text-[14px] leading-[1.6] text-ink-3">
+                  Upload one shot. Pick the look. Same product, transformed
+                  scene — no re-shoot required.
+                </p>
               </div>
             </article>
           ))}
         </div>
 
-        <div className="mt-10 text-center">
+        <div className="mt-16 text-center md:mt-24">
           <Link
             href="/try"
-            className="inline-flex items-center gap-2 rounded-full bg-zinc-900 px-7 py-3.5 text-[15px] font-medium text-white transition-transform hover:scale-[1.02] hover:bg-zinc-800"
+            className="inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3.5 font-mono text-[12px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-ink-2"
           >
             Try with your photo <span aria-hidden>→</span>
           </Link>
         </div>
-      </div>
+      </Container>
     </section>
   );
 }

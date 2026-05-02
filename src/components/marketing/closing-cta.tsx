@@ -1,37 +1,39 @@
 import Link from "next/link";
+import { Container } from "@/components/ui/container";
 
 export function ClosingCta() {
   return (
-    <section className="relative overflow-hidden bg-zinc-900 py-24 text-white md:py-32">
+    <section className="relative overflow-hidden bg-ink py-24 text-cream md:py-32">
       <div
         aria-hidden
-        className="absolute inset-0 -z-0 bg-gradient-to-br from-orange-500/20 via-rose-500/10 to-transparent blur-3xl"
+        className="absolute inset-0 -z-0 bg-gradient-to-br from-terracotta/25 via-terracotta/5 to-transparent blur-3xl"
       />
-      <div className="relative mx-auto max-w-3xl px-6 text-center md:px-10">
-        <p className="text-[11px] font-medium tracking-[0.2em] text-zinc-400 uppercase">
+      <Container width="reading" className="relative text-center">
+        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-cream/60">
           Three free shots, on us
         </p>
-        <h2 className="mt-4 text-[clamp(36px,5.5vw,72px)] font-semibold leading-[1.05] tracking-[-0.025em] text-white">
-          Stop reshooting.
-          <br />
-          <span className="text-zinc-400">Start producing.</span>
+        <h2 className="mt-5 font-serif text-[clamp(2.5rem,6vw,4.5rem)] leading-[0.98] tracking-[-0.02em]">
+          Stop reshooting.{" "}
+          <em className="not-italic font-serif italic text-cream/55">
+            Start producing.
+          </em>
         </h2>
-        <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
             href="/try"
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-7 py-3.5 text-[15px] font-medium text-zinc-900 transition-transform hover:scale-[1.02]"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-terracotta px-6 py-3.5 font-mono text-[12px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark"
           >
             Try with your photo
             <span aria-hidden>→</span>
           </Link>
           <Link
             href="/pricing"
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 bg-transparent px-6 py-3.5 text-[15px] font-medium text-white transition-colors hover:bg-white/5"
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-cream/25 bg-transparent px-5 py-3.5 font-mono text-[12px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-cream/10"
           >
             See pricing
           </Link>
         </div>
-      </div>
+      </Container>
     </section>
   );
 }

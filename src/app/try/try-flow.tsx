@@ -16,6 +16,7 @@ import {
 import type { Scene } from "@/lib/db/scenes";
 import { track } from "@/lib/analytics";
 import { isNonProdEnv } from "@/lib/env.client";
+import { Container } from "@/components/ui/container";
 import { WizardSteps, type StepId } from "./wizard-steps";
 
 function parseStep(raw: string | null): StepId {
@@ -159,46 +160,46 @@ export function TryFlow({
   }, []);
 
   return (
-    <div className="flex min-h-screen flex-col bg-white">
-      <header className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 md:px-12">
+    <div className="flex min-h-screen flex-col bg-paper text-ink">
+      <header className="border-b border-line-soft bg-paper">
+        <Container width="app" className="flex items-center justify-between py-4">
           <Link
             href="/"
-            className="text-2xl  italic tracking-tight text-zinc-900 hover:text-orange-500"
+            className="inline-flex items-center gap-1.5 font-serif text-[22px] font-medium tracking-tight text-ink transition-colors hover:text-terracotta"
           >
-            ← Vesperdrop
+            <span aria-hidden>←</span> Vesperdrop
           </Link>
-          <div className="flex items-center gap-4 font-mono text-[10px] tracking-[0.18em] text-zinc-500 uppercase">
+          <div className="flex items-center gap-4 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
             {firstName ? (
               <>
-                <span className="text-zinc-900">Hello, {firstName}</span>
+                <span className="text-ink">Hello, {firstName}</span>
                 <form action="/api/auth/sign-out" method="post">
                   <button
                     type="submit"
-                    className="text-zinc-500 underline-offset-4 hover:text-orange-500 hover:underline"
+                    className="text-ink-3 transition-colors hover:text-ink"
                   >
                     Sign out
                   </button>
                 </form>
               </>
             ) : (
-              <span>
-                Already have an account?{" "}
+              <span className="text-ink-3">
+                Have an account?{" "}
                 <Link
                   href="/sign-in"
-                  className="text-zinc-900 underline-offset-4 hover:text-orange-500 hover:underline"
+                  className="text-ink underline-offset-4 hover:text-terracotta hover:underline"
                 >
                   Sign in
                 </Link>
               </span>
             )}
           </div>
-        </div>
+        </Container>
       </header>
 
       <WizardSteps current={step} />
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10 md:px-12 md:py-16">
+      <Container as="main" width="app" className="flex-1 py-10 md:py-16">
         {step === "upload" ? (
           <UploadStep
             photo={photo}
@@ -239,7 +240,7 @@ export function TryFlow({
             onReset={resetAll}
           />
         ) : null}
-      </main>
+      </Container>
       {isAdmin && isNonProdEnv ? <AdminMockToggle /> : null}
     </div>
   );
@@ -274,13 +275,13 @@ function AdminMockToggle() {
     <button
       type="button"
       onClick={toggle}
-      className="fixed bottom-4 right-4 z-50 rounded-full border border-zinc-200 bg-white px-3 py-1.5 font-mono text-[10px] tracking-[0.18em] uppercase shadow-md hover:border-orange-500"
+      className="fixed bottom-4 right-4 z-50 rounded-full border border-line bg-surface px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] shadow-card hover:border-terracotta"
       aria-label="Toggle mock generation"
     >
       Mock gen:{" "}
       <span
         suppressHydrationWarning
-        className={on ? "text-orange-500" : "text-zinc-500"}
+        className={on ? "text-terracotta" : "text-ink-3"}
       >
         {on ? "ON" : "OFF"}
       </span>
@@ -303,20 +304,24 @@ function UploadStep({
   return (
     <div className="grid grid-cols-1 gap-12 md:grid-cols-[1.2fr_1fr] md:gap-16">
       <div>
-        <p className="mb-5 font-mono text-[10px] tracking-[0.2em] text-zinc-500 uppercase">
-          NEW BATCH · N°01
+        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+          New batch · N°01
         </p>
-        <h1 className="text-[clamp(48px,7vw,80px)]  leading-[0.98] tracking-tight text-zinc-900">
-          Drop your <span className="italic">product</span>.
+        <h1 className="mt-4 font-serif text-[clamp(3rem,6vw,4.5rem)] leading-[0.98] tracking-[-0.02em] text-ink">
+          Drop your{" "}
+          <em className="not-italic font-serif italic text-terracotta-dark">
+            product
+          </em>
+          .
         </h1>
-        <p className="mt-5 max-w-lg text-lg  leading-snug text-zinc-700 md:text-xl">
+        <p className="mt-5 max-w-lg text-[16px] leading-[1.55] text-ink-3">
           Any flatlay works — on the floor, on a rug, on your desk. Your Amazon
           main image is perfect.
         </p>
 
         {photo ? (
-          <p className="mt-5 font-mono text-[10px] tracking-[0.16em] text-zinc-500 uppercase">
-            ON FILE · {photo.name} · DROP A DIFFERENT ONE TO REPLACE
+          <p className="mt-5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-4">
+            On file · {photo.name} · drop a different one to replace
           </p>
         ) : null}
 
@@ -366,33 +371,27 @@ function Dropzone({
           setDragging(false);
           onFiles(e.dataTransfer.files, "drop");
         }}
-        className="block w-full cursor-pointer border-[1.5px] border-dashed bg-white px-8 py-14 text-center transition-colors"
-        style={{
-          borderColor: dragging
-            ? "#f97316"
-            : "var(--color-ink-3)",
-          background: dragging
-            ? "rgba(194,69,28,0.04)"
-            : "#ffffff",
-        }}
+        className={`block w-full cursor-pointer rounded-lg border border-dashed px-8 py-14 text-center transition-colors ${
+          dragging
+            ? "border-terracotta bg-terracotta-wash/40"
+            : "border-line bg-surface hover:border-ink-4"
+        }`}
       >
-        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-50">
-          <span className="text-2xl italic text-zinc-700">
-            ↑
-          </span>
+        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-paper-2 text-ink-2">
+          <span aria-hidden className="font-serif text-[24px] leading-none">↑</span>
         </div>
-        <div className="text-base text-zinc-900">
+        <div className="font-serif text-[clamp(1.125rem,1.5vw,1.25rem)] leading-tight text-ink">
           Drag a product photo here
         </div>
-        <div className="mt-1.5 text-sm text-zinc-500">
+        <div className="mt-2 text-[14px] text-ink-3">
           or{" "}
-          <span className="text-orange-500 underline underline-offset-4">
+          <span className="text-terracotta underline underline-offset-4">
             browse files
           </span>{" "}
           · PNG, JPG up to 40MB
         </div>
-        <div className="mt-6 border-t border-zinc-200 pt-5 font-mono text-[10px] tracking-[0.16em] text-zinc-400 uppercase">
-          NO ACCOUNT · NO CARD · STAYS IN YOUR BROWSER
+        <div className="mt-6 border-t border-line-soft pt-5 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4">
+          No account · no card · stays in your browser
         </div>
       </button>
       <input
@@ -402,12 +401,12 @@ function Dropzone({
         className="hidden"
         onChange={(e) => onFiles(e.target.files, "browse")}
       />
-      <div className="mt-4 text-sm text-zinc-500">
+      <div className="mt-4 text-[14px] text-ink-3">
         Don&apos;t have one handy?{" "}
         <button
           type="button"
           onClick={onUseSample}
-          className="text-orange-500 underline underline-offset-4 hover:text-zinc-900"
+          className="text-terracotta underline underline-offset-4 transition-colors hover:text-terracotta-dark"
         >
           Use a sample product →
         </button>
@@ -439,27 +438,30 @@ function ScenesStep({
     <div>
       <div className="mb-10 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="mb-3 font-mono text-[10px] tracking-[0.2em] text-zinc-500 uppercase">
-            SCENES · N°02
+          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+            Scenes · N°02
           </p>
-          <h1 className="text-[clamp(40px,6vw,72px)]  leading-[0.98] tracking-tight text-zinc-900">
-            Pick your <span className="italic">scenes</span>.
+          <h1 className="mt-4 font-serif text-[clamp(2.5rem,5.5vw,4rem)] leading-[0.98] tracking-[-0.02em] text-ink">
+            Pick your{" "}
+            <em className="not-italic font-serif italic text-terracotta-dark">
+              scenes
+            </em>
+            .
           </h1>
-          <p className="mt-3 max-w-xl text-base  leading-snug text-zinc-700 md:text-lg">
-            Choose the looks you want. We&apos;ll spread your batch across
-            them.
+          <p className="mt-4 max-w-xl text-[16px] leading-[1.55] text-ink-3">
+            Choose the looks you want. We&apos;ll spread your batch across them.
           </p>
         </div>
         <button
           type="button"
           onClick={onBack}
-          className="self-start font-mono text-[11px] tracking-[0.14em] text-zinc-500 uppercase underline-offset-4 hover:text-orange-500 hover:underline md:self-end"
+          className="self-start font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3 underline-offset-4 transition-colors hover:text-ink hover:underline md:self-end"
         >
           ← Back to upload
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-5 md:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
         {scenes.map((s) => {
           const on = picked.includes(s.slug);
           const atCap = !on && picked.length >= MAX_TRY_SCENES;
@@ -475,31 +477,29 @@ function ScenesStep({
               aria-pressed={on}
             >
               <div
-                className="relative aspect-[4/5] overflow-hidden bg-white transition-all"
-                style={{
-                  outline: on
-                    ? "3px solid #f97316"
-                    : "1px solid #e4e4e7",
-                  outlineOffset: on ? -3 : -1,
-                }}
+                className={`relative aspect-[4/5] overflow-hidden rounded-md transition-all ${
+                  on
+                    ? "outline outline-[3px] outline-terracotta -outline-offset-[3px]"
+                    : "outline outline-1 outline-line-soft -outline-offset-1"
+                }`}
               >
                 <img
                   src={s.imageUrl}
                   alt={s.name}
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
                   draggable={false}
                 />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/55" />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-ink/65" />
                 {on ? (
-                  <div className="absolute top-3 right-3 flex h-7 w-7 items-center justify-center rounded-full bg-orange-500 font-mono text-xs font-bold text-white">
-                    ✓
+                  <div className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-terracotta font-mono text-xs text-cream">
+                    <span aria-hidden>✓</span>
                   </div>
                 ) : null}
-                <div className="absolute right-0 bottom-0 left-0 px-4 pt-10 pb-4 text-white">
-                  <h3 className="text-2xl  italic">
+                <div className="absolute inset-x-0 bottom-0 px-4 pb-4 pt-10 text-cream">
+                  <h3 className="font-serif text-[clamp(1.25rem,2vw,1.625rem)] leading-[1.1] tracking-[-0.01em]">
                     {s.name}
                   </h3>
-                  <p className="mt-1 font-mono text-[10px] tracking-[0.14em] opacity-85 uppercase">
+                  <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-cream/85">
                     {s.mood}
                   </p>
                 </div>
@@ -509,8 +509,8 @@ function ScenesStep({
         })}
       </div>
 
-      <div className="mt-10 flex items-center justify-between border-t border-zinc-200 pt-6">
-        <p className="font-mono text-[11px] tracking-[0.14em] text-zinc-500 uppercase">
+      <div className="mt-10 flex items-center justify-between border-t border-line-soft pt-6">
+        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
           {picked.length} of {MAX_TRY_SCENES} scene{picked.length === 1 ? "" : "s"} picked
         </p>
         <button
@@ -518,7 +518,7 @@ function ScenesStep({
           data-testid="generate-button"
           disabled={picked.length === 0}
           onClick={onContinue}
-          className="inline-flex items-center rounded-full bg-orange-500 px-6 py-3 text-sm font-medium text-white transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+          className="inline-flex items-center rounded-full bg-terracotta px-6 py-3 font-mono text-[12px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark disabled:cursor-not-allowed disabled:opacity-40"
         >
           Develop my batch →
         </button>
@@ -694,29 +694,33 @@ function DevelopStep({
 
   const handleAuthSuccess = useCallback(async () => {
     setAuthModal((s) => ({ ...s, open: false }));
-    router.push("/app/history");
+    router.push("/app/library");
   }, [router]);
 
   return (
     <div className={`relative ${developDone ? "pb-40 md:pb-44" : ""}`}>
       <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
         <div>
-          <p className="mb-3 font-mono text-[10px] tracking-[0.2em] text-zinc-500 uppercase">
-            DEVELOPING · N°03
+          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+            Developing · N°03
           </p>
-          <h1 className="text-[clamp(40px,6vw,72px)]  leading-[0.98] tracking-tight text-zinc-900">
-            In the <span className="italic">studio</span>.
+          <h1 className="mt-4 font-serif text-[clamp(2.5rem,5.5vw,4rem)] leading-[0.98] tracking-[-0.02em] text-ink">
+            In the{" "}
+            <em className="not-italic font-serif italic text-terracotta-dark">
+              studio
+            </em>
+            .
           </h1>
         </div>
       </div>
 
       <div className="mb-10 grid grid-cols-1 items-start gap-8 md:grid-cols-[260px_1fr] md:gap-12">
         <div>
-          <p className="mb-3 font-mono text-[10px] tracking-[0.18em] text-zinc-500 uppercase">
+          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-4">
             Your product
           </p>
           {photo ? (
-            <div className="aspect-square overflow-hidden border border-zinc-200 bg-white">
+            <div className="mt-3 aspect-square overflow-hidden rounded-md border border-line-soft bg-surface">
               <img
                 src={photo.url}
                 alt={photo.name}
@@ -724,20 +728,20 @@ function DevelopStep({
               />
             </div>
           ) : (
-            <div className="flex aspect-square items-center justify-center border border-zinc-200 bg-zinc-50 font-mono text-[10px] text-zinc-500 uppercase">
+            <div className="mt-3 flex aspect-square items-center justify-center rounded-md border border-line-soft bg-paper-2 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4">
               No product
             </div>
           )}
 
-          <div className="mt-4">
-            <p className="mb-2 font-mono text-[10px] tracking-[0.18em] text-zinc-500 uppercase">
+          <div className="mt-6">
+            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-4">
               Scenes · {picked.length}
             </p>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="mt-3 flex flex-wrap gap-1.5">
               {picked.map((id) => (
                 <span
                   key={id}
-                  className="border border-orange-500 bg-orange-500/10 px-2 py-1 font-mono text-[10px] tracking-[0.12em] text-orange-500 uppercase"
+                  className="rounded-full border border-terracotta/30 bg-terracotta-wash px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-terracotta-dark"
                 >
                   {sceneById[id]?.name ?? id}
                 </span>
