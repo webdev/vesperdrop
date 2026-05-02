@@ -32,6 +32,7 @@ const ServerOnlyEnv = z.object({
   BLOB_READ_WRITE_TOKEN: z.string().optional(),
   FAL_KEY: z.string().optional().default(""),
   POSTGRES_URL: z.string().url(),
+  CRON_SECRET: z.string().min(1).optional(),
 });
 
 export const env = { ...ServerOnlyEnv.parse(process.env), ...clientEnv };
