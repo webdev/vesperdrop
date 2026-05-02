@@ -21,7 +21,7 @@ import { Container } from "@/components/ui/container";
 
 export function Faq() {
   return (
-    <section className="bg-paper-soft py-24 md:py-32">
+    <section className="bg-paper-soft py-20 md:py-24">
       <Container width="reading">
         <p className="text-center font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
           Frequently asked

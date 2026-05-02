@@ -3,7 +3,7 @@ import { Container } from "@/components/ui/container";
 
 export function ClosingCta() {
   return (
-    <section className="relative overflow-hidden bg-ink py-24 text-cream md:py-32">
+    <section className="relative overflow-hidden bg-ink py-20 text-cream md:py-24">
       <div
         aria-hidden
         className="absolute inset-0 -z-0 bg-gradient-to-br from-terracotta/25 via-terracotta/5 to-transparent blur-3xl"

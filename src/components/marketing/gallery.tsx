@@ -13,29 +13,34 @@ export async function Gallery() {
   }
   const ordered = [...presets].sort((a, b) => a.displayOrder - b.displayOrder).slice(0, 8);
 
-  // Editorial layout: vary tile sizes via explicit aspect/span patterns so the
-  // gallery reads like a magazine spread, not a uniform grid.
-  // Pattern (8 tiles): tall, square, square, wide, square, tall, square, square
+  // Editorial spread: first tile dominates, others cluster around it with
+  // varied aspect ratios so the gallery reads like a magazine, not a grid.
+  // Pattern (8 tiles, 12-col base):
+  //   1. wide-portrait hero (5)
+  //   2-3. square pair (3 + 4)
+  //   4. wide landscape feature (7)
+  //   5. tall portrait (5)
+  //   6. square (3)  →  pair with #7 (4) and #8 (5)
   const PATTERN: Array<{ span: string; aspect: string }> = [
-    { span: "md:col-span-3", aspect: "aspect-[3/4]" }, // hero — taller portrait
-    { span: "md:col-span-2", aspect: "aspect-square" },
-    { span: "md:col-span-2", aspect: "aspect-square" },
-    { span: "md:col-span-3", aspect: "aspect-[5/4]" }, // landscape
-    { span: "md:col-span-2", aspect: "aspect-square" },
-    { span: "md:col-span-3", aspect: "aspect-[3/4]" },
-    { span: "md:col-span-2", aspect: "aspect-square" },
-    { span: "md:col-span-2", aspect: "aspect-square" },
+    { span: "md:col-span-5", aspect: "aspect-[3/4]" },   // hero — dominant
+    { span: "md:col-span-3", aspect: "aspect-square" },
+    { span: "md:col-span-4", aspect: "aspect-[4/5]" },
+    { span: "md:col-span-7", aspect: "aspect-[5/4]" },   // wide landscape
+    { span: "md:col-span-5", aspect: "aspect-[3/4]" },   // tall portrait
+    { span: "md:col-span-3", aspect: "aspect-square" },
+    { span: "md:col-span-4", aspect: "aspect-[4/5]" },
+    { span: "md:col-span-5", aspect: "aspect-[5/4]" },
   ];
 
   return (
-    <section id="use-cases" className="border-y border-line-soft bg-paper-soft py-24 md:py-32">
+    <section id="use-cases" className="border-y border-line-soft bg-paper-soft py-20 md:py-24">
       <Container width="marketing">
-        <div className="mb-14 flex flex-col items-end justify-between gap-6 md:mb-20 md:flex-row">
+        <div className="mb-12 flex flex-col items-end justify-between gap-6 md:mb-16 md:flex-row">
           <div className="md:max-w-2xl">
             <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
               The scene library
             </p>
-            <h2 className="mt-4 font-serif text-[clamp(2.25rem,4.5vw,3.5rem)] leading-[1.05] tracking-[-0.02em] text-ink">
+            <h2 className="mt-4 font-serif text-[clamp(2.25rem,4.5vw,3.5rem)] leading-[1.02] tracking-[-0.02em] text-ink">
               {ordered.length} scenes,{" "}
               <em className="not-italic font-serif italic text-terracotta-dark">
                 tested for conversion.
@@ -55,7 +60,7 @@ export async function Gallery() {
             Scenes loading. Refresh in a moment.
           </p>
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-10 md:gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-12 md:gap-4">
             {ordered.map((preset, i) => {
               const cell = PATTERN[i % PATTERN.length]!;
               return (
@@ -71,7 +76,7 @@ export async function Gallery() {
                         src={preset.heroImageUrl}
                         alt={preset.name}
                         loading="lazy"
-                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                        className="absolute inset-0 h-full w-full object-cover object-[center_25%] transition-transform duration-700 group-hover:scale-[1.03]"
                       />
                     ) : null}
                   </div>
