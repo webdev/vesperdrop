@@ -28,7 +28,10 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const to = url.searchParams.get("to");
-  const returnUrl = new URL("/account", req.url).toString();
+  // Use the same `?upgraded=1` flag the Checkout flow uses so the post-return
+  // page mounts CheckoutSuccessTracker and re-fetches once the
+  // customer.subscription.updated / invoice.payment_succeeded webhooks land.
+  const returnUrl = new URL("/account?upgraded=1", req.url).toString();
 
   if (!to) {
     const session = await stripe.billingPortal.sessions.create({

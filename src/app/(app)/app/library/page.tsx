@@ -5,7 +5,6 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { runs, generations, scenes } from "@/lib/db/schema";
 import { CampaignCard, type CampaignTile } from "@/components/app/campaign-card";
-import { PageShell } from "@/components/ui/page-shell";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { ClaimHandler } from "./claim-handler";
 
@@ -78,30 +77,23 @@ export default async function Page({
   });
 
   return (
-    <PageShell rhythm="loose">
+    <div className="w-full space-y-20 md:space-y-24">
       <ClaimHandler />
 
       <header>
-        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-          Library
-        </p>
-        <h1 className="mt-3 font-serif text-[clamp(3.5rem,6vw,4.5rem)] leading-[0.98] tracking-[-0.02em] text-ink">
+        <h1 className="font-serif text-[clamp(4rem,7vw,5.5rem)] leading-[0.95] tracking-[-0.025em] text-ink">
           Your library
         </h1>
-        <p className="mt-5 max-w-xl text-[16px] leading-[1.55] text-ink-3">
-          Every batch you’ve generated. Reopen a campaign, download finals, or
-          run the same style on a new product.
-        </p>
-        <p className="mt-3 font-mono text-[12px] uppercase tracking-[0.08em] text-ink-4">
-          {populatedRuns.length} {populatedRuns.length === 1 ? "batch" : "batches"} · most recent first
+        <p className="mt-5 max-w-xl text-[15px] leading-[1.55] text-ink-3">
+          All your generated images in one place.
         </p>
       </header>
 
       {populatedRuns.length === 0 ? (
         <EmptyState />
       ) : (
-        <ul className="space-y-32 md:space-y-40">
-          {populatedRuns.map((run) => {
+        <ul className="space-y-16 md:space-y-20">
+          {populatedRuns.map((run, idx) => {
             const runGens = gensByRun.get(run.id) ?? [];
             const succeeded = runGens.filter(
               (g) => g.status === "succeeded" && g.outputUrl,
@@ -147,7 +139,14 @@ export default async function Page({
               : `${succeeded.length} ${succeeded.length === 1 ? "image" : "images"}`;
 
             return (
-              <li key={run.id}>
+              <li
+                key={run.id}
+                className={
+                  idx === 0
+                    ? undefined
+                    : "border-t border-line-soft pt-16 md:pt-20"
+                }
+              >
                 <CampaignCard
                   runId={run.id}
                   title={deriveTitle(run, sceneNamesForRun)}
@@ -180,7 +179,7 @@ export default async function Page({
           })}
         </ul>
       )}
-    </PageShell>
+    </div>
   );
 }
 
