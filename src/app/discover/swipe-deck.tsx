@@ -320,7 +320,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
     return {
       transform: `translate(calc(-50% + ${dir * xPercent}%), -50%) scale(${scale})`,
       opacity,
-      transition: "transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.32s",
+      transition: "transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s",
       pointerEvents: "none",
       zIndex: 10 - index,
     };
@@ -433,7 +433,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
             disabled={history.length === 0}
             aria-label="Previous"
             title="Previous"
-            className="absolute left-4 top-1/2 z-20 inline-flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-cream text-ink shadow-card transition-colors hover:bg-paper-soft disabled:cursor-not-allowed disabled:opacity-40 md:left-10"
+            className="absolute left-4 top-1/2 z-20 inline-flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-cream text-ink shadow-subtle transition-shadow hover:shadow-card disabled:cursor-not-allowed disabled:opacity-40 md:left-10"
           >
             <span aria-hidden className="text-lg">←</span>
           </button>
@@ -443,7 +443,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
             disabled={!topId || !!exiting}
             aria-label="Next"
             title="Next"
-            className="absolute right-4 top-1/2 z-20 inline-flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-cream text-ink shadow-card transition-colors hover:bg-paper-soft disabled:cursor-not-allowed disabled:opacity-40 md:right-10"
+            className="absolute right-4 top-1/2 z-20 inline-flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-cream text-ink shadow-subtle transition-shadow hover:shadow-card disabled:cursor-not-allowed disabled:opacity-40 md:right-10"
           >
             <span aria-hidden className="text-lg">→</span>
           </button>
@@ -476,7 +476,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
           disabled={!topId || !!exiting}
           aria-label="Like"
           title="Like"
-          className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-terracotta text-cream shadow-subtle transition-colors hover:bg-terracotta-dark disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-terracotta text-cream shadow-card transition-colors hover:bg-terracotta-dark disabled:cursor-not-allowed disabled:opacity-40"
         >
           <span aria-hidden className="text-xl">♥</span>
         </button>
@@ -516,7 +516,7 @@ function PeekCard({
   const { preset } = entry;
   return (
     <div
-      className="absolute left-1/2 top-1/2 aspect-[3/4] w-[300px] max-w-[72vw] overflow-hidden rounded-2xl border border-line-soft bg-paper-2 shadow-subtle"
+      className="absolute left-1/2 top-1/2 aspect-[3/4] w-[300px] max-w-[72vw] overflow-hidden rounded-2xl bg-paper-2 shadow-subtle"
       style={style}
     >
       {preset.heroImageUrl ? (
@@ -534,12 +534,12 @@ function PeekCard({
             "linear-gradient(180deg, rgba(0,0,0,0) 48%, rgba(24,22,20,0.55) 72%, rgba(24,22,20,0.92) 100%)",
         }}
       />
-      <div className="absolute inset-x-0 bottom-0 px-5 pb-5 pt-12 text-cream">
+      <div className="absolute inset-x-0 bottom-0 px-4 pb-4 pt-8 text-cream">
         <h3 className="font-serif text-[clamp(1.25rem,1.6vw,1.625rem)] leading-[1.05] tracking-[-0.01em]">
           {preset.name}
         </h3>
         {preset.description ? (
-          <p className="mt-1.5 truncate font-mono text-[9px] uppercase tracking-[0.16em] text-cream/90">
+          <p className="mt-2 truncate font-mono text-[9px] uppercase tracking-[0.16em] text-cream/90">
             {preset.description}
           </p>
         ) : null}
@@ -578,7 +578,7 @@ function TopCard({
     <div
       onMouseDown={onMouseDown}
       onTouchStart={onTouchStart}
-      className="absolute left-1/2 top-1/2 z-30 aspect-[3/4] w-[360px] max-w-[82vw] overflow-hidden rounded-2xl border border-line-soft bg-surface shadow-soft"
+      className="absolute left-1/2 top-1/2 z-30 aspect-[3/4] w-[360px] max-w-[82vw] overflow-hidden rounded-2xl bg-surface shadow-soft"
       style={style}
     >
       {preset.heroImageUrl ? (
@@ -600,7 +600,7 @@ function TopCard({
             "linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(24,22,20,0.85) 100%)",
         }}
       />
-      <div className="absolute inset-x-0 bottom-0 px-6 pb-7 pt-12 text-cream">
+      <div className="absolute inset-x-0 bottom-0 px-6 pb-8 pt-12 text-cream">
         <h2 className="font-serif text-[clamp(2rem,3.5vw,2.75rem)] leading-[1.02] tracking-[-0.02em]">
           {preset.name}
         </h2>
