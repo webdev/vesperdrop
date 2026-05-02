@@ -1,164 +1,323 @@
-# Vesperdrop
+# Vesperdrop — Design & Implementation System
 
-AI lifestyle photography tool for Shopify/Amazon sellers. Turns rough product photos into conversion-optimized 6-image batches using conversion-seeded presets.
+This document defines **non-negotiable rules** for UI, UX, architecture, and implementation.
 
-## Stack (locked)
+Claude must follow these rules strictly.
 
-- **Framework**: Next.js 16 App Router, TypeScript strict, Tailwind, shadcn/ui
-- **Package manager**: pnpm
-- **Hosting**: Vercel (Fluid Compute)
-- **Data**: Supabase (Postgres + Auth)
-- **Image storage**: Vercel Blob
-- **Payments**: Stripe Checkout (hosted)
-- **Analytics**: PostHog cloud
-- **AI**:
-  - GPT-4o vision → Vercel AI Gateway via AI SDK v6 (`openai/gpt-4o`)
-  - Image generation → **Sceneify** (internal API at `SCENEIFY_API_URL`), called via `lib/ai/sceneify.ts` with Vercel OIDC. Sceneify wraps the underlying providers (gpt-image-2, nano-banana-2, flux-kontext, flux-2) and exposes a single `presetSlug + model + quality` interface.
-- **Testing**: Vitest (unit), Playwright (e2e)
+---
 
-## Architectural constraints
+# 1. Core Principle
 
-- All LLM/image-gen calls go through `lib/ai/*` wrappers. Never call Sceneify HTTP or import `openai` from routes/components/hooks.
-- Every authenticated generation persists to Supabase **before** returning to the client. No orphan images. (`/try` is anonymous and intentionally non-persistent — see UX section.)
-- Every external API call (OpenAI, Sceneify, Stripe) wraps retry + structured logging + cost tracking.
-- Every user-facing route has an `error.tsx` boundary.
-- PostHog events instrumented alongside feature code, not backfilled.
-- Env-driven everything. No hardcoded keys, even for test/dev.
+This system is:
 
-## Pricing model (credit-based, as of 2026-04-27)
+- **Deterministic**
+- **Idempotent**
+- **Constraint-driven**
 
-1 credit = 1 generated lifestyle image at full 2000px resolution.
+Claude is NOT designing.
 
-### Free tier (acquisition engine)
-- Anonymous `/try` flow: up to 5 watermarked previews per visitor, generated through Sceneify (`gpt-image-2`, medium quality). No account, no card, no DB persistence — results live in client state only.
-- Post sign-up: 1 full-resolution HD generation as a sign-up gift (no watermark).
-- Goal: convert within first session.
+Claude is implementing a **predefined system**.
 
-### Subscription tiers
-| Tier    | Price    | Credits/mo | ¢/credit | COGS  | Gross margin |
-|---------|----------|------------|----------|-------|--------------|
-| Starter | $19/mo   | 50         | 38¢      | $4    | ~79%         |
-| Pro     | $49/mo   | 200        | 25¢      | $16   | ~67%         |
-| Studio  | $149/mo  | 1,000      | 15¢      | $80   | ~46%         |
-| Agency  | $499/mo  | 5,000      | 10¢      | $400  | ~20%         |
+---
 
-Yearly pricing: ~20% discount (2 months free). **Pro is the primary conversion target** — 200 credits covers 30–100 SKUs/quarter comfortably. Push 60% of customers here.
+# 2. Global Layout Rules (STRICT)
 
-### One-time credit packs (non-subscribers / top-ups)
-- 10 credits: $9 (90¢/credit)
-- 25 credits: $19 (76¢/credit)
-- 100 credits: $59 (59¢/credit)
-Packs intentionally cost more per credit than subscriptions — they are the upsell mechanism into recurring.
+- All pages MUST use centered layout
+- Max width:
+  - Page container → `var(--container-max)`
+  - Content → `var(--content-max)`
 
-### Scale math
-- $33/mo gross profit per Pro customer
-- 1,000 customers → $396k GP/yr
-- 5,000 customers → ~$2M GP/yr
-- 17,000 customers → ~$10M GP/yr (stated goal)
+- Never allow full-width stretching unless explicitly specified
+- Content must visually center on all screen sizes
 
-## Generation model strategy
+## Spacing
 
-All image generation routes through **Sceneify**, our internal image-gen service. The app never picks providers directly — it picks a `presetSlug + model + quality` and Sceneify handles preset reference assembly, prompt construction, provider dispatch, and color QA.
+- Prefer **tight, editorial spacing**
+- Avoid excessive vertical gaps
+- Sections should feel connected, not floating
+- Reduce whitespace before adding new structure
 
-### Where each model is used today
-| Surface                               | Model            | Quality  | Notes                                    |
-|---------------------------------------|------------------|----------|------------------------------------------|
-| Anonymous `/try` (watermarked)        | `gpt-image-2`    | `medium` | `app/api/try/generate/route.ts`          |
-| Authenticated `/api/runs` (paid HD)   | `nano-banana-2`  | `high`   | `lib/workflows/process-run.ts:68`        |
+## Above-the-fold rule
 
-Available models in the wrapper: `gpt-image-2 | nano-banana-2 | flux-kontext | flux-2`. To change a tier's default, edit the call site — do not branch by `model` inside `lib/ai/sceneify.ts`.
+For critical pages (Discover, Hero):
 
-Reference picking, preset weighting, LoRA fine-tunes, and per-preset tuning are Sceneify-side concerns. This repo treats Sceneify as a black box behind a stable HTTP contract.
+- Primary interaction MUST be visible without scroll
+- Do NOT push key UI below the fold
 
-## Freemium-to-paid conversion mechanic
+---
 
-This is the single most important UX decision. The pattern:
-1. User uploads flatlay on `/try` → up to 5 watermarked previews generate via Sceneify (`gpt-image-2`, medium). One request per picked scene, parallel, anonymous.
-2. As tiles complete, the develop grid fills in real time (real images, not stock).
-3. Once all picked scenes finish, the sign-up gate appears.
-4. After sign-up the user uses their 1-credit HD gift via the authenticated `/api/runs` path, which runs Sceneify at `nano-banana-2` quality `high`.
+# 3. Design Fidelity Rule (CRITICAL)
 
-Anonymous `/try` is throttled with an in-memory per-IP rate limiter in the route. Replace with a durable rate limiter when traffic warrants.
+When a reference image or design is provided:
 
-## Commands
+- Treat it as **exact specification**
+- Do NOT reinterpret layout
+- Do NOT simplify structure
+- Do NOT redesign components
+- Match visually FIRST, then refine
 
-```bash
-pnpm dev              # Next dev on :3000
-pnpm build            # Production build
-pnpm test             # Vitest unit tests
-pnpm test:e2e         # Playwright
-pnpm lint             # ESLint + TypeScript
-pnpm db:migrate       # Supabase migrations (local)
-pnpm db:push          # Push to linked Supabase project
-vercel dev            # Run with Vercel runtime (use when testing Blob / env / edge behavior)
-vercel env pull       # Sync env from Vercel to .env.local
-vercel deploy         # Preview deploy
-vercel deploy --prod  # Production
-```
+If implementation differs from reference:
 
-## Conventions
+→ **Reference is correct**
 
-- Route handlers in `app/**/route.ts` for APIs; Server Actions allowed for mutations tied to forms.
-- Components in `components/ui/` are shadcn primitives; `components/app/` are feature components.
-- Server-only modules get `import "server-only"` at the top.
-- Zod schemas in `lib/schema/` — share between client and server validation.
-- All DB access via `lib/db/` helpers, never raw `createClient()` calls scattered around.
-- Secrets referenced via typed env accessor in `lib/env.ts` (T3-style), not `process.env.*` direct.
+---
 
-## UX decisions & rationale
+# 4. Typography System (ENFORCED)
 
-These decisions were made after a full flow audit (2026-04-27). Don't revert without reason.
+## Type roles
 
-### Nav
-- **One primary CTA only**: "Try it →" (`/try`) is the single nav CTA. "Open account →" was removed — it caused decision paralysis. Account creation happens inside the `/try` flow after the user's first batch.
-- "Sign in" stays as a ghost link for returning users.
+### Display (Editorial)
+- Serif only
+- Used for:
+  - Page titles
+  - Hero headlines
+  - Section headers
 
-### Homepage section order
-The order is intentional: **Hero → How it works → Gallery → Testimonials → CTA → Closing**.
-- "How it works" was moved before the gallery so users understand the mechanism before seeing examples.
-- Testimonials were extracted from inline gallery captions into a dedicated `<Testimonials />` section (FIELD NOTES · N°04) for visibility.
-- The mid-page CtaBand ("See it on your product") was removed — it interrupted the narrative before the gallery. The single post-gallery CTA is sufficient.
+### Body (UI)
+- Sans-serif only
+- Used for:
+  - Navigation
+  - Buttons
+  - Labels
+  - Metadata
 
-### Hero stats bar
-Four columns: 3 FREE SHOTS · A+ READY · ~90 SECONDS · PRO FROM $20. The pricing anchor was added so users don't hit the final CTA with zero price context.
+## Rules
 
-### Pricing page button hierarchy
-- Free plan: ghost/outline button (border only, no fill).
-- Pro plan: solid dark button — most visually dominant, because that's the plan we want users to choose.
-- Previously inverted (Free was solid black, Pro was ember outline).
-
-### Auth layout (`/sign-up`, `/sign-in`)
-Split layout: left panel carries brand wordmark, 4 benefit bullets, and 3 testimonial quotes. Right panel has the form. Left panel is hidden on mobile. Purpose: prevent users from losing context right before they commit.
-
-### /try upload step
-- Example image label changed from "REF · BEFORE" (ambiguous) to "YOURS CAN LOOK LIKE THIS".
-- Section header changed from "Example input" to "Example of a good input →".
-- One-line tip added below the rotating image: "Hanger, mannequin, flat on the floor — any angle works."
-
-### Open items (not yet implemented)
-- FAQ section (4 Qs) before the closing CTA on the homepage.
-- Non-apparel examples in the gallery to match hero copy ("kitchens, counters, coffee tables").
-- Label/tooltip on the bottom-left "N" avatar (currently unlabelled on all pages).
+- Strong size contrast between headline and body
+- Tight line-height on display text
+- Metadata:
+  - Uppercase
+  - Increased letter spacing
 
 ## Do NOT
 
-- Don't push to GitHub or deploy without explicit user approval.
-- Don't amend commits or force-push.
-- Don't commit anything under `design-reference/` — it stays gitignored until archived separately.
-- Don't add docs/README files unless asked.
-- Don't write trailing summary paragraphs in responses.
+- Mix type roles incorrectly
+- Use uniform font sizing
+- Over-scale body text
 
-## External accounts status (as of 2026-04-22)
+---
 
-- ✅ OpenAI API key (user has)
-- ✅ Fal.ai API key (user has)
-- ✅ GitHub (user has)
-- ⏳ Vercel — user to create + CLI login
-- ⏳ Supabase — provision via Vercel Marketplace
-- ⏳ Stripe — provision via Vercel Marketplace, test mode
-- ⏳ PostHog — cloud signup
-- ⏳ Domain: vesperdrop.com (user to purchase)
+# 5. Image System (CORE PRODUCT RULE)
 
-## Reference material
+Images are the product.
 
-Existing design JSX in `design-reference/` is **directional, not pixel-sacred**. Port shapes and flows, refactor aesthetics freely against shadcn primitives.
+## Rules
+
+- Images MUST dominate layout
+- Never use uniform grids by default
+- Always create hierarchy:
+  - Primary image = larger
+  - Supporting images = smaller
+
+## Avoid
+
+- File manager layouts
+- Equal thumbnail grids
+- Heavy borders or chrome
+
+---
+
+# 6. Discover Page — Card Stack (LOCKED)
+
+This is a **fixed interaction pattern**.
+
+## Layout
+
+- Cards overlap horizontally
+- Center card:
+  - Largest
+  - Fully opaque
+  - Highest z-index
+
+- Side cards:
+  - Scaled down
+  - Slightly faded
+  - Still clearly visible
+
+## Opacity
+
+- Minimum opacity: **0.45**
+- Never overly fade cards
+
+## Transform system
+
+- Use translateX + scale
+- Do NOT switch to grid or flex layouts
+
+---
+
+# 7. Discover Navigation (STRICT)
+
+## Arrows
+
+- Must sit **outside card stack**
+- Never overlap images
+- Positioned relative to stack container
+
+## Positioning
+
+- Left arrow → left edge of stack
+- Right arrow → right edge of stack
+- Vertically centered to stack
+
+## Behavior
+
+- Clicking moves stack
+- Maintain smooth transitions
+- No layout jumps
+
+---
+
+# 8. Buttons System
+
+## Primary
+- Dark background
+- Light text
+- Used for:
+  - Generate
+  - Continue
+  - Confirm actions
+
+## Accent
+- Terracotta
+- Used sparingly:
+  - Try free
+  - Upgrade
+
+## Secondary
+- Transparent or soft surface
+- Subtle border
+
+## Rules
+
+- No excessive shadows
+- No bright colors
+- Maintain calm premium feel
+
+---
+
+# 9. Component Philosophy
+
+Claude must:
+
+- Extend existing components
+- Avoid creating parallel systems
+- Avoid duplication
+
+## Shared primitives (expected)
+
+- PageShell
+- Button
+- Card
+- Pill
+- ImageCard
+- EditorialImageRow
+
+---
+
+# 10. Architecture Rules
+
+## Locked stack :contentReference[oaicite:0]{index=0}
+
+- Next.js App Router
+- TypeScript strict
+- Tailwind + shadcn
+
+## AI + APIs
+
+- All AI calls go through `lib/ai/*`
+- Never call external APIs directly from UI
+
+## Data
+
+- Persist before returning results
+- No orphan records
+
+---
+
+# 11. Implementation Rules
+
+## Required workflow
+
+Before coding:
+
+1. Inspect current implementation
+2. Identify what already matches
+3. Identify gaps
+4. Modify ONLY necessary files
+
+## Idempotency
+
+- Do NOT rewrite pages
+- Do NOT duplicate components
+- Do NOT introduce new layout systems
+
+---
+
+# 12. Allowed vs Forbidden Changes
+
+## Allowed
+
+- Spacing adjustments
+- Typography refinement
+- Position corrections
+
+## Forbidden
+
+- Layout rewrites
+- New UI paradigms
+- Changing interaction models
+- Replacing existing systems
+
+---
+
+# 13. Visual QA Checklist (MANDATORY)
+
+Every page must pass:
+
+- Is layout centered?
+- Is width constrained?
+- Are images dominant?
+- Is hierarchy clear?
+- Is typography strong?
+- Does it avoid generic SaaS feel?
+
+---
+
+# 14. UX System (HIGH LEVEL)
+
+## Flow principle
+
+- Show value BEFORE asking for signup
+- Reduce decisions
+- Keep momentum
+
+## Navigation
+
+- One primary CTA
+- Avoid competing actions
+
+---
+
+# 15. Conversion Rules
+
+- Pro plan is dominant
+- Free plan is visually de-emphasized
+- Credit system must feel simple
+
+---
+
+# 16. Final Constraint
+
+Claude must prioritize:
+
+1. Layout correctness
+2. Visual hierarchy
+3. Interaction fidelity
+4. System consistency
+
+NOT creativity.
+
+---
+
+# END
