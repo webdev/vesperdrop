@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { runs, generations, scenes } from "@/lib/db/schema";
 import { CampaignCard, type CampaignTile } from "@/components/app/campaign-card";
 import { Eyebrow } from "@/components/ui/eyebrow";
+import { PageShell } from "@/components/ui/page-shell";
 import { ClaimHandler } from "./claim-handler";
 
 export const dynamic = "force-dynamic";
@@ -77,23 +78,28 @@ export default async function Page({
   });
 
   return (
-    <div className="w-full space-y-20 md:space-y-24">
+    <PageShell rhythm="loose">
       <ClaimHandler />
 
       <header>
-        <h1 className="font-serif text-[clamp(4rem,7vw,5.5rem)] leading-[0.95] tracking-[-0.025em] text-ink">
+        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+          Library
+        </p>
+        <h1 className="mt-3 font-serif text-[clamp(3.5rem,6vw,4.5rem)] leading-[0.98] tracking-[-0.025em] text-ink">
           Your library
         </h1>
         <p className="mt-5 max-w-xl text-[15px] leading-[1.55] text-ink-3">
           All your generated images in one place.
+          <br />
+          Reuse your styles, complete the look, or try something new.
         </p>
       </header>
 
       {populatedRuns.length === 0 ? (
         <EmptyState />
       ) : (
-        <ul className="space-y-16 md:space-y-20">
-          {populatedRuns.map((run, idx) => {
+        <ul className="space-y-16">
+          {populatedRuns.map((run) => {
             const runGens = gensByRun.get(run.id) ?? [];
             const succeeded = runGens.filter(
               (g) => g.status === "succeeded" && g.outputUrl,
@@ -139,14 +145,7 @@ export default async function Page({
               : `${succeeded.length} ${succeeded.length === 1 ? "image" : "images"}`;
 
             return (
-              <li
-                key={run.id}
-                className={
-                  idx === 0
-                    ? undefined
-                    : "border-t border-line-soft pt-16 md:pt-20"
-                }
-              >
+              <li key={run.id}>
                 <CampaignCard
                   runId={run.id}
                   title={deriveTitle(run, sceneNamesForRun)}
@@ -179,7 +178,42 @@ export default async function Page({
           })}
         </ul>
       )}
-    </div>
+
+      {populatedRuns.length > 0 ? <ExploreFooter /> : null}
+    </PageShell>
+  );
+}
+
+function ExploreFooter() {
+  return (
+    <section className="flex flex-col items-start gap-5 rounded-xl border border-line-soft bg-paper-soft px-6 py-5 md:flex-row md:items-center md:gap-8 md:px-7 md:py-6">
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-terracotta-wash text-terracotta-dark">
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          aria-hidden
+        >
+          <path d="M12 2 14 10 22 12 14 14 12 22 10 14 2 12 10 10z" />
+        </svg>
+      </div>
+      <div className="flex-1">
+        <h2 className="font-serif text-[clamp(1.25rem,1.6vw,1.5rem)] leading-[1.2] tracking-[-0.005em] text-ink">
+          More looks to explore
+        </h2>
+        <p className="mt-1.5 max-w-[480px] text-[14px] leading-[1.5] text-ink-3">
+          Create more variations, explore new scenes, or build a complete
+          campaign.
+        </p>
+      </div>
+      <Link
+        href="/app"
+        className="inline-flex shrink-0 items-center gap-2 rounded-full bg-ink px-5 py-3 font-mono text-[11px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-ink-2"
+      >
+        Create new look <span aria-hidden>→</span>
+      </Link>
+    </section>
   );
 }
 
