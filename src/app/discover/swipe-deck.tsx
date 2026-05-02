@@ -12,7 +12,6 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import type { SceneifyPublicPreset } from "@/lib/sceneify/types";
 import { PageShell } from "@/components/ui/page-shell";
-import { Pill } from "@/components/ui/pill";
 import { applyPicks } from "./actions";
 
 type Direction = "left" | "right";
@@ -292,37 +291,33 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
       return {
         transform: `translate(calc(-50% + ${dx}px), calc(-50% - 40px)) rotate(${dr}deg)`,
         opacity: 0,
-        transition: "transform 0.28s cubic-bezier(0.4, 0, 0.6, 1), opacity 0.28s",
+        transition: "transform 200ms ease, opacity 200ms ease",
       };
     }
     return {
       transform: `translate(calc(-50% + ${drag.x}px), calc(-50% + ${drag.y * 0.4}px)) rotate(${dragRot}deg)`,
-      transition: drag.active
-        ? "none"
-        : "transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1)",
+      transition: drag.active ? "none" : "transform 200ms ease",
       cursor: drag.active ? "grabbing" : "grab",
+      zIndex: 30,
     };
   }
 
   function peekStyle(side: "left" | "right", index: number): React.CSSProperties {
     const dir = side === "left" ? -1 : 1;
-    // Stacked / overlapping composition (not a carousel). Tighter offsets
-    // keep the stack compact above the fold.
-    //   index 1 — adjacent peek: 50% offset + scale 0.85 → ~40% of the card
-    //             hides behind the active center card.
-    //   index 2 — far peek: 100% offset + scale 0.7 → sits further out and
-    //             overlaps the adjacent peek, suggesting depth.
-    // z-index decreases with index so the stacking order is correct
-    // (top > adjacent > far) and the active card occludes both.
-    const xPercent = index === 1 ? 50 : 100;
-    const scale = index === 1 ? 0.85 : 0.7;
-    const opacity = index === 1 ? 0.78 : 0.5;
+    // Spec transforms (locked):
+    //   offset ±1: translateX(±240px), scale 0.88, opacity 0.80, z-20
+    //   offset ±2: translateX(±400px), scale 0.78, opacity 0.55, z-10
+    // Side cards lifted +0.05 for a smoother step from the active card.
+    // Depth still comes from scale + overlap; opacity is a softer cue.
+    const xOffset = index === 1 ? 240 : 400;
+    const scale = index === 1 ? 0.88 : 0.78;
+    const opacity = index === 1 ? 0.8 : 0.55;
     return {
-      transform: `translate(calc(-50% + ${dir * xPercent}%), -50%) scale(${scale})`,
+      transform: `translate(calc(-50% + ${dir * xOffset}px), -50%) scale(${scale})`,
       opacity,
-      transition: "transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s",
+      transition: "transform 200ms ease, opacity 200ms ease",
       pointerEvents: "none",
-      zIndex: 10 - index,
+      zIndex: index === 1 ? 20 : 10,
     };
   }
 
@@ -336,14 +331,14 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
     <PageShell rhythm="tight">
       {/* Header */}
       <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-        <div className="md:max-w-2xl">
-          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-terracotta">
+        <div className="md:max-w-[520px]">
+          <p className="font-mono text-[12px] uppercase tracking-[0.12em] text-terracotta">
             Discover styles
           </p>
-          <h1 className="mt-3 font-serif text-[clamp(3rem,6vw,5rem)] leading-[0.92] tracking-[-0.02em] text-ink">
+          <h1 className="mt-3 font-serif text-[64px] leading-[1.05] tracking-[-0.02em] text-ink">
             Train your eye.
           </h1>
-          <p className="mt-3 max-w-md text-[14px] leading-[1.5] text-ink-3">
+          <p className="mt-4 max-w-[420px] text-[16px] leading-[1.4] text-ink-3">
             Swipe right on looks you love.
             <br />
             Skip what doesn&apos;t speak to you.
@@ -354,10 +349,14 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
           <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
             Progress
           </p>
-          <p className="mt-2 font-serif text-[clamp(2.75rem,5vw,4.5rem)] leading-none tracking-[-0.02em] text-ink tabular-nums">
+          <p className="mt-2 font-serif text-[56px] leading-[1] tracking-[-0.02em] text-ink tabular-nums">
             {totalDecided}{" "}
             <span className="text-ink-4">/ {totalCards}</span>
           </p>
+          <div className="mt-1.5 flex items-center justify-end gap-3 text-[12px] tabular-nums text-ink opacity-60">
+            <span>♥ {liked.length} liked</span>
+            <span>✕ {skipped.length} skipped</span>
+          </div>
         </div>
       </div>
 
@@ -373,7 +372,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
           Compact height keeps hero + stack + controls above the fold. */}
       <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen overflow-hidden">
         <div
-          className="relative mx-auto h-[480px] select-none"
+          className="relative mx-auto h-[420px] select-none"
           onMouseMove={(e) => onMove(e.clientX, e.clientY)}
           onMouseUp={onUp}
           onMouseLeave={onUp}
@@ -425,38 +424,42 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
               </p>
             </div>
           ) : null}
-
-          {/* Viewport-edge arrow controls */}
-          <button
-            type="button"
-            onClick={undo}
-            disabled={history.length === 0}
-            aria-label="Previous"
-            title="Previous"
-            className="absolute left-4 top-1/2 z-20 inline-flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-cream text-ink shadow-subtle transition-shadow hover:shadow-card disabled:cursor-not-allowed disabled:opacity-40 md:left-10"
-          >
-            <span aria-hidden className="text-lg">←</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => decide("left")}
-            disabled={!topId || !!exiting}
-            aria-label="Next"
-            title="Next"
-            className="absolute right-4 top-1/2 z-20 inline-flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-cream text-ink shadow-subtle transition-shadow hover:shadow-card disabled:cursor-not-allowed disabled:opacity-40 md:right-10"
-          >
-            <span aria-hidden className="text-lg">→</span>
-          </button>
         </div>
-      </div>
 
-      {/* Controls */}
-      <div className="flex items-center justify-center gap-6 md:gap-8">
+        {/* Arrows — siblings of the stack container, anchored to the
+            breakout wrapper. Hidden on small viewports to avoid off-screen
+            placement; visible md+ at the spec offsets. */}
+        <button
+          type="button"
+          onClick={undo}
+          disabled={history.length === 0}
+          aria-label="Previous"
+          title="Previous"
+          className="absolute top-1/2 z-40 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-line-soft bg-white/90 text-ink opacity-90 shadow-subtle transition-all duration-200 ease-out hover:scale-105 hover:opacity-100 hover:shadow-card disabled:cursor-not-allowed disabled:opacity-40 md:inline-flex"
+          style={{ left: "calc(50% - 580px)" }}
+        >
+          <span aria-hidden className="text-base">←</span>
+        </button>
         <button
           type="button"
           onClick={() => decide("left")}
           disabled={!topId || !!exiting}
-          className="font-mono text-[12px] uppercase tracking-[0.16em] text-ink-3 transition-colors hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+          aria-label="Next"
+          title="Next"
+          className="absolute top-1/2 z-40 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-line-soft bg-white/90 text-ink opacity-90 shadow-subtle transition-all duration-200 ease-out hover:scale-105 hover:opacity-100 hover:shadow-card disabled:cursor-not-allowed disabled:opacity-40 md:inline-flex"
+          style={{ left: "calc(50% + 540px)" }}
+        >
+          <span aria-hidden className="text-base">→</span>
+        </button>
+      </div>
+
+      {/* Controls — spec: mt 24px from stack, gap 16px */}
+      <div className="!mt-6 flex items-center justify-center gap-4">
+        <button
+          type="button"
+          onClick={() => decide("left")}
+          disabled={!topId || !!exiting}
+          className="font-mono text-[12px] uppercase tracking-[0.1em] text-ink-3 transition-colors hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
         >
           Skip
         </button>
@@ -466,9 +469,9 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
           disabled={!topId || !!exiting}
           aria-label="Skip"
           title="Skip"
-          className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-ink bg-cream text-ink transition-colors hover:bg-paper-soft disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-ink bg-cream text-ink transition-colors hover:bg-paper-soft disabled:cursor-not-allowed disabled:opacity-40"
         >
-          <span aria-hidden className="text-xl">×</span>
+          <span aria-hidden className="text-lg">×</span>
         </button>
         <button
           type="button"
@@ -476,21 +479,21 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
           disabled={!topId || !!exiting}
           aria-label="Like"
           title="Like"
-          className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-terracotta text-cream shadow-card transition-colors hover:bg-terracotta-dark disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex h-[52px] w-[52px] items-center justify-center rounded-full bg-terracotta text-cream shadow-card transition-colors hover:bg-terracotta-dark disabled:cursor-not-allowed disabled:opacity-40"
         >
-          <span aria-hidden className="text-xl">♥</span>
+          <span aria-hidden className="text-lg">♥</span>
         </button>
         <button
           type="button"
           onClick={() => decide("right")}
           disabled={!topId || !!exiting}
-          className="font-mono text-[12px] uppercase tracking-[0.16em] text-ink transition-colors hover:text-terracotta disabled:cursor-not-allowed disabled:opacity-40"
+          className="text-[14px] text-ink-3 transition-colors hover:text-terracotta disabled:cursor-not-allowed disabled:opacity-40"
         >
           Looks good
         </button>
       </div>
 
-      <div className="mx-auto max-w-md space-y-2 text-center text-[14px] leading-[1.55] text-ink-3">
+      <div className="!mt-4 mx-auto max-w-md space-y-1 text-center text-[13px] leading-[1.45] text-ink-3">
         <p>Try it. Generate with your favorite.</p>
         <p>
           You can generate{" "}
@@ -516,7 +519,7 @@ function PeekCard({
   const { preset } = entry;
   return (
     <div
-      className="absolute left-1/2 top-1/2 aspect-[3/4] w-[300px] max-w-[72vw] overflow-hidden rounded-2xl bg-paper-2 shadow-subtle"
+      className="absolute left-1/2 top-1/2 h-[420px] w-[320px] max-w-[88vw] overflow-hidden rounded-[28px] bg-paper-2 shadow-subtle"
       style={style}
     >
       {preset.heroImageUrl ? (
@@ -524,22 +527,22 @@ function PeekCard({
           src={preset.heroImageUrl}
           alt=""
           aria-hidden="true"
-          className="pointer-events-none h-full w-full object-cover object-[center_25%]"
+          className="pointer-events-none h-full w-full object-cover object-top"
         />
       ) : null}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "linear-gradient(180deg, rgba(0,0,0,0) 48%, rgba(24,22,20,0.55) 72%, rgba(24,22,20,0.92) 100%)",
+            "linear-gradient(to top, rgba(0,0,0,0.55), transparent 60%)",
         }}
       />
-      <div className="absolute inset-x-0 bottom-0 px-4 pb-4 pt-8 text-cream">
-        <h3 className="font-serif text-[clamp(1.25rem,1.6vw,1.625rem)] leading-[1.05] tracking-[-0.01em]">
+      <div className="absolute bottom-5 left-5 right-5 text-cream">
+        <h3 className="font-serif text-[20px] leading-[1.1] tracking-[-0.01em]">
           {preset.name}
         </h3>
         {preset.description ? (
-          <p className="mt-2 truncate font-mono text-[9px] uppercase tracking-[0.16em] text-cream/90">
+          <p className="mt-1.5 truncate font-mono text-[10px] uppercase tracking-[0.1em] text-cream opacity-85">
             {preset.description}
           </p>
         ) : null}
@@ -578,7 +581,7 @@ function TopCard({
     <div
       onMouseDown={onMouseDown}
       onTouchStart={onTouchStart}
-      className="absolute left-1/2 top-1/2 z-30 aspect-[3/4] w-[360px] max-w-[82vw] overflow-hidden rounded-2xl bg-surface shadow-soft"
+      className="absolute left-1/2 top-1/2 z-30 h-[420px] w-[320px] max-w-[88vw] overflow-hidden rounded-[28px] bg-surface shadow-soft"
       style={style}
     >
       {preset.heroImageUrl ? (
@@ -586,26 +589,26 @@ function TopCard({
           src={preset.heroImageUrl}
           alt={preset.name}
           draggable={false}
-          className="pointer-events-none block h-full w-full object-cover object-[center_25%]"
+          className="pointer-events-none block h-full w-full object-cover object-top"
         />
       ) : (
         <div className="h-full w-full bg-paper-2" />
       )}
 
-      {/* Bottom gradient + caption */}
+      {/* Bottom gradient + caption — spec linear-gradient(to top, 0.55, transparent 60%) */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(24,22,20,0.85) 100%)",
+            "linear-gradient(to top, rgba(0,0,0,0.55), transparent 60%)",
         }}
       />
-      <div className="absolute inset-x-0 bottom-0 px-6 pb-8 pt-12 text-cream">
-        <h2 className="font-serif text-[clamp(2rem,3.5vw,2.75rem)] leading-[1.02] tracking-[-0.02em]">
+      <div className="absolute bottom-5 left-5 right-5 text-cream">
+        <h2 className="font-serif text-[28px] leading-[1.1] tracking-[-0.01em]">
           {preset.name}
         </h2>
         {preset.description ? (
-          <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-cream/85">
+          <p className="mt-1.5 font-mono text-[11px] uppercase tracking-[0.1em] text-cream opacity-85">
             {preset.description}
           </p>
         ) : null}
@@ -633,17 +636,16 @@ function TopCard({
         Nope
       </div>
 
-      {/* REFERENCE badge — always visible, fades during drag for legibility */}
-      <Pill
-        tone="ink"
-        className="absolute right-4 top-4 border-cream/15 bg-ink/55 tracking-[0.16em] text-cream/95 backdrop-blur"
+      {/* REFERENCE badge — spec: 10px, padding 4px 8px, subtle dark bg */}
+      <span
+        className="absolute right-3 top-3 inline-flex items-center rounded-full bg-ink/55 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em] text-cream backdrop-blur-sm"
         style={{
           opacity: Math.abs(dragX) > 30 ? 0.4 : 1,
           transition: dragActive ? "none" : "opacity 0.15s",
         }}
       >
         Reference
-      </Pill>
+      </span>
     </div>
   );
 }
