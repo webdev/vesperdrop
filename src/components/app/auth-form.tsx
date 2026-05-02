@@ -9,13 +9,21 @@ import { track, identify } from "@/lib/analytics";
 
 type Mode = "sign-in" | "sign-up";
 type Step = "credentials" | "mfa";
+type Variant = "stacked" | "split";
 
 export function AuthForm({
   mode,
+  variant = "stacked",
   onSuccess,
   next: nextOverride,
 }: {
   mode: Mode;
+  /**
+   * "stacked" (default) — socials first, then email/password. Used by sign-up.
+   * "split" — email/password first with Forgot/Remember-me chrome, then a
+   * "or continue with" divider and social buttons. Used by /sign-in only.
+   */
+  variant?: Variant;
   onSuccess?: () => void | Promise<void>;
   next?: string;
 }) {
@@ -161,6 +169,73 @@ export function AuthForm({
   }
 
   // ── Credentials step ──────────────────────────────────────────────────────
+
+  if (variant === "split") {
+    return (
+      <div className="space-y-6">
+        <form onSubmit={submitCredentials} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email address</Label>
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-baseline justify-between gap-3">
+              <Label htmlFor="password">Password</Label>
+              <button
+                type="button"
+                className="font-mono text-[10px] uppercase tracking-[0.12em] text-terracotta transition-colors hover:text-terracotta-dark"
+              >
+                Forgot?
+              </button>
+            </div>
+            <Input
+              id="password"
+              type="password"
+              autoComplete={mode === "sign-in" ? "current-password" : "new-password"}
+              placeholder="Enter your password"
+              required
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+          <label className="flex items-center gap-2 text-[13px] text-ink-2 select-none">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border border-line bg-surface accent-terracotta"
+            />
+            Remember me
+          </label>
+          {error && <p className="text-sm text-terracotta">{error}</p>}
+          <Button type="submit" disabled={pending} className="w-full" size="lg">
+            {pending ? "…" : mode === "sign-in" ? "Sign in" : "Create account"}
+          </Button>
+        </form>
+
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1 bg-line-soft" />
+          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4">
+            or continue with
+          </span>
+          <div className="h-px flex-1 bg-line-soft" />
+        </div>
+
+        <div className="space-y-2.5">
+          <SocialButton icon={<GoogleIcon />} label="Continue with Google" onClick={oauthRedirect("google")} />
+          <SocialButton icon={<AppleIcon />} label="Continue with Apple" onClick={oauthRedirect("apple")} />
+          <SocialButton icon={<FacebookIcon />} label="Continue with Facebook" onClick={oauthRedirect("facebook")} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
