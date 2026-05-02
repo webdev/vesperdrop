@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { SceneifyPublicPreset } from "@/lib/sceneify/types";
+import { PageShell } from "@/components/ui/page-shell";
 import { Pill } from "@/components/ui/pill";
 import { applyPicks } from "./actions";
 
@@ -305,13 +306,17 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
 
   function peekStyle(side: "left" | "right", index: number): React.CSSProperties {
     const dir = side === "left" ? -1 : 1;
-    // Adjacent peek (index 1): sits ~105% off (just past center card), scaled
-    // to 88% so it reads as a slightly recessed sibling.
-    // Far peek (index 2): twice as far, smaller and more faded — clipped by
-    // the wrapper's overflow-hidden on narrower viewports.
-    const xPercent = index === 1 ? 105 : 210;
-    const scale = index === 1 ? 0.88 : 0.72;
-    const opacity = index === 1 ? 0.92 : 0.55;
+    // Stacked / overlapping composition (not a carousel). Tighter offsets
+    // keep the stack compact above the fold.
+    //   index 1 — adjacent peek: 50% offset + scale 0.85 → ~40% of the card
+    //             hides behind the active center card.
+    //   index 2 — far peek: 100% offset + scale 0.7 → sits further out and
+    //             overlaps the adjacent peek, suggesting depth.
+    // z-index decreases with index so the stacking order is correct
+    // (top > adjacent > far) and the active card occludes both.
+    const xPercent = index === 1 ? 50 : 100;
+    const scale = index === 1 ? 0.85 : 0.7;
+    const opacity = index === 1 ? 0.78 : 0.5;
     return {
       transform: `translate(calc(-50% + ${dir * xPercent}%), -50%) scale(${scale})`,
       opacity,
@@ -328,17 +333,17 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
   const tail2Id = deck.length > 4 ? deck[deck.length - 2] : undefined;
 
   return (
-    <div className="space-y-16 md:space-y-20">
+    <PageShell rhythm="tight">
       {/* Header */}
-      <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
+      <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
         <div className="md:max-w-2xl">
           <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-terracotta">
             Discover styles
           </p>
-          <h1 className="mt-6 font-serif text-[clamp(3.5rem,7vw,6rem)] leading-[0.96] tracking-[-0.02em] text-ink">
+          <h1 className="mt-3 font-serif text-[clamp(3rem,6vw,5rem)] leading-[0.92] tracking-[-0.02em] text-ink">
             Train your eye.
           </h1>
-          <p className="mt-6 max-w-md text-[15px] leading-[1.55] text-ink-3">
+          <p className="mt-3 max-w-md text-[14px] leading-[1.5] text-ink-3">
             Swipe right on looks you love.
             <br />
             Skip what doesn&apos;t speak to you.
@@ -349,14 +354,10 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
           <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
             Progress
           </p>
-          <p className="mt-3 font-serif text-[clamp(2.75rem,5vw,4.5rem)] leading-none tracking-[-0.02em] text-ink tabular-nums">
+          <p className="mt-2 font-serif text-[clamp(2.75rem,5vw,4.5rem)] leading-none tracking-[-0.02em] text-ink tabular-nums">
             {totalDecided}{" "}
             <span className="text-ink-4">/ {totalCards}</span>
           </p>
-          <div className="mt-4 flex items-center justify-end gap-4 font-mono text-[10px] uppercase tracking-[0.12em]">
-            <span className="text-terracotta">♥ {liked.length} liked</span>
-            <span className="text-ink-4">✕ {skipped.length} skipped</span>
-          </div>
         </div>
       </div>
 
@@ -368,10 +369,11 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
         />
       </div>
 
-      {/* Deck — breaks out of the page container so cards span the viewport. */}
+      {/* Deck — breaks out of the page container so cards span the viewport.
+          Compact height keeps hero + stack + controls above the fold. */}
       <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen overflow-hidden">
         <div
-          className="relative mx-auto h-[600px] select-none"
+          className="relative mx-auto h-[480px] select-none"
           onMouseMove={(e) => onMove(e.clientX, e.clientY)}
           onMouseUp={onUp}
           onMouseLeave={onUp}
@@ -449,7 +451,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
       </div>
 
       {/* Controls */}
-      <div className="flex items-center justify-center gap-5 pt-2 md:gap-7">
+      <div className="flex items-center justify-center gap-6 md:gap-8">
         <button
           type="button"
           onClick={() => decide("left")}
@@ -488,27 +490,15 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
         </button>
       </div>
 
-      {liked.length > 0 ? (
-        <div className="text-center">
-          <button
-            type="button"
-            onClick={() => goToPhase("review", "push")}
-            className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3 underline-offset-4 transition-colors hover:text-ink hover:underline"
-          >
-            Done · Review {liked.length} pick{liked.length === 1 ? "" : "s"} →
-          </button>
-        </div>
-      ) : null}
-
-      <div className="mx-auto max-w-md space-y-1 text-center text-[14px] leading-[1.55] text-ink-3">
-        <p>Try all styles. Generate with your favorite.</p>
+      <div className="mx-auto max-w-md space-y-2 text-center text-[14px] leading-[1.55] text-ink-3">
+        <p>Try it. Generate with your favorite.</p>
         <p>
           You can generate{" "}
           <strong className="font-medium text-terracotta">1 style</strong>{" "}
           for free.
         </p>
       </div>
-    </div>
+    </PageShell>
   );
 }
 
@@ -526,7 +516,7 @@ function PeekCard({
   const { preset } = entry;
   return (
     <div
-      className="absolute left-1/2 top-1/2 aspect-[3/4] w-[400px] max-w-[88vw] overflow-hidden rounded-2xl border border-line-soft bg-paper-2 shadow-card"
+      className="absolute left-1/2 top-1/2 aspect-[3/4] w-[300px] max-w-[72vw] overflow-hidden rounded-2xl border border-line-soft bg-paper-2 shadow-subtle"
       style={style}
     >
       {preset.heroImageUrl ? (
@@ -534,22 +524,22 @@ function PeekCard({
           src={preset.heroImageUrl}
           alt=""
           aria-hidden="true"
-          className="pointer-events-none h-full w-full object-cover"
+          className="pointer-events-none h-full w-full object-cover object-[center_25%]"
         />
       ) : null}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(24,22,20,0.7) 100%)",
+            "linear-gradient(180deg, rgba(0,0,0,0) 48%, rgba(24,22,20,0.55) 72%, rgba(24,22,20,0.92) 100%)",
         }}
       />
-      <div className="absolute inset-x-0 bottom-0 px-5 pb-5 pt-10 text-cream">
+      <div className="absolute inset-x-0 bottom-0 px-5 pb-5 pt-12 text-cream">
         <h3 className="font-serif text-[clamp(1.25rem,1.6vw,1.625rem)] leading-[1.05] tracking-[-0.01em]">
           {preset.name}
         </h3>
         {preset.description ? (
-          <p className="mt-1.5 truncate font-mono text-[9px] uppercase tracking-[0.16em] text-cream/85">
+          <p className="mt-1.5 truncate font-mono text-[9px] uppercase tracking-[0.16em] text-cream/90">
             {preset.description}
           </p>
         ) : null}
@@ -588,7 +578,7 @@ function TopCard({
     <div
       onMouseDown={onMouseDown}
       onTouchStart={onTouchStart}
-      className="absolute left-1/2 top-1/2 z-30 aspect-[3/4] w-[400px] max-w-[88vw] overflow-hidden rounded-2xl border border-line-soft bg-surface shadow-soft"
+      className="absolute left-1/2 top-1/2 z-30 aspect-[3/4] w-[360px] max-w-[82vw] overflow-hidden rounded-2xl border border-line-soft bg-surface shadow-soft"
       style={style}
     >
       {preset.heroImageUrl ? (
@@ -596,7 +586,7 @@ function TopCard({
           src={preset.heroImageUrl}
           alt={preset.name}
           draggable={false}
-          className="pointer-events-none block h-full w-full object-cover"
+          className="pointer-events-none block h-full w-full object-cover object-[center_25%]"
         />
       ) : (
         <div className="h-full w-full bg-paper-2" />

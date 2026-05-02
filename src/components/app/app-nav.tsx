@@ -104,7 +104,7 @@ export function AppNav({ firstName, email, credits, active }: AppNavProps) {
                 href="/sign-in"
                 className="hidden text-[14px] text-ink-3 transition-colors hover:text-ink md:inline"
               >
-                Sign in
+                Log in
               </Link>
               <Link
                 href="/try"
