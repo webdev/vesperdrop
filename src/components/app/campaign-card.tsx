@@ -164,13 +164,6 @@ export function CampaignCard(props: CampaignCardProps) {
             <TrashIcon />
           </button>
         </DeleteBatchDialog>
-        <Link
-          href={`/app/runs/${runId}`}
-          aria-label={`More options for ${title}`}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-line bg-paper-soft text-ink-3 transition-colors hover:border-ink-4 hover:text-ink"
-        >
-          <span aria-hidden className="leading-none">···</span>
-        </Link>
       </div>
     </header>
   );
@@ -266,13 +259,19 @@ export function CampaignCard(props: CampaignCardProps) {
               ))}
 
               {showMore ? (
-                <div className="flex flex-1 items-center justify-center rounded-md border border-line-soft bg-paper-2">
+                <div className="flex flex-1 items-center justify-center rounded-md border border-line-soft bg-paper-soft transition-colors group-hover:border-ink-4 group-hover:bg-cream">
                   <div className="flex flex-col items-center gap-0.5 text-ink-2">
-                    <span className="font-serif text-[clamp(1.25rem,1.6vw,1.625rem)] leading-none tracking-[-0.01em]">
+                    <span className="font-serif text-[clamp(1.25rem,1.6vw,1.625rem)] leading-none tracking-[-0.01em] text-ink">
                       +{moreCount}
                     </span>
                     <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-ink-3">
                       more
+                    </span>
+                    <span
+                      aria-hidden
+                      className="mt-1 font-mono text-[10px] text-ink-3 transition-transform group-hover:translate-x-0.5"
+                    >
+                      →
                     </span>
                   </div>
                 </div>
