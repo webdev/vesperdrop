@@ -3,6 +3,7 @@ import { Eyebrow } from "@/components/ui/eyebrow";
 import { Pill, type PillTone } from "@/components/ui/pill";
 import { EditableRunTitle } from "@/components/app/editable-run-title";
 import { DeleteBatchDialog } from "@/components/app/delete-batch-dialog";
+import { LibraryCompleteLookButton } from "@/components/app/library-complete-look-button";
 import { FaceSafeImage } from "@/components/ui/face-safe-image";
 import type { FaceBoxLike, FocalPointLike } from "@/lib/focal-point";
 
@@ -140,13 +141,12 @@ export function CampaignCard(props: CampaignCardProps) {
         >
           View batch <span aria-hidden>→</span>
         </Link>
-        {secondaryCta === "complete-look" ? (
-          <Link
-            href={`/app/runs/${runId}`}
-            className="inline-flex items-center gap-2 rounded-full border border-line bg-paper-soft px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink transition-colors hover:border-ink-4 hover:bg-paper-2"
-          >
-            Complete the look <PlusIcon />
-          </Link>
+        {secondaryCta === "complete-look" && hero ? (
+          <LibraryCompleteLookButton
+            runId={runId}
+            parentGenerationId={hero.id}
+            locked={pill?.label === "Preview"}
+          />
         ) : (
           <Link
             href="/try"
@@ -306,23 +306,6 @@ function SparkleIcon() {
       aria-hidden
     >
       <path d="M12 2 14 10 22 12 14 14 12 22 10 14 2 12 10 10z" />
-    </svg>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg
-      width="11"
-      height="11"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      aria-hidden
-    >
-      <path d="M12 5v14M5 12h14" />
     </svg>
   );
 }

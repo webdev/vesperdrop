@@ -85,7 +85,10 @@ async function generateMock(
   await updateGeneration(row.id, { status: "running" });
   try {
     const sourceImageUrl = await mapUploadToUrl(row.sceneify_source_id, sourceUploads);
-    await new Promise((resolve) => setTimeout(resolve, 800 + Math.random() * 1200));
+    // ~10–15s simulates a real generation duration so the client-derived
+    // phase timeline (preparing → generating → enhancing → completed) gets
+    // to walk through all states for UX iteration without burning Sceneify.
+    await new Promise((resolve) => setTimeout(resolve, 10000 + Math.random() * 5000));
     // Plausible synthetic face box for portrait-style stock photos: roughly
     // upper-center. Lets us iterate on the overlay UI without burning Sceneify.
     await updateGeneration(row.id, {

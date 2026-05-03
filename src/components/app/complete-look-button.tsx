@@ -21,6 +21,10 @@ interface Props {
   /** When true, the popover shows a paywall instead of the platform picker. */
   locked?: boolean;
   onPackCreated: (pack: Pack, shots: Generation[]) => void;
+  /** Override the trigger button's className for non-tile placements. */
+  triggerClassName?: string;
+  /** Override the trigger button's label content. */
+  triggerLabel?: React.ReactNode;
 }
 
 export function CompleteLookButton({
@@ -29,6 +33,8 @@ export function CompleteLookButton({
   disabled,
   locked,
   onPackCreated,
+  triggerClassName,
+  triggerLabel,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState<PlatformId | null>(null);
@@ -40,6 +46,9 @@ export function CompleteLookButton({
   useEffect(() => {
     if (!open) return;
     function onDoc(e: MouseEvent) {
+      // Don't allow dismiss-by-outside-click while a submit is in flight —
+      // the spinner is the user's only visual cue that work is happening.
+      if (submitting) return;
       const target = e.target as Node;
       if (popoverRef.current?.contains(target)) return;
       if (buttonRef.current?.contains(target)) return;
@@ -47,7 +56,7 @@ export function CompleteLookButton({
       setError(null);
     }
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
+      if (e.key === "Escape" && !submitting) {
         setOpen(false);
         setError(null);
       }
@@ -58,7 +67,7 @@ export function CompleteLookButton({
       document.removeEventListener("mousedown", onDoc);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, submitting]);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -114,8 +123,14 @@ export function CompleteLookButton({
     open && locked && position ? (
       <div
         ref={popoverRef}
-        style={{ position: "fixed", top: position.top, left: position.left, zIndex: 100 }}
-        className="w-[300px] rounded-xl border border-line bg-surface p-4 shadow-card"
+        style={{
+          position: "fixed",
+          top: position.top,
+          left: position.left,
+          zIndex: 100,
+          boxShadow: "0 18px 40px rgba(0,0,0,0.10)",
+        }}
+        className="w-[340px] origin-top-left rounded-[20px] border border-line-soft bg-surface p-5 motion-safe:animate-[popover-in_180ms_ease-out_forwards]"
       >
         <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-terracotta">
           Pro feature
@@ -163,40 +178,65 @@ export function CompleteLookButton({
     open && !locked && position ? (
       <div
         ref={popoverRef}
-        style={{ position: "fixed", top: position.top, left: position.left, zIndex: 100 }}
-        className="w-[280px] rounded-xl border border-line bg-surface p-3 shadow-card"
+        style={{
+          position: "fixed",
+          top: position.top,
+          left: position.left,
+          zIndex: 100,
+          boxShadow: "0 18px 40px rgba(0,0,0,0.10)",
+        }}
+        className="w-[340px] origin-top-left rounded-[20px] border border-line-soft bg-surface p-4 motion-safe:animate-[popover-in_180ms_ease-out_forwards]"
       >
         <p className="px-1 pb-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
           Generate marketplace pack
         </p>
         <ul className="space-y-1">
-          {PLATFORMS.map((p) => (
-            <li key={p.id}>
-              <button
-                type="button"
-                onClick={() => handleSubmit(p.id)}
-                disabled={Boolean(submitting)}
-                className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
-                  submitting === p.id
-                    ? "bg-paper-2"
-                    : "hover:bg-paper-soft disabled:opacity-50 disabled:hover:bg-transparent"
-                }`}
-              >
-                <div className="min-w-0">
-                  <div className="text-[13px] font-medium text-ink">
-                    {p.label}
+          {PLATFORMS.map((p) => {
+            const isThisOne = submitting === p.id;
+            const otherSubmitting = submitting !== null && !isThisOne;
+            return (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  onClick={() => handleSubmit(p.id)}
+                  disabled={Boolean(submitting)}
+                  className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left transition-all duration-200 ${
+                    isThisOne
+                      ? "bg-terracotta-wash"
+                      : otherSubmitting
+                        ? "opacity-30"
+                        : "hover:bg-paper-soft"
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <div className="text-[13px] font-medium text-ink">
+                      {p.label}
+                    </div>
+                    <div className="truncate text-[11px] text-ink-3">
+                      {isThisOne ? `Creating ${p.label.toLowerCase()}…` : p.hint}
+                    </div>
                   </div>
-                  <div className="text-[11px] text-ink-3">{p.hint}</div>
-                </div>
-                <div className="shrink-0 text-right">
-                  <div className="text-[12px] font-medium text-ink tabular-nums">
-                    {p.shots} credits
+                  <div className="shrink-0 text-right">
+                    {isThisOne ? (
+                      <span
+                        aria-hidden
+                        className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-terracotta/40 border-t-terracotta"
+                      />
+                    ) : (
+                      <>
+                        <div className="text-[12px] font-medium text-ink tabular-nums">
+                          {p.shots} credits
+                        </div>
+                        <div className="text-[10px] text-ink-3">
+                          {p.shots} shots
+                        </div>
+                      </>
+                    )}
                   </div>
-                  <div className="text-[10px] text-ink-3">{p.shots} shots</div>
-                </div>
-              </button>
-            </li>
-          ))}
+                </button>
+              </li>
+            );
+          })}
         </ul>
         {error ? (
           <div className="mt-3 rounded-lg border border-terracotta/30 bg-terracotta-wash px-3 py-2 text-[12px] text-terracotta-dark">
@@ -214,8 +254,18 @@ export function CompleteLookButton({
       </div>
     ) : null;
 
+  // Default tile-overlay styling. Caller can override via triggerClassName for
+  // inline placements (e.g. the library card's actions row).
+  const defaultTriggerClass = `inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] shadow-subtle transition-colors ${
+    disabled
+      ? "cursor-not-allowed bg-cream/95 text-ink opacity-50"
+      : locked
+        ? "bg-ink/90 text-cream hover:bg-ink"
+        : "bg-cream/95 text-ink hover:bg-cream"
+  }`;
+
   return (
-    <div className="absolute left-2 top-2 z-10">
+    <>
       <button
         ref={buttonRef}
         type="button"
@@ -230,13 +280,7 @@ export function CompleteLookButton({
             });
           }
         }}
-        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] shadow-subtle transition-colors ${
-          disabled
-            ? "cursor-not-allowed bg-cream/95 text-ink opacity-50"
-            : locked
-              ? "bg-ink/90 text-cream hover:bg-ink"
-              : "bg-cream/95 text-ink hover:bg-cream"
-        }`}
+        className={triggerClassName ?? defaultTriggerClass}
         title={
           disabled
             ? "Complete the look isn't available for this image"
@@ -245,7 +289,11 @@ export function CompleteLookButton({
               : "Generate a full marketplace pack from this shot"
         }
       >
-        Complete the look <span aria-hidden>→</span>
+        {triggerLabel ?? (
+          <>
+            Complete the look <span aria-hidden>→</span>
+          </>
+        )}
       </button>
 
       {lockedPopover && typeof document !== "undefined"
@@ -254,7 +302,20 @@ export function CompleteLookButton({
       {pickerPopover && typeof document !== "undefined"
         ? createPortal(pickerPopover, document.body)
         : null}
-    </div>
+
+      <style jsx global>{`
+        @keyframes popover-in {
+          from {
+            opacity: 0;
+            transform: scale(0.96) translateY(-4px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+      `}</style>
+    </>
   );
 }
 

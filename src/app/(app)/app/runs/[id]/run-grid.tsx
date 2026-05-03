@@ -574,7 +574,7 @@ function Tile({
           ) : null}
           <div
             onClick={(e) => e.stopPropagation()}
-            className="opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+            className="absolute left-2 top-2 z-10 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
           >
             <CompleteLookButton
               runId={runId}
