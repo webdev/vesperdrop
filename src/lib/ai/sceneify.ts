@@ -125,6 +125,8 @@ export type SceneifyPackShot = {
   error?: string | null;
   seed?: number;
   colorMaxDeltaE?: number | null;
+  focalPoint?: FocalPoint | null;
+  faceBox?: FaceBox | null;
 };
 
 export type SceneifyCompleteLookResult = {

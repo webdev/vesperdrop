@@ -120,12 +120,27 @@ export async function syncPackShotsFromSceneify(
   for (const s of sceneifyShots) {
     const local = byScn.get(s.generationId);
     if (!local) continue;
-    if (local.status === "succeeded" || local.status === "failed") continue;
 
     const patch: Record<string, unknown> = {};
+
+    // Backfill focal/face on already-terminal rows that are missing them — the
+    // first deploy of complete-look didn't persist these fields.
+    if (s.focalPoint && local.focalPoint == null) patch.focalPoint = s.focalPoint;
+    if (s.faceBox !== undefined && local.faceBox == null && s.faceBox != null) {
+      patch.faceBox = s.faceBox;
+    }
+
+    if (local.status === "succeeded" || local.status === "failed") {
+      if (Object.keys(patch).length === 0) continue;
+      await db.update(generations).set(patch).where(eq(generations.id, local.id));
+      continue;
+    }
+
     if (s.status === "succeeded") {
       patch.status = "succeeded";
       if (s.outputUrl) patch.outputUrl = s.outputUrl;
+      if (s.focalPoint) patch.focalPoint = s.focalPoint;
+      if (s.faceBox !== undefined) patch.faceBox = s.faceBox;
       patch.completedAt = new Date();
     } else if (s.status === "failed") {
       patch.status = "failed";
