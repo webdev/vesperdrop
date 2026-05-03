@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { put } from "@vercel/blob";
 import { start } from "workflow/api";
 import { z } from "zod";
@@ -13,6 +14,7 @@ import { tryDeductCredits } from "@/lib/db/credits";
 import { processRun } from "@/lib/workflows/process-run";
 import { env } from "@/lib/env";
 import { getPostHogClient } from "@/lib/posthog-server";
+import { isAdminEmail } from "@/lib/admin";
 
 export const runtime = "nodejs";
 
@@ -63,8 +65,16 @@ export async function POST(req: Request) {
   const plan = profile?.plan ?? "free";
   const isFreePlan = plan === "free";
 
+  // Mock-gen branch: admin-only, cookie-gated, env-gated. Skips Sceneify entirely
+  // and skips credit deduction so the toggle doesn't drain the user's balance
+  // during UX iteration. Mirrors the pattern in /api/try/generate.
+  const mockEnabled = process.env.VERCEL_ENV !== "production";
+  const cookieStore = await cookies();
+  const wantsMock = mockEnabled && cookieStore.get("vd_mock_gen")?.value === "1";
+  const mockMode = wantsMock && isAdminEmail(user.email ?? null);
+
   // Free plan with 0 credits can't generate (except they get 1 free credit on signup)
-  if (isFreePlan) {
+  if (isFreePlan && !mockMode) {
     const creditsAvailable = profile?.credits_balance ?? 0;
     if (creditsAvailable < total) {
       getPostHogClient().capture({
@@ -80,7 +90,7 @@ export async function POST(req: Request) {
   }
 
   // Deduct credits (only for free plan; paid plans are unlimited by credits)
-  if (isFreePlan) {
+  if (isFreePlan && !mockMode) {
     const ok = await tryDeductCredits(user.id, total);
     if (!ok) {
       getPostHogClient().capture({
@@ -129,7 +139,7 @@ export async function POST(req: Request) {
   }
   await insertPendingGenerations(rows);
 
-  const run = await start(processRun, [runId, user.id, sourceUploads, origin]);
+  const run = await start(processRun, [runId, user.id, sourceUploads, origin, mockMode]);
 
   getPostHogClient().capture({
     distinctId: user.id,

@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { track } from "@/lib/analytics";
 import type { Generation, Pack } from "@/app/(app)/app/runs/[id]/run-grid";
@@ -32,15 +33,18 @@ export function CompleteLookButton({
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState<PlatformId | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
     function onDoc(e: MouseEvent) {
-      if (!popoverRef.current?.contains(e.target as Node)) {
-        setOpen(false);
-        setError(null);
-      }
+      const target = e.target as Node;
+      if (popoverRef.current?.contains(target)) return;
+      if (buttonRef.current?.contains(target)) return;
+      setOpen(false);
+      setError(null);
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
@@ -53,6 +57,23 @@ export function CompleteLookButton({
     return () => {
       document.removeEventListener("mousedown", onDoc);
       document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    function update() {
+      const btn = buttonRef.current;
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      setPosition({ top: rect.bottom + 8, left: rect.left });
+    }
+    update();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
     };
   }, [open]);
 
@@ -89,9 +110,114 @@ export function CompleteLookButton({
     }
   }
 
+  const lockedPopover =
+    open && locked && position ? (
+      <div
+        ref={popoverRef}
+        style={{ position: "fixed", top: position.top, left: position.left, zIndex: 100 }}
+        className="w-[300px] rounded-xl border border-line bg-surface p-4 shadow-card"
+      >
+        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-terracotta">
+          Pro feature
+        </p>
+        <h3 className="mt-2 font-serif text-[18px] leading-[1.2] text-ink">
+          Get the full marketplace pack
+        </h3>
+        <p className="mt-2 text-[13px] leading-[1.5] text-ink-3">
+          Subscribe to generate 3–6 coordinated shots from any HD image —
+          ready for Amazon, Shopify, Instagram, or TikTok.
+        </p>
+        <ul className="mt-3 space-y-1.5 text-[12px] text-ink-2">
+          <li className="flex items-start gap-2">
+            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-terracotta" />
+            Hero, lifestyle, and detail crops at platform-native sizes
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-terracotta" />
+            Color and styling matched to your hero shot
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-terracotta" />
+            No watermark, full resolution
+          </li>
+        </ul>
+        <Link
+          href="/pricing"
+          onClick={() =>
+            track("paywall_upgrade_clicked", {
+              feature: "complete_look",
+              parent_id: parentGenerationId,
+            })
+          }
+          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-ink-2"
+        >
+          See plans <span aria-hidden>→</span>
+        </Link>
+        <p className="mt-3 text-center font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4">
+          Pro from $49/mo · 200 credits · cancel any time
+        </p>
+      </div>
+    ) : null;
+
+  const pickerPopover =
+    open && !locked && position ? (
+      <div
+        ref={popoverRef}
+        style={{ position: "fixed", top: position.top, left: position.left, zIndex: 100 }}
+        className="w-[280px] rounded-xl border border-line bg-surface p-3 shadow-card"
+      >
+        <p className="px-1 pb-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+          Generate marketplace pack
+        </p>
+        <ul className="space-y-1">
+          {PLATFORMS.map((p) => (
+            <li key={p.id}>
+              <button
+                type="button"
+                onClick={() => handleSubmit(p.id)}
+                disabled={Boolean(submitting)}
+                className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
+                  submitting === p.id
+                    ? "bg-paper-2"
+                    : "hover:bg-paper-soft disabled:opacity-50 disabled:hover:bg-transparent"
+                }`}
+              >
+                <div className="min-w-0">
+                  <div className="text-[13px] font-medium text-ink">
+                    {p.label}
+                  </div>
+                  <div className="text-[11px] text-ink-3">{p.hint}</div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <div className="text-[12px] font-medium text-ink tabular-nums">
+                    {p.shots} credits
+                  </div>
+                  <div className="text-[10px] text-ink-3">{p.shots} shots</div>
+                </div>
+              </button>
+            </li>
+          ))}
+        </ul>
+        {error ? (
+          <div className="mt-3 rounded-lg border border-terracotta/30 bg-terracotta-wash px-3 py-2 text-[12px] text-terracotta-dark">
+            {error}
+            {error.includes("credits") ? (
+              <>
+                {" "}
+                <Link href="/pricing" className="underline">
+                  Upgrade →
+                </Link>
+              </>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    ) : null;
+
   return (
     <div className="absolute left-2 top-2 z-10">
       <button
+        ref={buttonRef}
         type="button"
         disabled={disabled}
         onClick={() => {
@@ -122,105 +248,12 @@ export function CompleteLookButton({
         Complete the look <span aria-hidden>→</span>
       </button>
 
-      {open && locked ? (
-        <div
-          ref={popoverRef}
-          className="absolute left-0 top-full z-20 mt-2 w-[300px] rounded-xl border border-line bg-surface p-4 shadow-card"
-        >
-          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-terracotta">
-            Pro feature
-          </p>
-          <h3 className="mt-2 font-serif text-[18px] leading-[1.2] text-ink">
-            Get the full marketplace pack
-          </h3>
-          <p className="mt-2 text-[13px] leading-[1.5] text-ink-3">
-            Subscribe to generate 3–6 coordinated shots from any HD image —
-            ready for Amazon, Shopify, Instagram, or TikTok.
-          </p>
-          <ul className="mt-3 space-y-1.5 text-[12px] text-ink-2">
-            <li className="flex items-start gap-2">
-              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-terracotta" />
-              Hero, lifestyle, and detail crops at platform-native sizes
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-terracotta" />
-              Color and styling matched to your hero shot
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-terracotta" />
-              No watermark, full resolution
-            </li>
-          </ul>
-          <Link
-            href="/pricing"
-            onClick={() =>
-              track("paywall_upgrade_clicked", {
-                feature: "complete_look",
-                parent_id: parentGenerationId,
-              })
-            }
-            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-ink-2"
-          >
-            See plans <span aria-hidden>→</span>
-          </Link>
-          <p className="mt-3 text-center font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4">
-            Pro from $49/mo · 200 credits · cancel any time
-          </p>
-        </div>
-      ) : null}
-
-      {open && !locked ? (
-        <div
-          ref={popoverRef}
-          className="absolute left-0 top-full z-20 mt-2 w-[280px] rounded-xl border border-line bg-surface p-3 shadow-card"
-        >
-          <p className="px-1 pb-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-            Generate marketplace pack
-          </p>
-          <ul className="space-y-1">
-            {PLATFORMS.map((p) => (
-              <li key={p.id}>
-                <button
-                  type="button"
-                  onClick={() => handleSubmit(p.id)}
-                  disabled={Boolean(submitting)}
-                  className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
-                    submitting === p.id
-                      ? "bg-paper-2"
-                      : "hover:bg-paper-soft disabled:opacity-50 disabled:hover:bg-transparent"
-                  }`}
-                >
-                  <div className="min-w-0">
-                    <div className="text-[13px] font-medium text-ink">
-                      {p.label}
-                    </div>
-                    <div className="text-[11px] text-ink-3">{p.hint}</div>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <div className="text-[12px] font-medium text-ink tabular-nums">
-                      {p.shots} credits
-                    </div>
-                    <div className="text-[10px] text-ink-3">{p.shots} shots</div>
-                  </div>
-                </button>
-              </li>
-            ))}
-          </ul>
-          {error ? (
-            <div className="mt-3 rounded-lg border border-terracotta/30 bg-terracotta-wash px-3 py-2 text-[12px] text-terracotta-dark">
-              {error}
-              {error.includes("credits") ? (
-                <>
-                  {" "}
-                  <Link href="/pricing" className="underline">
-                    Upgrade →
-                  </Link>
-                </>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+      {lockedPopover && typeof document !== "undefined"
+        ? createPortal(lockedPopover, document.body)
+        : null}
+      {pickerPopover && typeof document !== "undefined"
+        ? createPortal(pickerPopover, document.body)
+        : null}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { track } from "@/lib/analytics";
 import { CompleteLookButton } from "@/components/app/complete-look-button";
+import { GenerationProgressPanel } from "@/components/app/generation-progress-panel";
 import { PackGallery } from "@/components/app/pack-gallery";
 import { PageShell } from "@/components/ui/page-shell";
 import { Pill } from "@/components/ui/pill";
@@ -24,6 +25,8 @@ export type Generation = {
   packId: string | null;
   packRole: string | null;
   packShotIndex: number | null;
+  createdAt?: string | null;
+  completedAt?: string | null;
 };
 
 export type Pack = {
@@ -298,6 +301,8 @@ export function RunGrid({ runId, run, scenes, initial, initialPacks }: Props) {
 
         {/* Right gallery */}
         <div className="flex min-w-0 flex-1 flex-col gap-12">
+          <GenerationProgressPanel generations={gens} scenes={scenes} />
+
           {groups.length > 1 ? (
             <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-line-soft pb-3">
               <FilterTab
@@ -538,8 +543,8 @@ function Tile({
       ) : (
         <div className="flex h-full flex-col items-center justify-center gap-2">
           <div className="h-5 w-5 rounded-full border-2 border-ink-4 border-t-transparent animate-spin" />
-          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4 capitalize">
-            {g.status}
+          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4">
+            {g.status === "running" ? "Generating" : "Queued"}
           </span>
         </div>
       )}

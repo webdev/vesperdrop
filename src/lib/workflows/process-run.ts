@@ -68,6 +68,32 @@ async function generateOne(
   }
 }
 
+async function generateMock(
+  row: { id: string; sceneify_source_id: string; preset_id: string },
+  sourceUploads: SourceUpload[],
+): Promise<void> {
+  "use step";
+  console.log(`[mock-gen] returning mock generation for ${row.id}; Sceneify skipped`);
+  await updateGeneration(row.id, { status: "running" });
+  try {
+    const sourceImageUrl = await mapUploadToUrl(row.sceneify_source_id, sourceUploads);
+    await new Promise((resolve) => setTimeout(resolve, 800 + Math.random() * 1200));
+    await updateGeneration(row.id, {
+      status: "succeeded",
+      outputUrl: sourceImageUrl,
+      modelUsed: "mock",
+      sceneifyGenerationId: `mock-${row.id}`,
+      completedAt: new Date().toISOString(),
+    });
+  } catch (e) {
+    await updateGeneration(row.id, {
+      status: "failed",
+      error: e instanceof Error ? e.message : String(e),
+      completedAt: new Date().toISOString(),
+    });
+  }
+}
+
 async function shouldWatermarkForUser(userId: string): Promise<boolean> {
   "use step";
   const { data } = await supabaseAdmin
@@ -133,10 +159,16 @@ export async function processRun(
   userId: string,
   sourceUploads: SourceUpload[],
   origin: string,
+  mockMode = false,
 ): Promise<void> {
   "use workflow";
 
   const pending = await listPendingForRun(runId);
+
+  if (mockMode) {
+    await Promise.all(pending.map((row) => generateMock(row, sourceUploads)));
+    return;
+  }
 
   await Promise.all(pending.map((row) => generateOne(row, sourceUploads)));
 
