@@ -29,3 +29,34 @@ export async function getRunForUser(runId: string, userId: string) {
   if (!row) throw new Error("run not found");
   return row;
 }
+
+export const RUN_NAME_MAX_LENGTH = 80;
+
+/**
+ * Update a run's user-set name. Pass null (or an empty string) to clear it.
+ * Returns true when a row was updated, false when the run doesn't exist or
+ * isn't owned by this user. Throws on validation failure.
+ */
+export async function renameRunForUser(
+  runId: string,
+  userId: string,
+  rawName: string | null,
+): Promise<boolean> {
+  let value: string | null;
+  if (rawName == null) {
+    value = null;
+  } else {
+    const trimmed = rawName.trim();
+    if (trimmed.length === 0) value = null;
+    else if (trimmed.length > RUN_NAME_MAX_LENGTH) {
+      throw new Error(`name exceeds ${RUN_NAME_MAX_LENGTH} characters`);
+    } else value = trimmed;
+  }
+
+  const updated = await db
+    .update(runs)
+    .set({ name: value })
+    .where(and(eq(runs.id, runId), eq(runs.userId, userId)))
+    .returning({ id: runs.id });
+  return updated.length > 0;
+}

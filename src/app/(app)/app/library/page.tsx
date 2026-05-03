@@ -148,7 +148,8 @@ export default async function Page({
               <li key={run.id}>
                 <CampaignCard
                   runId={run.id}
-                  title={deriveTitle(run, sceneNamesForRun)}
+                  customName={run.name}
+                  fallbackTitle={deriveTitle(run, sceneNamesForRun)}
                   date={formatDate(new Date(run.createdAt))}
                   meta={meta.toUpperCase()}
                   hero={hero ?? null}

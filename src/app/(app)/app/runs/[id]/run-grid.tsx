@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { track } from "@/lib/analytics";
 import { CompleteLookButton } from "@/components/app/complete-look-button";
+import { EditableRunTitle } from "@/components/app/editable-run-title";
 import { GenerationProgressPanel } from "@/components/app/generation-progress-panel";
 import { PackGallery } from "@/components/app/pack-gallery";
 import { PageShell } from "@/components/ui/page-shell";
@@ -44,6 +45,7 @@ type RunInfo = {
   createdAt: string;
   totalImages: number;
   presetCount: number;
+  name: string | null;
 };
 
 interface Props {
@@ -235,9 +237,13 @@ export function RunGrid({ runId, run, scenes, initial, initialPacks }: Props) {
             <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-4">
               {dateShort}
             </p>
-            <h1 className="mt-3 font-serif text-[clamp(2rem,3vw,2.5rem)] leading-[1.05] tracking-[-0.01em] text-ink">
-              {batchTitle}
-            </h1>
+            <EditableRunTitle
+              runId={runId}
+              customName={run.name}
+              fallback={batchTitle}
+              as="h1"
+              className="mt-3 font-serif text-[clamp(2rem,3vw,2.5rem)] leading-[1.05] tracking-[-0.01em] text-ink"
+            />
             {allWatermarked ? (
               <div className="mt-4">
                 <Pill tone="accent" className="tracking-[0.12em]">

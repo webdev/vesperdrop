@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Pill, type PillTone } from "@/components/ui/pill";
+import { EditableRunTitle } from "@/components/app/editable-run-title";
 
 export type CampaignTile = {
   id: string;
@@ -11,7 +12,10 @@ export type CampaignTile = {
 
 export type CampaignCardProps = {
   runId: string;
-  title: string;
+  /** User-set custom name (DB), null if not set. */
+  customName: string | null;
+  /** Auto-derived title shown when customName is null. */
+  fallbackTitle: string;
   date: string;
   meta: string;
   hero: CampaignTile | null;
@@ -39,7 +43,8 @@ const COMPLETE_LOOK_THRESHOLD = 5;
 export function CampaignCard(props: CampaignCardProps) {
   const {
     runId,
-    title,
+    customName,
+    fallbackTitle,
     date,
     meta,
     hero,
@@ -50,6 +55,7 @@ export function CampaignCard(props: CampaignCardProps) {
     description,
     highlightLabel,
   } = props;
+  const title = customName ?? fallbackTitle;
 
   const hasHero = Boolean(hero);
   const isSingle = hasHero && totalCount === 1;
@@ -80,9 +86,13 @@ export function CampaignCard(props: CampaignCardProps) {
         <span>{meta}</span>
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <h2 className="font-serif text-[clamp(1.75rem,2.2vw,2.125rem)] leading-[1.05] tracking-[-0.01em] text-ink">
-          {title}
-        </h2>
+        <EditableRunTitle
+          runId={runId}
+          customName={customName}
+          fallback={fallbackTitle}
+          as="h2"
+          className="font-serif text-[clamp(1.75rem,2.2vw,2.125rem)] leading-[1.05] tracking-[-0.01em] text-ink"
+        />
         {pill ? (
           <Pill tone={pill.tone ?? "neutral"} className="tracking-[0.12em]">
             {pill.label}

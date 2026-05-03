@@ -38,6 +38,7 @@ export const runs = pgTable(
     sourceCount: integer("source_count").notNull(),
     presetCount: integer("preset_count").notNull(),
     totalImages: integer("total_images").notNull(),
+    name: text("name"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .default(sql`now()`),

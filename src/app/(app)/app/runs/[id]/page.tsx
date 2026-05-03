@@ -5,6 +5,9 @@ import { listGenerationsForRun } from "@/lib/db/generations";
 import { listPacksForRun } from "@/lib/db/packs";
 import { db } from "@/lib/db";
 import { scenes as scenesTable } from "@/lib/db/schema";
+import { MockGenToggle } from "@/components/dev/mock-gen-toggle";
+import { isAdminEmail } from "@/lib/admin";
+import { isNonProdEnv } from "@/lib/env.client";
 import { RunGrid, type Generation, type Pack } from "./run-grid";
 
 export const dynamic = "force-dynamic";
@@ -51,18 +54,24 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     status: p.status,
   }));
 
+  const showMockToggle = isAdminEmail(user.email ?? null) && isNonProdEnv;
+
   return (
-    <RunGrid
-      runId={id}
-      run={{
-        id: run.id,
-        createdAt: run.createdAt.toISOString(),
-        totalImages: run.totalImages,
-        presetCount: run.presetCount,
-      }}
-      scenes={sceneRows.map((s) => ({ slug: s.slug, name: s.name }))}
-      initial={initial}
-      initialPacks={initialPacks}
-    />
+    <>
+      <RunGrid
+        runId={id}
+        run={{
+          id: run.id,
+          createdAt: run.createdAt.toISOString(),
+          totalImages: run.totalImages,
+          presetCount: run.presetCount,
+          name: run.name,
+        }}
+        scenes={sceneRows.map((s) => ({ slug: s.slug, name: s.name }))}
+        initial={initial}
+        initialPacks={initialPacks}
+      />
+      {showMockToggle ? <MockGenToggle /> : null}
+    </>
   );
 }
