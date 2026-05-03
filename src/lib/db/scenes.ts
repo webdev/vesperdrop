@@ -10,6 +10,7 @@ export type Scene = {
   category: string;
   palette: string[];
   imageUrl: string;
+  isPro?: boolean;
 };
 
 export async function listScenes(): Promise<Scene[]> {

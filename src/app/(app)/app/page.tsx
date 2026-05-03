@@ -3,8 +3,11 @@ import { cookies } from "next/headers";
 import type { Scene } from "@/lib/db/scenes";
 import { sceneify } from "@/lib/sceneify/client";
 import { RunForm } from "@/components/app/run-form";
+import { MockGenToggle } from "@/components/dev/mock-gen-toggle";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCreditsBalance } from "@/lib/db/credits";
+import { isAdminEmail } from "@/lib/admin";
+import { isNonProdEnv } from "@/lib/env.client";
 
 export const dynamic = "force-dynamic";
 
@@ -38,13 +41,19 @@ export default async function Page({
     category: p.category,
     palette: p.palette,
     imageUrl: p.heroImageUrl,
+    isPro: p.isPro,
   }));
 
+  const showMockToggle = isAdminEmail(user.email ?? null) && isNonProdEnv;
+
   return (
-    <RunForm
-      scenes={scenes}
-      initialSceneIds={initialSelected}
-      credits={credits ?? 0}
-    />
+    <>
+      <RunForm
+        scenes={scenes}
+        initialSceneIds={initialSelected}
+        credits={credits ?? 0}
+      />
+      {showMockToggle ? <MockGenToggle /> : null}
+    </>
   );
 }

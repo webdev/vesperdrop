@@ -22,6 +22,7 @@ export type SceneifyPublicPreset = {
   palette: string[];
   displayOrder: number;
   heroImageUrl: string;
+  isPro?: boolean;
 };
 
 export type SceneifyGenerationStatus = "pending" | "running" | "succeeded" | "failed";

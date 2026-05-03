@@ -9,14 +9,15 @@ import {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 
+import { Crown } from "lucide-react";
 import type { Scene } from "@/lib/db/scenes";
 import { track } from "@/lib/analytics";
 import { isNonProdEnv } from "@/lib/env.client";
 import { Container } from "@/components/ui/container";
+import { MockGenToggle } from "@/components/dev/mock-gen-toggle";
 import { WizardSteps, type StepId } from "./wizard-steps";
 
 function parseStep(raw: string | null): StepId {
@@ -241,51 +242,8 @@ export function TryFlow({
           />
         ) : null}
       </Container>
-      {isAdmin && isNonProdEnv ? <AdminMockToggle /> : null}
+      {isAdmin && isNonProdEnv ? <MockGenToggle /> : null}
     </div>
-  );
-}
-
-const MOCK_CHANGE_EVENT = "vd_mock_change";
-
-function subscribeMockCookie(callback: () => void) {
-  window.addEventListener(MOCK_CHANGE_EVENT, callback);
-  return () => window.removeEventListener(MOCK_CHANGE_EVENT, callback);
-}
-function readMockCookie() {
-  return document.cookie.split("; ").some((c) => c === "vd_mock_gen=1");
-}
-function readMockCookieServer() {
-  return false;
-}
-
-function AdminMockToggle() {
-  const on = useSyncExternalStore(
-    subscribeMockCookie,
-    readMockCookie,
-    readMockCookieServer,
-  );
-  const toggle = () => {
-    document.cookie = !on
-      ? `vd_mock_gen=1; path=/; max-age=86400; samesite=lax`
-      : `vd_mock_gen=; path=/; max-age=0; samesite=lax`;
-    window.dispatchEvent(new Event(MOCK_CHANGE_EVENT));
-  };
-  return (
-    <button
-      type="button"
-      onClick={toggle}
-      className="fixed bottom-4 right-4 z-50 rounded-full border border-line bg-surface px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] shadow-card hover:border-terracotta"
-      aria-label="Toggle mock generation"
-    >
-      Mock gen:{" "}
-      <span
-        suppressHydrationWarning
-        className={on ? "text-terracotta" : "text-ink-3"}
-      >
-        {on ? "ON" : "OFF"}
-      </span>
-    </button>
   );
 }
 
@@ -490,6 +448,16 @@ function ScenesStep({
                   draggable={false}
                 />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-ink/65" />
+                {s.isPro ? (
+                  <div
+                    className="absolute left-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-ink/55 backdrop-blur-sm"
+                    style={{ color: "#e4b961" }}
+                    title="Pro scene"
+                  >
+                    <Crown aria-hidden className="h-3.5 w-3.5" fill="currentColor" />
+                    <span className="sr-only">Pro scene</span>
+                  </div>
+                ) : null}
                 {on ? (
                   <div className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-terracotta font-mono text-xs text-cream">
                     <span aria-hidden>✓</span>

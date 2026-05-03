@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Crown } from "lucide-react";
 import type { Scene } from "@/lib/db/scenes";
 import { PageShell } from "@/components/ui/page-shell";
 
@@ -275,6 +276,16 @@ export function RunForm({ scenes, initialSceneIds = [], credits }: Props) {
                         alt={s.name}
                         className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
                       />
+                      {s.isPro ? (
+                        <span
+                          className="absolute left-2.5 top-2.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-ink/55 backdrop-blur-sm"
+                          style={{ color: "#e4b961" }}
+                          title="Pro scene"
+                        >
+                          <Crown aria-hidden className="h-3 w-3" fill="currentColor" />
+                          <span className="sr-only">Pro scene</span>
+                        </span>
+                      ) : null}
                       <span
                         className={`absolute right-2.5 top-2.5 inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] transition-colors ${
                           sel

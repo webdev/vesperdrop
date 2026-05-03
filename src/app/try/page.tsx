@@ -37,6 +37,7 @@ export default async function Page() {
     category: p.category,
     palette: p.palette,
     imageUrl: p.heroImageUrl,
+    isPro: p.isPro,
   }));
   return (
     <TryFlow
