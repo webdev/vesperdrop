@@ -16,6 +16,8 @@ interface Props {
   initialShots: Generation[];
   onPackUpdate: (pack: Pack) => void;
   onShotsUpdate: (shots: Generation[]) => void;
+  /** Optional: when provided, succeeded pack shots become click-to-zoom. */
+  onTileClick?: (generationId: string) => void;
 }
 
 export function PackGallery({
@@ -24,6 +26,7 @@ export function PackGallery({
   initialShots: shots,
   onPackUpdate,
   onShotsUpdate,
+  onTileClick,
 }: Props) {
   const lastReportedStatus = useRef<Pack["status"]>(pack.status);
 
@@ -79,28 +82,62 @@ export function PackGallery({
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
         {Array.from({ length: total }).map((_, i) => {
           const shot = shots.find((s) => (s.packShotIndex ?? -1) === i);
-          return <PackTile key={i} index={i} shot={shot} />;
+          return (
+            <PackTile
+              key={i}
+              index={i}
+              shot={shot}
+              onClick={onTileClick}
+            />
+          );
         })}
       </div>
     </section>
   );
 }
 
-function PackTile({ shot, index }: { shot: Generation | undefined; index: number }) {
+function PackTile({
+  shot,
+  index,
+  onClick,
+}: {
+  shot: Generation | undefined;
+  index: number;
+  onClick?: (generationId: string) => void;
+}) {
+  const succeeded = shot?.status === "succeeded" && shot.outputUrl;
+  const clickable = succeeded && onClick && shot;
   return (
-    <div className="relative aspect-[4/5] overflow-hidden rounded-md border border-line-soft bg-paper-2">
-      {shot?.status === "succeeded" && shot.outputUrl ? (
+    <div className="group relative aspect-[4/5] overflow-hidden rounded-md border border-line-soft bg-paper-2">
+      {succeeded ? (
         <>
-          <FaceSafeImg
-            src={shot.outputUrl}
-            alt={shot.packRole ?? `Shot ${index + 1}`}
-            className="h-full w-full object-cover"
-            faceBox={shot.faceBox}
-            focalPoint={shot.focalPoint}
-          />
-          {shot.packRole ? (
-            <span className="absolute bottom-2 left-2 rounded-full bg-cream/95 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-ink">
-              {shot.packRole}
+          {clickable ? (
+            <button
+              type="button"
+              onClick={() => onClick!(shot!.id)}
+              aria-label="View full size"
+              className="absolute inset-0 z-0 cursor-zoom-in"
+            >
+              <FaceSafeImg
+                src={shot!.outputUrl!}
+                alt={shot!.packRole ?? `Shot ${index + 1}`}
+                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+                faceBox={shot!.faceBox}
+                focalPoint={shot!.focalPoint}
+              />
+            </button>
+          ) : (
+            <FaceSafeImg
+              src={shot!.outputUrl!}
+              alt={shot!.packRole ?? `Shot ${index + 1}`}
+              className="h-full w-full object-cover"
+              faceBox={shot!.faceBox}
+              focalPoint={shot!.focalPoint}
+            />
+          )}
+          {shot!.packRole ? (
+            <span className="pointer-events-none absolute bottom-2 left-2 z-10 rounded-full bg-cream/95 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-ink">
+              {shot!.packRole}
             </span>
           ) : null}
         </>

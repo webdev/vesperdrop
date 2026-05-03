@@ -35,10 +35,9 @@ export type CampaignCardProps = {
 const HERO_ASPECT_MULTI = "aspect-[5/4]";
 const HERO_ASPECT_SINGLE = "aspect-[16/9]";
 
-// Multi-image rows cap at 2 supporting tiles + an optional "+N more" chip.
-// Keeping the cluster tight is what lets the hero hold 45–60% of the strip
-// width per the Editorial Row spec (components.md).
-const MULTI_SUPPORTING_LIMIT = 2;
+// Multi-image rows cap at 3 supporting tiles (so 4 total images visible)
+// + an optional "+N more" chip when the batch has more than 4 images.
+const MULTI_SUPPORTING_LIMIT = 3;
 
 // Threshold for which secondary CTA to show. Few images → suggest expanding
 // the batch ("Complete the look"). More images → suggest reapplying the

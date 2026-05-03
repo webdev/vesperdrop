@@ -197,8 +197,10 @@ export function RunGrid({ runId, run, scenes, initial, initialPacks }: Props) {
       ? groups
       : groups.filter((g) => g.slug === activeScene);
 
+  // Lightbox can open from either top-level tiles OR pack shots, so search
+  // the full generation list rather than just topLevel.
   const lightboxGen = lightboxId
-    ? topLevel.find((g) => g.id === lightboxId) ?? null
+    ? gens.find((g) => g.id === lightboxId) ?? null
     : null;
 
   const shotsByPack = useMemo(() => {
@@ -400,6 +402,7 @@ export function RunGrid({ runId, run, scenes, initial, initialPacks }: Props) {
               runId={runId}
               pack={p}
               initialShots={shotsByPack.get(p.id) ?? []}
+              onTileClick={openLightbox}
               onPackUpdate={(updated) =>
                 setPacks((prev) =>
                   prev.map((x) => (x.id === updated.id ? updated : x)),

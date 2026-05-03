@@ -101,9 +101,21 @@ export default async function Page({
         <ul className="space-y-16">
           {populatedRuns.map((run) => {
             const runGens = gensByRun.get(run.id) ?? [];
-            const succeeded = runGens.filter(
+            // Hero must be a top-level shot — LibraryCompleteLookButton can't
+            // derive a pack from a pack shot. Supporting tiles can fall back
+            // to pack shots so we still render the first 4 generated images
+            // in larger batches.
+            const topLevelSucceeded = runGens.filter(
+              (g) => g.status === "succeeded" && g.outputUrl && !g.packId,
+            );
+            const allSucceeded = runGens.filter(
               (g) => g.status === "succeeded" && g.outputUrl,
             );
+            const heroGen = topLevelSucceeded[0];
+            const orderedGens = heroGen
+              ? [heroGen, ...allSucceeded.filter((g) => g.id !== heroGen.id)]
+              : allSucceeded;
+            const totalSucceeded = allSucceeded.length;
             const watermarkedCount = runGens.filter((g) => g.watermarked).length;
             const allWatermarked =
               runGens.length > 0 && watermarkedCount === runGens.length;
@@ -132,7 +144,7 @@ export default async function Page({
                 }
               : null;
 
-            const tiles: CampaignTile[] = succeeded.map((g) => ({
+            const tiles: CampaignTile[] = orderedGens.map((g) => ({
               id: g.id,
               url: `/api/images/${g.id}`,
               alt: sceneNameBySlug.get(g.presetId) ?? g.presetId,
@@ -145,7 +157,7 @@ export default async function Page({
 
             const meta = allWatermarked
               ? `${runGens.length} ${runGens.length === 1 ? "preview" : "previews"} · watermarked`
-              : `${succeeded.length} ${succeeded.length === 1 ? "image" : "images"}`;
+              : `${totalSucceeded} ${totalSucceeded === 1 ? "image" : "images"}`;
 
             return (
               <li key={run.id}>
@@ -158,11 +170,11 @@ export default async function Page({
                   hero={hero ?? null}
                   supporting={supporting}
                   source={sourceTile}
-                  totalCount={succeeded.length}
+                  totalCount={totalSucceeded}
                   pill={
                     allWatermarked
                       ? { label: "Preview", tone: "accent" }
-                      : succeeded.length > 0
+                      : totalSucceeded > 0
                         ? { label: "HD", tone: "neutral" }
                         : null
                   }
