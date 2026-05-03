@@ -27,11 +27,17 @@ async function listPendingForRun(runId: string): Promise<
 }
 
 async function mapUploadToUrl(
-  placeholderKey: string,
+  stored: string,
   uploads: SourceUpload[],
 ): Promise<string> {
-  const upload = uploads.find((u) => u.placeholderKey === placeholderKey);
-  if (!upload) throw new Error(`Upload not found for key: ${placeholderKey}`);
+  // New runs persist the blob URL directly; return it as-is. Legacy in-flight
+  // runs may still carry a placeholderKey (or the try/claim flow's
+  // __local__/ key) — fall back to the original lookup.
+  if (/^https?:\/\//i.test(stored) || stored.startsWith("__local__/")) {
+    return stored;
+  }
+  const upload = uploads.find((u) => u.placeholderKey === stored);
+  if (!upload) throw new Error(`Upload not found for key: ${stored}`);
   return upload.blobUrl;
 }
 
@@ -58,6 +64,8 @@ async function generateOne(
       modelUsed: result.model,
       sceneifyGenerationId: result.generationId,
       completedAt: new Date().toISOString(),
+      focalPoint: result.focalPoint ?? null,
+      faceBox: result.faceBox ?? null,
     });
   } catch (e) {
     await updateGeneration(row.id, {
@@ -78,12 +86,16 @@ async function generateMock(
   try {
     const sourceImageUrl = await mapUploadToUrl(row.sceneify_source_id, sourceUploads);
     await new Promise((resolve) => setTimeout(resolve, 800 + Math.random() * 1200));
+    // Plausible synthetic face box for portrait-style stock photos: roughly
+    // upper-center. Lets us iterate on the overlay UI without burning Sceneify.
     await updateGeneration(row.id, {
       status: "succeeded",
       outputUrl: sourceImageUrl,
       modelUsed: "mock",
       sceneifyGenerationId: `mock-${row.id}`,
       completedAt: new Date().toISOString(),
+      focalPoint: { x: 0.5, y: 0.22, confidence: 0.9, source: "face" },
+      faceBox: { x: 0.38, y: 0.08, width: 0.24, height: 0.28, confidence: 0.9 },
     });
   } catch (e) {
     await updateGeneration(row.id, {

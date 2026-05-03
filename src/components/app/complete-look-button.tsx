@@ -297,5 +297,13 @@ function mapShot(raw: unknown): Generation {
       (r.packShotIndex as number | null) ??
       (r.pack_shot_index as number | null) ??
       null,
+    focalPoint:
+      (r.focalPoint as Generation["focalPoint"]) ??
+      (r.focal_point as Generation["focalPoint"]) ??
+      null,
+    faceBox:
+      (r.faceBox as Generation["faceBox"]) ??
+      (r.face_box as Generation["faceBox"]) ??
+      null,
   };
 }

@@ -3,11 +3,14 @@ import Image from "next/image";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Pill, type PillTone } from "@/components/ui/pill";
 import { EditableRunTitle } from "@/components/app/editable-run-title";
+import { DeleteBatchDialog } from "@/components/app/delete-batch-dialog";
+import { focalToObjectPosition, type FocalPointLike } from "@/lib/focal-point";
 
 export type CampaignTile = {
   id: string;
   url: string;
   alt: string;
+  focalPoint?: FocalPointLike;
 };
 
 export type CampaignCardProps = {
@@ -122,6 +125,7 @@ export function CampaignCard(props: CampaignCardProps) {
                 sizes="88px"
                 unoptimized
                 className="object-cover"
+                style={{ objectPosition: focalToObjectPosition(source.focalPoint) }}
               />
             </div>
           </Link>
@@ -149,6 +153,16 @@ export function CampaignCard(props: CampaignCardProps) {
             Use this style <RefreshIcon />
           </Link>
         )}
+        <DeleteBatchDialog runId={runId} label={customName ?? fallbackTitle}>
+          <button
+            type="button"
+            aria-label={`Delete ${title}`}
+            title="Delete batch"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-line bg-paper-soft text-ink-3 transition-colors hover:border-terracotta/40 hover:bg-paper-2 hover:text-terracotta-dark"
+          >
+            <TrashIcon />
+          </button>
+        </DeleteBatchDialog>
         <Link
           href={`/app/runs/${runId}`}
           aria-label={`More options for ${title}`}
@@ -200,7 +214,12 @@ export function CampaignCard(props: CampaignCardProps) {
                 sizes="(max-width: 768px) 100vw, 60vw"
                 priority
                 unoptimized
-                className="object-cover object-[center_25%] transition-transform duration-700 group-hover:scale-[1.02]"
+                className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+                style={{
+                  objectPosition: hero!.focalPoint
+                    ? focalToObjectPosition(hero!.focalPoint)
+                    : "center 25%",
+                }}
               />
               <div
                 aria-hidden
@@ -225,6 +244,7 @@ export function CampaignCard(props: CampaignCardProps) {
                   priority
                   unoptimized
                   className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+                  style={{ objectPosition: focalToObjectPosition(hero!.focalPoint) }}
                 />
               </div>
 
@@ -240,6 +260,7 @@ export function CampaignCard(props: CampaignCardProps) {
                     sizes="(max-width: 768px) 30vw, 130px"
                     unoptimized
                     className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+                    style={{ objectPosition: focalToObjectPosition(tile.focalPoint) }}
                   />
                 </div>
               ))}
@@ -320,6 +341,28 @@ function RefreshIcon() {
     >
       <path d="M21 12a9 9 0 1 1-3-6.7" />
       <path d="M21 4v5h-5" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M3 6h18" />
+      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
     </svg>
   );
 }

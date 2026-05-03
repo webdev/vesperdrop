@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef } from "react";
 import type { Generation, Pack } from "@/app/(app)/app/runs/[id]/run-grid";
+import { focalToObjectPosition } from "@/lib/focal-point";
 
 const PLATFORM_LABELS: Record<Pack["platform"], string> = {
   amazon: "Amazon Apparel",
@@ -95,6 +96,7 @@ function PackTile({ shot, index }: { shot: Generation | undefined; index: number
             src={shot.outputUrl}
             alt={shot.packRole ?? `Shot ${index + 1}`}
             className="h-full w-full object-cover"
+            style={{ objectPosition: focalToObjectPosition(shot.focalPoint) }}
           />
           {shot.packRole ? (
             <span className="absolute bottom-2 left-2 rounded-full bg-cream/95 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-ink">
@@ -161,6 +163,14 @@ function mapShot(raw: unknown): Generation {
     packShotIndex:
       (r.packShotIndex as number | null) ??
       (r.pack_shot_index as number | null) ??
+      null,
+    focalPoint:
+      (r.focalPoint as Generation["focalPoint"]) ??
+      (r.focal_point as Generation["focalPoint"]) ??
+      null,
+    faceBox:
+      (r.faceBox as Generation["faceBox"]) ??
+      (r.face_box as Generation["faceBox"]) ??
       null,
   };
 }

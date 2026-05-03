@@ -9,7 +9,9 @@ import {
   primaryKey,
   index,
   uniqueIndex,
+  jsonb,
 } from "drizzle-orm/pg-core";
+import type { FocalPoint, FaceBox } from "@/lib/ai/sceneify";
 
 // profiles.id was historically a FK to auth.users(id) under Supabase. Phase B
 // will rebind this to NextAuth's user id (string). For now we keep it as a
@@ -79,6 +81,8 @@ export const generations = pgTable(
       .notNull()
       .default(sql`now()`),
     completedAt: timestamp("completed_at", { withTimezone: true }),
+    focalPoint: jsonb("focal_point").$type<FocalPoint>(),
+    faceBox: jsonb("face_box").$type<FaceBox>(),
   },
   (t) => [
     index("generations_run_idx").on(t.runId),

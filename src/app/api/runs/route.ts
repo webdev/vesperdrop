@@ -134,7 +134,10 @@ export async function POST(req: Request) {
   const rows: Array<{ runId: string; userId: string; sceneifySourceId: string; presetId: string }> = [];
   for (const upload of sourceUploads) {
     for (const presetId of presetIds) {
-      rows.push({ runId, userId: user.id, sceneifySourceId: upload.placeholderKey, presetId });
+      // Persist the blob URL itself so the sidebar source thumb and
+       // /api/images/{id}?type=source can resolve without needing the
+       // ephemeral sourceUploads array (which only exists during the workflow).
+       rows.push({ runId, userId: user.id, sceneifySourceId: upload.blobUrl, presetId });
     }
   }
   await insertPendingGenerations(rows);

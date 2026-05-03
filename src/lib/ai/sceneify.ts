@@ -23,6 +23,21 @@ export type SceneifyGenerateInput = {
   callerRef?: string;
 };
 
+export type FocalPoint = {
+  x: number;
+  y: number;
+  confidence: number;
+  source: "face" | "saliency" | "center";
+};
+
+export type FaceBox = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  confidence: number;
+};
+
 export type SceneifyGenerateResult = {
   generationId: string;
   outputUrl: string;
@@ -34,6 +49,8 @@ export type SceneifyGenerateResult = {
   colorAvgDeltaE?: number;
   callerProjectId?: string;
   callerRef?: string;
+  focalPoint?: FocalPoint;
+  faceBox?: FaceBox | null;
 };
 
 export class SceneifyError extends Error {

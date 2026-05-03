@@ -5,12 +5,30 @@ import Link from "next/link";
 import Image from "next/image";
 import { track } from "@/lib/analytics";
 import { CompleteLookButton } from "@/components/app/complete-look-button";
+import { DeleteBatchDialog } from "@/components/app/delete-batch-dialog";
 import { EditableRunTitle } from "@/components/app/editable-run-title";
 import { GenerationProgressPanel } from "@/components/app/generation-progress-panel";
 import { PackGallery } from "@/components/app/pack-gallery";
+import { useFaceBoxEnabled } from "@/components/dev/face-box-toggle";
 import { PageShell } from "@/components/ui/page-shell";
 import { Pill } from "@/components/ui/pill";
+import { focalToObjectPosition } from "@/lib/focal-point";
 import { Lightbox } from "./lightbox";
+
+export type FocalPoint = {
+  x: number;
+  y: number;
+  confidence: number;
+  source: "face" | "saliency" | "center";
+};
+
+export type FaceBox = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  confidence: number;
+};
 
 export type Generation = {
   id: string;
@@ -28,6 +46,8 @@ export type Generation = {
   packShotIndex: number | null;
   createdAt?: string | null;
   completedAt?: string | null;
+  focalPoint?: FocalPoint | null;
+  faceBox?: FaceBox | null;
 };
 
 export type Pack = {
@@ -285,12 +305,12 @@ export function RunGrid({ runId, run, scenes, initial, initialPacks }: Props) {
               <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-4">
                 Source photo
               </p>
-              <div className="relative aspect-[4/5] w-40 overflow-hidden rounded-md border border-line-soft bg-paper-2">
+              <div className="relative aspect-[4/5] w-[120px] overflow-hidden rounded-md border border-line-soft bg-paper-2">
                 <Image
                   src={sourceUrl}
                   alt="Source product photo"
                   fill
-                  sizes="160px"
+                  sizes="120px"
                   unoptimized
                   className="object-cover"
                 />
@@ -303,6 +323,21 @@ export function RunGrid({ runId, run, scenes, initial, initialPacks }: Props) {
             <DefRow term="Total" value={String(run.totalImages)} />
             <DefRow term="Created" value={dateLong} />
           </dl>
+
+          <div className="border-t border-line-soft pt-6">
+            <DeleteBatchDialog
+              runId={runId}
+              label={run.name ?? batchTitle}
+              redirectTo="/app/library"
+            >
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3 transition-colors hover:text-terracotta-dark"
+              >
+                <span aria-hidden>×</span> Delete batch
+              </button>
+            </DeleteBatchDialog>
+          </div>
         </aside>
 
         {/* Right gallery */}
@@ -497,6 +532,7 @@ function Tile({
   onClick: () => void;
 }) {
   const succeeded = g.status === "succeeded" && g.outputUrl;
+  const showFaceBox = useFaceBoxEnabled();
 
   return (
     <div className="group relative aspect-[4/5] overflow-hidden rounded-md border border-line-soft bg-paper-2">
@@ -514,9 +550,21 @@ function Tile({
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               unoptimized
-              className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+              className={
+                showFaceBox
+                  ? "object-contain transition-transform duration-700 group-hover:scale-[1.03]"
+                  : "object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+              }
+              style={
+                showFaceBox
+                  ? undefined
+                  : { objectPosition: focalToObjectPosition(g.focalPoint) }
+              }
             />
           </button>
+          {showFaceBox ? (
+            <FaceBoxOverlay faceBox={g.faceBox} focalPoint={g.focalPoint} />
+          ) : null}
           <div
             onClick={(e) => e.stopPropagation()}
             className="opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
@@ -554,6 +602,117 @@ function Tile({
           </span>
         </div>
       )}
+    </div>
+  );
+}
+
+// Debug overlay. Coordinates from Sceneify are normalized 0–1 against the
+// image's natural dimensions. Caller switches the underlying <Image> to
+// object-contain when the overlay is on, so we render letterbox-aware: we
+// project the box into the image's actual displayed rect inside the
+// container (letterboxed top/bottom or pillarboxed left/right).
+function FaceBoxOverlay({
+  faceBox,
+  focalPoint,
+}: {
+  faceBox?: FaceBox | null;
+  focalPoint?: FocalPoint | null;
+}) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [rect, setRect] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
+  const [natural, setNatural] = useState<{ w: number; h: number } | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (!natural) return;
+    const el = containerRef.current;
+    if (!el) return;
+    function compute() {
+      const c = el!.getBoundingClientRect();
+      const containerAspect = c.width / c.height;
+      const naturalAspect = natural!.w / natural!.h;
+      let width: number, height: number, left: number, top: number;
+      if (naturalAspect > containerAspect) {
+        // letterbox top/bottom
+        width = c.width;
+        height = c.width / naturalAspect;
+        left = 0;
+        top = (c.height - height) / 2;
+      } else {
+        // pillarbox left/right
+        height = c.height;
+        width = c.height * naturalAspect;
+        top = 0;
+        left = (c.width - width) / 2;
+      }
+      setRect({ left, top, width, height });
+    }
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(el);
+    window.addEventListener("resize", compute);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", compute);
+    };
+  }, [natural]);
+
+  // Sniff the natural dimensions from any <img> the parent rendered. We don't
+  // own the image element, so we listen on the parent for image loads.
+  useEffect(() => {
+    const el = containerRef.current?.parentElement;
+    if (!el) return;
+    function onLoad(e: Event) {
+      const img = e.target as HTMLImageElement | null;
+      if (!img || img.tagName !== "IMG") return;
+      if (img.naturalWidth && img.naturalHeight) {
+        setNatural({ w: img.naturalWidth, h: img.naturalHeight });
+      }
+    }
+    el.addEventListener("load", onLoad, true);
+    // Already-loaded images don't fire load again — pull from the first <img>.
+    const existing = el.querySelector("img") as HTMLImageElement | null;
+    if (existing?.complete && existing.naturalWidth) {
+      setNatural({ w: existing.naturalWidth, h: existing.naturalHeight });
+    }
+    return () => el.removeEventListener("load", onLoad, true);
+  }, []);
+
+  if (!faceBox && !focalPoint) return null;
+
+  return (
+    <div ref={containerRef} className="pointer-events-none absolute inset-0 z-10">
+      {rect && faceBox ? (
+        <div
+          className="absolute border-2 border-terracotta shadow-[0_0_0_1px_rgba(0,0,0,0.4)]"
+          style={{
+            left: `${rect.left + faceBox.x * rect.width}px`,
+            top: `${rect.top + faceBox.y * rect.height}px`,
+            width: `${faceBox.width * rect.width}px`,
+            height: `${faceBox.height * rect.height}px`,
+          }}
+        >
+          <span className="absolute -top-5 left-0 rounded bg-terracotta px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-cream">
+            face {Math.round(faceBox.confidence * 100)}%
+          </span>
+        </div>
+      ) : null}
+      {rect && focalPoint ? (
+        <div
+          className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-cream bg-terracotta shadow-[0_0_0_1px_rgba(0,0,0,0.4)]"
+          style={{
+            left: `${rect.left + focalPoint.x * rect.width}px`,
+            top: `${rect.top + focalPoint.y * rect.height}px`,
+          }}
+          title={`focal · ${focalPoint.source} · ${Math.round(focalPoint.confidence * 100)}%`}
+        />
+      ) : null}
     </div>
   );
 }

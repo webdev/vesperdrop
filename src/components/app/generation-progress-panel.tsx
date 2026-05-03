@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import type { Generation, SceneInfo } from "@/app/(app)/app/runs/[id]/run-grid";
+import { focalToObjectPosition } from "@/lib/focal-point";
 
 // What's actually real here:
 //
@@ -376,6 +377,7 @@ function TilePreview({ generation: g }: { generation: Generation }) {
           unoptimized
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 16vw"
           className="object-cover"
+          style={{ objectPosition: focalToObjectPosition(g.focalPoint) }}
         />
       </div>
     );

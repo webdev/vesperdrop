@@ -123,6 +123,7 @@ export default async function Page({
                   /^https?:\/\//i.test(g.sceneifySourceId)),
             );
 
+            // Source is the raw upload — no focal point detected for it.
             const sourceTile: CampaignTile | null = sourceCarrier
               ? {
                   id: `${sourceCarrier.id}-source`,
@@ -135,6 +136,7 @@ export default async function Page({
               id: g.id,
               url: `/api/images/${g.id}`,
               alt: sceneNameBySlug.get(g.presetId) ?? g.presetId,
+              focalPoint: g.focalPoint,
             }));
 
             const [hero, ...rest] = tiles;

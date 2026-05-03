@@ -2,6 +2,7 @@ import "server-only";
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "./index";
 import { generations } from "./schema";
+import type { FocalPoint, FaceBox } from "@/lib/ai/sceneify";
 
 export async function insertPendingGenerations(
   rows: Array<{
@@ -40,6 +41,8 @@ export async function updateGeneration(
     error?: string;
     completedAt?: string;
     modelUsed?: string;
+    focalPoint?: FocalPoint | null;
+    faceBox?: FaceBox | null;
   },
 ) {
   const update: Record<string, unknown> = {};
@@ -52,6 +55,8 @@ export async function updateGeneration(
   if (patch.error) update.error = patch.error;
   if (patch.completedAt) update.completedAt = new Date(patch.completedAt);
   if (patch.modelUsed) update.modelUsed = patch.modelUsed;
+  if (patch.focalPoint !== undefined) update.focalPoint = patch.focalPoint;
+  if (patch.faceBox !== undefined) update.faceBox = patch.faceBox;
   await db.update(generations).set(update).where(eq(generations.id, id));
 }
 
