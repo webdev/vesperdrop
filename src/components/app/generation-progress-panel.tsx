@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import type { Generation, SceneInfo } from "@/app/(app)/app/runs/[id]/run-grid";
-import { focalToObjectPosition } from "@/lib/focal-point";
+import { FaceSafeImage } from "@/components/ui/face-safe-image";
 
 // What's actually real here:
 //
@@ -370,14 +369,15 @@ function TilePreview({ generation: g }: { generation: Generation }) {
   if (g.status === "succeeded" && g.outputUrl) {
     return (
       <div className="relative aspect-[4/5] w-full overflow-hidden bg-paper-2">
-        <Image
+        <FaceSafeImage
           src={`/api/images/${g.id}`}
           alt={`Generated ${g.presetId}`}
           fill
           unoptimized
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 16vw"
           className="object-cover"
-          style={{ objectPosition: focalToObjectPosition(g.focalPoint) }}
+          faceBox={g.faceBox}
+          focalPoint={g.focalPoint}
         />
       </div>
     );

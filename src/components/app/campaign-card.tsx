@@ -1,16 +1,17 @@
 import Link from "next/link";
-import Image from "next/image";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Pill, type PillTone } from "@/components/ui/pill";
 import { EditableRunTitle } from "@/components/app/editable-run-title";
 import { DeleteBatchDialog } from "@/components/app/delete-batch-dialog";
-import { focalToObjectPosition, type FocalPointLike } from "@/lib/focal-point";
+import { FaceSafeImage } from "@/components/ui/face-safe-image";
+import type { FaceBoxLike, FocalPointLike } from "@/lib/focal-point";
 
 export type CampaignTile = {
   id: string;
   url: string;
   alt: string;
   focalPoint?: FocalPointLike;
+  faceBox?: FaceBoxLike;
 };
 
 export type CampaignCardProps = {
@@ -118,14 +119,15 @@ export function CampaignCard(props: CampaignCardProps) {
             className="mt-2 block w-[88px] overflow-hidden rounded-md border border-line-soft bg-paper-2 transition-colors hover:border-ink-4"
           >
             <div className="relative aspect-[4/5]">
-              <Image
+              <FaceSafeImage
                 src={source.url}
                 alt={source.alt}
                 fill
                 sizes="88px"
                 unoptimized
                 className="object-cover"
-                style={{ objectPosition: focalToObjectPosition(source.focalPoint) }}
+                faceBox={source.faceBox}
+                focalPoint={source.focalPoint}
               />
             </div>
           </Link>
@@ -207,7 +209,7 @@ export function CampaignCard(props: CampaignCardProps) {
             <div
               className={`relative overflow-hidden rounded-md border border-line-soft bg-paper-2 ${HERO_ASPECT_SINGLE}`}
             >
-              <Image
+              <FaceSafeImage
                 src={hero!.url}
                 alt={hero!.alt}
                 fill
@@ -215,11 +217,8 @@ export function CampaignCard(props: CampaignCardProps) {
                 priority
                 unoptimized
                 className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
-                style={{
-                  objectPosition: hero!.focalPoint
-                    ? focalToObjectPosition(hero!.focalPoint)
-                    : "center 25%",
-                }}
+                faceBox={hero!.faceBox}
+                focalPoint={hero!.focalPoint ?? { x: 0.5, y: 0.25 }}
               />
               <div
                 aria-hidden
@@ -236,7 +235,7 @@ export function CampaignCard(props: CampaignCardProps) {
               <div
                 className={`relative ${heroFlex} overflow-hidden rounded-md border border-line-soft bg-paper-2 ${HERO_ASPECT_MULTI}`}
               >
-                <Image
+                <FaceSafeImage
                   src={hero!.url}
                   alt={hero!.alt}
                   fill
@@ -244,7 +243,8 @@ export function CampaignCard(props: CampaignCardProps) {
                   priority
                   unoptimized
                   className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
-                  style={{ objectPosition: focalToObjectPosition(hero!.focalPoint) }}
+                  faceBox={hero!.faceBox}
+                  focalPoint={hero!.focalPoint}
                 />
               </div>
 
@@ -253,14 +253,15 @@ export function CampaignCard(props: CampaignCardProps) {
                   key={tile.id}
                   className="relative flex-1 overflow-hidden rounded-md border border-line-soft bg-paper-2"
                 >
-                  <Image
+                  <FaceSafeImage
                     src={tile.url}
                     alt={tile.alt}
                     fill
                     sizes="(max-width: 768px) 30vw, 130px"
                     unoptimized
                     className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
-                    style={{ objectPosition: focalToObjectPosition(tile.focalPoint) }}
+                    faceBox={tile.faceBox}
+                    focalPoint={tile.focalPoint}
                   />
                 </div>
               ))}

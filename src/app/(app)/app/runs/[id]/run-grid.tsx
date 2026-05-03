@@ -7,12 +7,12 @@ import { track } from "@/lib/analytics";
 import { CompleteLookButton } from "@/components/app/complete-look-button";
 import { DeleteBatchDialog } from "@/components/app/delete-batch-dialog";
 import { EditableRunTitle } from "@/components/app/editable-run-title";
-import { GenerationProgressPanel } from "@/components/app/generation-progress-panel";
+import { HeroGenerationCard } from "@/components/app/hero-generation-card";
 import { PackGallery } from "@/components/app/pack-gallery";
 import { useFaceBoxEnabled } from "@/components/dev/face-box-toggle";
+import { FaceSafeImage } from "@/components/ui/face-safe-image";
 import { PageShell } from "@/components/ui/page-shell";
 import { Pill } from "@/components/ui/pill";
-import { focalToObjectPosition } from "@/lib/focal-point";
 import { Lightbox } from "./lightbox";
 
 export type FocalPoint = {
@@ -185,6 +185,9 @@ export function RunGrid({ runId, run, scenes, initial, initialPacks }: Props) {
     : null;
 
   const totalSucceeded = succeededTopLevel.length;
+  const inProgress = topLevel.some(
+    (g) => g.status === "pending" || g.status === "running",
+  );
   const metaLabel = allWatermarked
     ? `${totalSucceeded} ${totalSucceeded === 1 ? "preview" : "previews"} · watermarked`
     : `${totalSucceeded} ${totalSucceeded === 1 ? "image" : "images"}`;
@@ -305,12 +308,12 @@ export function RunGrid({ runId, run, scenes, initial, initialPacks }: Props) {
               <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-4">
                 Source photo
               </p>
-              <div className="relative aspect-[4/5] w-[120px] overflow-hidden rounded-md border border-line-soft bg-paper-2">
+              <div className="relative aspect-[4/5] w-[108px] overflow-hidden rounded-md border border-line-soft/70 bg-paper-2 opacity-95">
                 <Image
                   src={sourceUrl}
                   alt="Source product photo"
                   fill
-                  sizes="120px"
+                  sizes="108px"
                   unoptimized
                   className="object-cover"
                 />
@@ -342,53 +345,53 @@ export function RunGrid({ runId, run, scenes, initial, initialPacks }: Props) {
 
         {/* Right gallery */}
         <div className="flex min-w-0 flex-1 flex-col gap-12">
-          <GenerationProgressPanel generations={gens} scenes={scenes} />
-
-          {groups.length > 1 ? (
-            <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-line-soft pb-3">
-              <FilterTab
-                active={activeScene === "all"}
-                onClick={() => setActiveScene("all")}
-              >
-                All
-              </FilterTab>
-              {groups.map((g) => (
-                <FilterTab
-                  key={g.slug}
-                  active={activeScene === g.slug}
-                  onClick={() => setActiveScene(g.slug)}
-                >
-                  {g.name}
-                </FilterTab>
-              ))}
-            </nav>
-          ) : null}
-
-          {visibleGroups.length === 0 ? (
-            <div className="rounded-lg border border-line bg-surface p-12 text-center">
-              <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-                Working on it
-              </p>
-              <p className="mt-3 font-serif text-2xl text-ink">
-                Your batch is still developing.
-              </p>
-              <p className="mx-auto mt-2 max-w-md text-[14px] leading-[1.55] text-ink-3">
-                Tiles appear as each scene finishes — usually within ninety
-                seconds.
-              </p>
-            </div>
+          {inProgress ? (
+            <HeroGenerationCard generations={gens} scenes={scenes} />
           ) : (
-            visibleGroups.map((group) => (
-              <SceneSection
-                key={group.slug}
-                runId={runId}
-                name={group.name}
-                items={group.items}
-                onDownloadAll={() => downloadAll(group.succeeded)}
-                onTileClick={openLightbox}
-                onPackCreated={handlePackCreated}
-              />
-            ))
+            <>
+              {groups.length > 1 ? (
+                <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-line-soft pb-3">
+                  <FilterTab
+                    active={activeScene === "all"}
+                    onClick={() => setActiveScene("all")}
+                  >
+                    All
+                  </FilterTab>
+                  {groups.map((g) => (
+                    <FilterTab
+                      key={g.slug}
+                      active={activeScene === g.slug}
+                      onClick={() => setActiveScene(g.slug)}
+                    >
+                      {g.name}
+                    </FilterTab>
+                  ))}
+                </nav>
+              ) : null}
+
+              {visibleGroups.length === 0 ? (
+                <div className="rounded-lg border border-line bg-surface p-12 text-center">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+                    No generated images yet
+                  </p>
+                  <p className="mt-3 font-serif text-2xl text-ink">
+                    This batch is empty.
+                  </p>
+                </div>
+              ) : (
+                visibleGroups.map((group) => (
+                  <SceneSection
+                    key={group.slug}
+                    runId={runId}
+                    name={group.name}
+                    items={group.items}
+                    onDownloadAll={() => downloadAll(group.succeeded)}
+                    onTileClick={openLightbox}
+                    onPackCreated={handlePackCreated}
+                  />
+                ))
+              )}
+            </>
           )}
 
           {packs.map((p) => (
@@ -544,23 +547,27 @@ function Tile({
             aria-label="View full size"
             className="absolute inset-0 z-0 cursor-zoom-in"
           >
-            <Image
-              src={`/api/images/${g.id}`}
-              alt=""
-              fill
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              unoptimized
-              className={
-                showFaceBox
-                  ? "object-contain transition-transform duration-700 group-hover:scale-[1.03]"
-                  : "object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-              }
-              style={
-                showFaceBox
-                  ? undefined
-                  : { objectPosition: focalToObjectPosition(g.focalPoint) }
-              }
-            />
+            {showFaceBox ? (
+              <Image
+                src={`/api/images/${g.id}`}
+                alt=""
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                unoptimized
+                className="object-contain transition-transform duration-700 group-hover:scale-[1.03]"
+              />
+            ) : (
+              <FaceSafeImage
+                src={`/api/images/${g.id}`}
+                alt=""
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                unoptimized
+                className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                faceBox={g.faceBox}
+                focalPoint={g.focalPoint}
+              />
+            )}
           </button>
           {showFaceBox ? (
             <FaceBoxOverlay faceBox={g.faceBox} focalPoint={g.focalPoint} />

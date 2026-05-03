@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import type { Generation, SceneInfo } from "@/app/(app)/app/runs/[id]/run-grid";
 import { FaceSafeImage } from "@/components/ui/face-safe-image";
 
@@ -114,7 +113,8 @@ const PHASE_MICROCOPY: Record<Phase, string[]> = {
   failed: ["Something went wrong"],
 };
 
-const MICROCOPY_INTERVAL_MS = 1500;
+const MICROCOPY_INTERVAL_MS = 1800;
+const ANTICIPATION_THRESHOLD = 80;
 
 // Picks the next index in a phrase bank that is NOT the previous one, using a
 // uniform-random pick from the remaining N−1 slots. Cheap, no full shuffle,
@@ -211,8 +211,6 @@ export function HeroGenerationCard({ generations, scenes }: Props) {
         ? 0
         : Math.round(95 * (1 - Math.exp(-(activeElapsedSec / avgSec) * 1.2)));
 
-  const overallPct = total > 0 ? Math.round((done / total) * 100) : 0;
-
   const remainingItems = total - done;
   // Honest ETA: avg × items left, minus what we've already spent on the active.
   const overallEtaSec =
@@ -229,32 +227,29 @@ export function HeroGenerationCard({ generations, scenes }: Props) {
     .filter((g) => g.status === "succeeded" && g.outputUrl && g.id !== active.id)
     .slice(0, 3);
 
-  return (
-    <section className="space-y-8">
-      <div className="flex items-start justify-end">
-        <OverallProgress
-          done={done}
-          total={total}
-          pct={overallPct}
-          etaSec={overallEtaSec}
-        />
-      </div>
+  const nearDone = activePct > ANTICIPATION_THRESHOLD;
 
-      <div className="mx-auto w-full max-w-[860px] overflow-hidden rounded-2xl border border-line-soft bg-surface shadow-card">
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_220px]">
+  return (
+    <section className="space-y-6">
+      <div
+        className="mx-auto w-full max-w-[940px] overflow-hidden rounded-[24px] border border-line-soft bg-surface"
+        style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.06)" }}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_200px]">
           <ImageArea
             sceneName={activeSceneName}
             pct={activePct}
             siblings={completedSiblings}
             microcopy={subLabel}
+            nearDone={nearDone}
           />
           <Timeline currentPhase={activePhase} />
         </div>
 
-        <div className="flex items-end justify-between gap-6 border-t border-line-soft bg-paper-soft px-6 py-4">
+        <div className="flex items-end justify-between gap-6 border-t border-line-soft bg-paper-soft px-6 py-3.5">
           <div className="min-w-0">
             <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-terracotta">
-              {PHASE_LABELS[activePhase]}
+              {nearDone ? "Almost ready" : PHASE_LABELS[activePhase]}
             </p>
             <p className="mt-1 truncate text-[12px] text-ink-3">
               {activeSceneName}
@@ -270,6 +265,11 @@ export function HeroGenerationCard({ generations, scenes }: Props) {
                 Estimating
               </p>
             )}
+            {total > 1 ? (
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-4 tabular-nums">
+                {done} / {total}
+              </p>
+            ) : null}
           </div>
         </div>
       </div>
@@ -302,15 +302,17 @@ function ImageArea({
   pct,
   siblings,
   microcopy,
+  nearDone,
 }: {
   sceneName: string;
   pct: number;
   siblings: Generation[];
   microcopy: string;
+  nearDone: boolean;
 }) {
   return (
-    <div className="relative flex min-h-[440px] items-center justify-center overflow-hidden bg-gradient-to-br from-paper-2 via-paper-soft to-paper-2 p-10">
-      {/* Subtle particle/grain overlay — pure CSS, no images. */}
+    <div className="relative flex min-h-[460px] items-center justify-center overflow-hidden bg-gradient-to-br from-paper-2 via-paper-soft to-paper-2 p-10">
+      {/* Background motion — soft drifting gradient; barely visible. */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-[0.18] motion-safe:animate-[drift_18s_ease-in-out_infinite]"
@@ -320,13 +322,42 @@ function ImageArea({
         }}
       />
 
+      {/* Anticipation: when pct > 80 we add a soft veil + a single shimmer
+          sweep across the card. Both are pure CSS, no JS animation. */}
+      {nearDone ? (
+        <>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 backdrop-blur-[1px] bg-cream/10"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 motion-safe:animate-[shimmer_1800ms_ease-out_forwards]"
+            style={{
+              background:
+                "linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.35) 50%, transparent 65%)",
+              backgroundSize: "200% 100%",
+            }}
+          />
+        </>
+      ) : null}
+
       <div className="relative z-10 flex flex-col items-center gap-5">
-        <ProgressRing pct={pct} />
+        <div className="relative">
+          <ProgressRing pct={pct} />
+          {/* Floating accent spark — small terracotta dot drifting near the
+              ring. Premium liveness without distracting motion. */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -right-1 -top-2 h-1.5 w-1.5 rounded-full bg-terracotta motion-safe:animate-[spark_3200ms_ease-in-out_infinite]"
+            style={{ boxShadow: "0 0 8px rgba(194,96,76,0.6)" }}
+          />
+        </div>
         {/* Editorial rotating phrase — keyed on text so each new phrase
             re-mounts and gets the fade animation. */}
         <p
           key={microcopy}
-          className="min-h-[1.6em] max-w-[280px] text-center font-serif text-[18px] italic leading-[1.3] text-ink opacity-0 motion-safe:animate-[fadein_500ms_ease-out_forwards]"
+          className="min-h-[1.6em] max-w-[300px] text-center font-serif text-[18px] italic leading-[1.3] text-ink opacity-0 motion-safe:animate-[fadein_600ms_ease-out_forwards]"
         >
           {microcopy}
         </p>
@@ -377,26 +408,47 @@ function ImageArea({
             transform: translateY(0);
           }
         }
+        @keyframes shimmer {
+          from {
+            background-position: -100% 0;
+            opacity: 0.8;
+          }
+          to {
+            background-position: 200% 0;
+            opacity: 0;
+          }
+        }
+        @keyframes spark {
+          0%,
+          100% {
+            transform: translateY(0) scale(1);
+            opacity: 0.6;
+          }
+          50% {
+            transform: translateY(-6px) scale(1.25);
+            opacity: 1;
+          }
+        }
       `}</style>
     </div>
   );
 }
 
 function ProgressRing({ pct }: { pct: number }) {
-  const size = 96;
-  const stroke = 4;
+  const size = 100;
+  const stroke = 5;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const offset = c * (1 - Math.max(0, Math.min(100, pct)) / 100);
   return (
-    <div className="relative h-24 w-24">
+    <div className="relative h-[100px] w-[100px]">
       <svg viewBox={`0 0 ${size} ${size}`} className="absolute inset-0">
         <circle
           cx={size / 2}
           cy={size / 2}
           r={r}
           fill="none"
-          stroke="rgba(0,0,0,0.08)"
+          stroke="rgba(0,0,0,0.07)"
           strokeWidth={stroke}
         />
         <circle
@@ -410,11 +462,14 @@ function ProgressRing({ pct }: { pct: number }) {
           strokeDashoffset={offset}
           strokeLinecap="round"
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          style={{ transition: "stroke-dashoffset 700ms ease-out" }}
+          style={{
+            transition: "stroke-dashoffset 700ms ease-out",
+            filter: "drop-shadow(0 0 4px rgba(194,96,76,0.45))",
+          }}
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="font-serif text-[26px] leading-none text-ink tabular-nums">
+        <span className="font-serif text-[28px] leading-none text-ink tabular-nums">
           {Math.round(pct)}%
         </span>
       </div>
@@ -426,83 +481,45 @@ function Timeline({ currentPhase }: { currentPhase: Phase }) {
   const idx =
     currentPhase === "failed" ? -1 : PHASES.indexOf(currentPhase);
   return (
-    <div className="border-t border-line-soft bg-surface px-6 py-6 md:border-l md:border-t-0">
-      <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4">
+    <div className="border-t border-line-soft/60 bg-surface px-5 py-5 md:border-l md:border-t-0">
+      <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-ink-4">
         Steps
       </p>
-      <ol className="mt-4 space-y-3">
+      <ol className="mt-3 space-y-2.5">
         {PHASES.map((p, i) => {
           const state =
             i < idx ? "past" : i === idx ? "current" : "future";
           const ringClass =
             state === "past"
-              ? "border-ink-3 bg-ink-3 text-cream"
+              ? "border-ink-3/70 bg-ink-3/70 text-cream"
               : state === "current"
                 ? "border-terracotta bg-terracotta text-cream motion-safe:animate-pulse"
                 : "border-line bg-surface text-transparent";
+          // Reduced weight: past 60%, future 40%, current full.
+          const rowOpacity =
+            state === "current"
+              ? "opacity-100"
+              : state === "past"
+                ? "opacity-60"
+                : "opacity-40";
           const labelClass =
-            state === "past"
-              ? "text-ink-3"
-              : state === "current"
-                ? "font-medium text-ink"
-                : "text-ink-4";
+            state === "current" ? "font-medium text-ink" : "text-ink-2";
           return (
-            <li key={p} className="flex items-center gap-3">
+            <li key={p} className={`flex items-center gap-2.5 ${rowOpacity}`}>
               <span
-                className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${ringClass}`}
+                className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors ${ringClass}`}
               >
                 {state === "past" ? (
-                  <span className="text-[10px] leading-none">✓</span>
+                  <span className="text-[8px] leading-none">✓</span>
                 ) : null}
               </span>
-              <span className={`text-[13px] ${labelClass}`}>
+              <span className={`text-[12px] ${labelClass}`}>
                 {PHASE_LABELS[p]}
               </span>
             </li>
           );
         })}
       </ol>
-    </div>
-  );
-}
-
-function OverallProgress({
-  done,
-  total,
-  pct,
-  etaSec,
-}: {
-  done: number;
-  total: number;
-  pct: number;
-  etaSec: number | null;
-}) {
-  return (
-    <div className="w-full max-w-[320px] rounded-xl border border-line-soft bg-surface px-4 py-3 shadow-subtle">
-      <div className="flex items-baseline justify-between gap-3">
-        <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3">
-          Overall progress
-        </p>
-        <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-ink-3 tabular-nums">
-          {done} / {total}
-        </p>
-      </div>
-      <div className="mt-2 flex items-baseline justify-between gap-3">
-        <p className="font-serif text-[28px] leading-none text-terracotta tabular-nums">
-          {pct}%
-        </p>
-        {etaSec !== null ? (
-          <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-4 tabular-nums">
-            {formatSeconds(etaSec)} left
-          </p>
-        ) : null}
-      </div>
-      <div className="mt-3 h-1 overflow-hidden rounded-full bg-line-soft">
-        <div
-          className="h-full rounded-full bg-terracotta transition-[width] duration-700 ease-out"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
     </div>
   );
 }
@@ -516,12 +533,11 @@ function WhileYouWait() {
             What&rsquo;s happening?
           </p>
           <p className="mt-3 font-serif text-[20px] leading-[1.3] tracking-[-0.01em] text-ink">
-            Your image is being composed scene by scene.
+            Your image is being composed
           </p>
           <p className="mt-3 text-[13px] leading-[1.6] text-ink-3">
-            Vesperdrop reads your source photo, plans the lighting and
-            styling for each preset, then renders the final HD frame. Most
-            images take under a minute.
+            Vesperdrop analyzes your source photo, plans lighting and
+            styling, and renders a high-quality result in under a minute.
           </p>
         </div>
         <div>

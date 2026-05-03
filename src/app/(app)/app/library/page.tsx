@@ -137,6 +137,7 @@ export default async function Page({
               url: `/api/images/${g.id}`,
               alt: sceneNameBySlug.get(g.presetId) ?? g.presetId,
               focalPoint: g.focalPoint,
+              faceBox: g.faceBox,
             }));
 
             const [hero, ...rest] = tiles;

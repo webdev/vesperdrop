@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef } from "react";
 import type { Generation, Pack } from "@/app/(app)/app/runs/[id]/run-grid";
-import { focalToObjectPosition } from "@/lib/focal-point";
+import { FaceSafeImg } from "@/components/ui/face-safe-image";
 
 const PLATFORM_LABELS: Record<Pack["platform"], string> = {
   amazon: "Amazon Apparel",
@@ -91,12 +91,12 @@ function PackTile({ shot, index }: { shot: Generation | undefined; index: number
     <div className="relative aspect-[4/5] overflow-hidden rounded-md border border-line-soft bg-paper-2">
       {shot?.status === "succeeded" && shot.outputUrl ? (
         <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <FaceSafeImg
             src={shot.outputUrl}
             alt={shot.packRole ?? `Shot ${index + 1}`}
             className="h-full w-full object-cover"
-            style={{ objectPosition: focalToObjectPosition(shot.focalPoint) }}
+            faceBox={shot.faceBox}
+            focalPoint={shot.focalPoint}
           />
           {shot.packRole ? (
             <span className="absolute bottom-2 left-2 rounded-full bg-cream/95 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-ink">
