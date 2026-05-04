@@ -142,38 +142,41 @@ export function CampaignCard(props: CampaignCardProps) {
           </Link>
         </div>
       ) : null}
-      <div className="mt-7 flex flex-wrap items-center gap-1.5">
+      {/* Primary action gets its own row so it reads as the dominant CTA;
+          secondary + utility actions cluster below. */}
+      <div className="mt-7 flex flex-col items-start gap-2">
         <Link
           href={`/app/runs/${runId}`}
           className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-cream transition-all duration-200 hover:bg-ink-2"
         >
           View batch <span aria-hidden>→</span>
         </Link>
-        {secondaryCta === "complete-look" && hero ? (
-          <LibraryCompleteLookButton
-            runId={runId}
-            parentGenerationId={hero.id}
-            locked={pill?.label === "Preview"}
-          />
-        ) : (
-          <Link
-            href="/try"
-            className="inline-flex items-center gap-2 rounded-full border border-line bg-paper-soft px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink transition-colors hover:border-ink-4 hover:bg-paper-2"
-          >
-            Use this style <RefreshIcon />
-          </Link>
-        )}
-        <span aria-hidden className="mx-1 h-5 w-px bg-line" />
-        <DeleteBatchDialog runId={runId} label={customName ?? fallbackTitle}>
-          <button
-            type="button"
-            aria-label={`Delete ${title}`}
-            title="Delete batch"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-line bg-paper-soft text-ink-3 transition-colors hover:border-terracotta/40 hover:bg-paper-2 hover:text-terracotta-dark"
-          >
-            <TrashIcon />
-          </button>
-        </DeleteBatchDialog>
+        <div className="flex flex-wrap items-center gap-2">
+          {secondaryCta === "complete-look" && hero ? (
+            <LibraryCompleteLookButton
+              runId={runId}
+              parentGenerationId={hero.id}
+              locked={pill?.label === "Preview"}
+            />
+          ) : (
+            <Link
+              href="/try"
+              className="inline-flex items-center gap-2 rounded-full border border-line bg-paper-soft px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink transition-colors hover:border-ink-4 hover:bg-paper-2"
+            >
+              Use this style <RefreshIcon />
+            </Link>
+          )}
+          <DeleteBatchDialog runId={runId} label={customName ?? fallbackTitle}>
+            <button
+              type="button"
+              aria-label={`Delete ${title}`}
+              title="Delete batch"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-line bg-paper-soft text-ink-3 transition-colors hover:border-terracotta/40 hover:bg-paper-2 hover:text-terracotta-dark"
+            >
+              <TrashIcon />
+            </button>
+          </DeleteBatchDialog>
+        </div>
       </div>
     </header>
   );

@@ -13,6 +13,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { SceneifyPublicPreset } from "@/lib/sceneify/types";
 import { PageShell } from "@/components/ui/page-shell";
 import { applyPicks } from "./actions";
+import { DiscoverEndcap } from "./discover-endcap";
+import { DiscoverEntryBanner } from "./discover-entry-banner";
 
 type Direction = "left" | "right";
 type HistoryEntry = { id: string; dir: Direction };
@@ -44,6 +46,14 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
   const [drag, setDrag] = useState({ x: 0, y: 0, active: false });
   const [exiting, setExiting] = useState<{ id: string; dir: Direction } | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  // UX feedback state (cosmetic — never gates real selection logic):
+  //   savedTick   → bumps each "save" to retrigger the floating "Saved ✓"
+  //   pulseTick   → bumps each "save" to retrigger heart-button pulse
+  //   milestone   → transient encouragement at like-count thresholds
+  //   refHintDone → reference helper dismisses after the first interaction
+  const [savedTick, setSavedTick] = useState(0);
+  const [pulseTick, setPulseTick] = useState(0);
+  const [milestone, setMilestone] = useState<string | null>(null);
 
   const urlPhase = parsePhase(searchParams.get("phase"));
   const effectivePhase: Phase =
@@ -78,6 +88,19 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
     (dir: Direction) => {
       if (!topId || exiting) return;
       const id = topId;
+      // Save reward — fires immediately on the user's tap so the feedback
+      // overlaps with the exit transition, not after it. Milestones fire
+      // here (in the event handler) so we don't need a setState-in-effect.
+      if (dir === "right") {
+        setSavedTick((v) => v + 1);
+        setPulseTick((v) => v + 1);
+        const nextLikedCount = liked.length + 1;
+        if (nextLikedCount === 5) {
+          setMilestone("Nice — your style is becoming clear");
+        } else if (nextLikedCount === 10) {
+          setMilestone("You're developing a strong aesthetic");
+        }
+      }
       setExiting({ id, dir });
       setHistory((h) => [...h, { id, dir }]);
       window.setTimeout(() => {
@@ -88,8 +111,17 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
         setDrag({ x: 0, y: 0, active: false });
       }, EXIT_MS);
     },
-    [topId, exiting],
+    [topId, exiting, liked.length],
   );
+
+  // Auto-clear the milestone toast after ~1.8s. setState lives inside the
+  // setTimeout callback (not the effect body) so it doesn't trigger the
+  // set-state-in-effect lint rule.
+  useEffect(() => {
+    if (!milestone) return;
+    const t = window.setTimeout(() => setMilestone(null), 1800);
+    return () => window.clearTimeout(t);
+  }, [milestone]);
 
   const undo = useCallback(() => {
     setHistory((h) => {
@@ -278,6 +310,18 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
   const totalDecided = liked.length + skipped.length;
   const totalCards = allIds.length;
   const progress = totalCards === 0 ? 0 : totalDecided / totalCards;
+  const remaining = totalCards - totalDecided;
+
+  // Contextual progress message — derived from real counts only.
+  const progressMessage = (() => {
+    if (totalDecided === 0) return "Tap save on anything that catches your eye";
+    if (liked.length === 0 && skipped.length > 0)
+      return "Each save sharpens your taste";
+    if (remaining === 0) return null;
+    if (remaining <= 3) return "Almost there — keep going";
+    if (remaining <= 7) return "You're building your taste profile";
+    return null;
+  })();
 
   // All cards share a base centered transform (`translate(-50%, -50%)`); per-
   // card transforms add to that. Drag/exit transforms layer on top of the
@@ -338,11 +382,6 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
           <h1 className="mt-3 font-serif text-[64px] leading-[1.05] tracking-[-0.02em] text-ink">
             Train your eye.
           </h1>
-          <p className="mt-4 max-w-[420px] text-[16px] leading-[1.4] text-ink-3">
-            Swipe right on looks you love.
-            <br />
-            Skip what doesn&apos;t speak to you.
-          </p>
         </div>
 
         <div className="text-right">
@@ -357,6 +396,14 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
             <span>♥ {liked.length} liked</span>
             <span>✕ {skipped.length} skipped</span>
           </div>
+          {progressMessage ? (
+            <p
+              key={progressMessage}
+              className="mt-2 text-[12px] italic leading-[1.4] text-ink-3 opacity-0 motion-safe:animate-[fadein-soft_500ms_ease-out_forwards]"
+            >
+              {progressMessage}
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -368,9 +415,36 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
         />
       </div>
 
+      {/* Entry orientation banner — sits between hero and carousel. The
+          PageShell rhythm provides the surrounding spacing; we don't add
+          extra mt/mb so it doesn't compound. */}
+      <DiscoverEntryBanner scrollTargetId="discover-deck-anchor" />
+
       {/* Deck — breaks out of the page container so cards span the viewport.
           Compact height keeps hero + stack + controls above the fold. */}
-      <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen overflow-hidden">
+      <div
+        id="discover-deck-anchor"
+        className="relative left-1/2 right-1/2 -mx-[50vw] w-screen overflow-hidden scroll-mt-24"
+      >
+        {/* Floating "Saved ✓" — keyed to retrigger animation on each save. */}
+        {savedTick > 0 ? (
+          <div
+            key={`saved-${savedTick}`}
+            className="pointer-events-none absolute left-1/2 top-6 z-50 -translate-x-1/2 font-mono text-[12px] uppercase tracking-[0.16em] text-terracotta opacity-0 motion-safe:animate-[saved-float_900ms_ease-out_forwards]"
+          >
+            Saved ✓
+          </div>
+        ) : null}
+        {/* Milestone toast — fades in/out on like-count thresholds. */}
+        {milestone ? (
+          <div
+            key={milestone}
+            className="pointer-events-none absolute left-1/2 top-2 z-50 -translate-x-1/2 rounded-full bg-ink/85 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-cream backdrop-blur-sm opacity-0 motion-safe:animate-[toast-pop_1800ms_ease-out_forwards]"
+          >
+            {milestone}
+          </div>
+        ) : null}
+
         <div
           className="relative mx-auto h-[420px] select-none"
           onMouseMove={(e) => onMove(e.clientX, e.clientY)}
@@ -453,8 +527,8 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
         </button>
       </div>
 
-      {/* Controls — spec: mt 24px from stack, gap 16px */}
-      <div className="!mt-6 flex items-center justify-center gap-4">
+      {/* Controls — tightened from mt-6 (24px) → mt-7 (28px) per density spec */}
+      <div className="!mt-7 flex items-center justify-center gap-4">
         <button
           type="button"
           onClick={() => decide("left")}
@@ -477,11 +551,19 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
           type="button"
           onClick={() => decide("right")}
           disabled={!topId || !!exiting}
-          aria-label="Like"
-          title="Like"
+          aria-label="Save"
+          title="Save look"
           className="inline-flex h-[52px] w-[52px] items-center justify-center rounded-full bg-terracotta text-cream shadow-card transition-colors hover:bg-terracotta-dark disabled:cursor-not-allowed disabled:opacity-40"
         >
-          <span aria-hidden className="text-lg">♥</span>
+          {/* Inner span keyed on pulseTick → remounts and re-runs the
+              one-shot pulse animation each time the user saves. */}
+          <span
+            key={`heart-${pulseTick}`}
+            aria-hidden
+            className="inline-block text-lg motion-safe:animate-[heart-pulse_320ms_ease-out]"
+          >
+            ♥
+          </span>
         </button>
         <button
           type="button"
@@ -489,18 +571,115 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
           disabled={!topId || !!exiting}
           className="text-[14px] text-ink-3 transition-colors hover:text-terracotta disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Looks good
+          Save look
         </button>
       </div>
 
-      <div className="!mt-4 mx-auto max-w-md space-y-1 text-center text-[13px] leading-[1.45] text-ink-3">
-        <p>Try it. Generate with your favorite.</p>
-        <p>
+      {/* Helper block — restructured per density spec: micro progress
+          context → 120×1px divider → two compact lines. Replaces the
+          floating two-line paragraph that read as dead space. */}
+      <div className="!mt-3 mx-auto max-w-[420px] text-center">
+        <p
+          className="font-mono"
+          style={{
+            fontSize: 12,
+            letterSpacing: "0.02em",
+            color: "rgba(0,0,0,0.5)",
+          }}
+        >
+          {liked.length === 0
+            ? "You're building your aesthetic"
+            : remaining > 0
+              ? `${liked.length} ${liked.length === 1 ? "style" : "styles"} saved · ${remaining} more to go`
+              : `${liked.length} ${liked.length === 1 ? "style" : "styles"} saved`}
+        </p>
+        <div
+          aria-hidden
+          className="mx-auto"
+          style={{
+            width: 120,
+            height: 1,
+            background: "rgba(0,0,0,0.08)",
+            margin: "20px auto 16px",
+          }}
+        />
+        <p style={{ fontSize: 13, lineHeight: 1.4, color: "rgba(0,0,0,0.55)" }}>
+          Try it on your product
+        </p>
+        <p
+          className="mt-1"
+          style={{ fontSize: 14, lineHeight: 1.4, color: "rgba(0,0,0,0.65)" }}
+        >
           You can generate{" "}
-          <strong className="font-medium text-terracotta">1 style</strong>{" "}
-          for free.
+          <strong className="font-medium text-terracotta">1 style</strong> for
+          free
         </p>
       </div>
+
+      {/* Editorial end cap — pulled from mt-24 (96px) → 24px effective gap
+          (40px spec gap − 16px overlap) so ~20-30% of the banner shows
+          above the fold at 1440×900 and reads as a layered editorial
+          card stack rather than a separate section. */}
+      <div className="!mt-6">
+        <DiscoverEndcap
+          likedCount={liked.length}
+          thumbnails={presets
+            .map((p) => p.heroImageUrl)
+            .filter((u): u is string => Boolean(u))
+            .slice(0, 4)}
+        />
+      </div>
+
+      <style jsx global>{`
+        @keyframes heart-pulse {
+          0%,
+          100% {
+            transform: scale(1);
+          }
+          40% {
+            transform: scale(1.18);
+          }
+        }
+        @keyframes saved-float {
+          0% {
+            opacity: 0;
+            transform: translate(-50%, 8px);
+          }
+          25% {
+            opacity: 1;
+            transform: translate(-50%, 0);
+          }
+          100% {
+            opacity: 0;
+            transform: translate(-50%, -16px);
+          }
+        }
+        @keyframes toast-pop {
+          0% {
+            opacity: 0;
+            transform: translate(-50%, -6px) scale(0.96);
+          }
+          15%,
+          80% {
+            opacity: 1;
+            transform: translate(-50%, 0) scale(1);
+          }
+          100% {
+            opacity: 0;
+            transform: translate(-50%, -4px) scale(0.98);
+          }
+        }
+        @keyframes fadein-soft {
+          from {
+            opacity: 0;
+            transform: translateY(2px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </PageShell>
   );
 }
@@ -636,16 +815,6 @@ function TopCard({
         Nope
       </div>
 
-      {/* REFERENCE badge — spec: 10px, padding 4px 8px, subtle dark bg */}
-      <span
-        className="absolute right-3 top-3 inline-flex items-center rounded-full bg-ink/55 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em] text-cream backdrop-blur-sm"
-        style={{
-          opacity: Math.abs(dragX) > 30 ? 0.4 : 1,
-          transition: dragActive ? "none" : "opacity 0.15s",
-        }}
-      >
-        Reference
-      </span>
     </div>
   );
 }
