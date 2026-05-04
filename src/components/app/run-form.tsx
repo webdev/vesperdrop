@@ -151,8 +151,24 @@ export function RunForm({ scenes, initialSceneIds = [], credits }: Props) {
               </p>
             </header>
 
-            {/* Horizontal flex: [upload box 260×260] [preview 260×160] [metadata] */}
-            <div className="flex flex-col gap-5 md:flex-row md:items-start">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => addFiles(e.target.files)}
+            />
+
+            {files[0] ? (
+              <UploadedPreview
+                file={files[0]}
+                url={fileUrls[0]}
+                extraCount={files.length - 1}
+                onReplace={() => fileInputRef.current?.click()}
+                onRemove={clearFiles}
+              />
+            ) : (
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -166,76 +182,64 @@ export function RunForm({ scenes, initialSceneIds = [], credits }: Props) {
                   setDragOver(false);
                   addFiles(e.dataTransfer.files);
                 }}
-                className={`flex h-[260px] w-full shrink-0 cursor-pointer flex-col items-center justify-center gap-3 rounded-md border border-dashed transition-colors md:w-[260px] ${
-                  dragOver
-                    ? "border-terracotta bg-terracotta-wash/40"
-                    : "border-line bg-paper-soft hover:border-ink-4"
-                }`}
+                data-drag-active={dragOver || undefined}
+                className="dropzone group flex w-full cursor-pointer flex-col items-center justify-center text-center"
+                style={{
+                  minHeight: 240,
+                  padding: 32,
+                  borderRadius: 20,
+                  border: "1px dashed rgba(0,0,0,0.16)",
+                  background: "rgba(255,255,255,0.35)",
+                  transition:
+                    "border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease",
+                }}
               >
-                <UploadIcon />
-                <p className="text-[14px] text-ink-2">
-                  Drag and drop your image here
+                <span className="mb-3 inline-flex text-ink-3">
+                  <UploadIcon />
+                </span>
+                <p className="text-[16px] font-medium leading-[1.25] text-ink">
+                  Start with your product
                 </p>
-                <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-4">
-                  or
+                <p className="mt-1.5 text-[13px] leading-[1.5] text-ink-3">
+                  Upload a clean product photo to generate your first look.
                 </p>
-                <span className="mt-3 inline-flex items-center rounded-full bg-ink px-5 py-2 font-mono text-[11px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-ink-2">
+                <span
+                  className="mt-[18px] inline-flex items-center justify-center rounded-full bg-ink text-[13px] font-medium text-cream transition-colors group-hover:bg-ink-2"
+                  style={{ height: 40, padding: "0 18px" }}
+                >
                   Choose file
                 </span>
-                <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4">
-                  JPG or PNG · Max 25MB
+                <p
+                  className="mt-3 font-mono text-[10px] uppercase text-ink-4"
+                  style={{ letterSpacing: "0.12em" }}
+                >
+                  JPG or PNG · max 25MB
                 </p>
               </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => addFiles(e.target.files)}
-              />
+            )}
 
-              {files[0] ? (
-                <>
-                  {/* Preview 260×160 */}
-                  <div className="h-[160px] w-full shrink-0 overflow-hidden rounded-md border border-line-soft bg-paper-2 md:w-[260px]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={fileUrls[0]}
-                      alt={files[0].name}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  {/* File metadata */}
-                  <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-[14px] font-medium text-ink">
-                        {files[0].name}
-                      </p>
-                      <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-4">
-                        {(files[0].size / 1024 / 1024).toFixed(1)} MB
-                        {files.length > 1 ? ` · +${files.length - 1} more` : ""}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={clearFiles}
-                        className="mt-3 inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3 transition-colors hover:text-ink"
-                      >
-                        <span aria-hidden>↺</span> Replace
-                      </button>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={clearFiles}
-                      aria-label="Remove uploaded file"
-                      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-ink-4 transition-colors hover:bg-paper-2 hover:text-ink"
-                    >
-                      <span aria-hidden>×</span>
-                    </button>
-                  </div>
-                </>
-              ) : null}
-            </div>
+            <style jsx>{`
+              .dropzone:hover {
+                border-color: rgba(198, 95, 61, 0.45) !important;
+                background: rgba(198, 95, 61, 0.04) !important;
+              }
+              .dropzone[data-drag-active] {
+                border-color: var(--color-terracotta, #c2604c) !important;
+                background: rgba(198, 95, 61, 0.08) !important;
+                box-shadow: 0 0 0 3px rgba(198, 95, 61, 0.1);
+              }
+              .dropzone:focus-visible {
+                outline: none;
+                border-color: var(--color-terracotta, #c2604c) !important;
+                box-shadow: 0 0 0 3px rgba(198, 95, 61, 0.18);
+              }
+              @media (max-width: 640px) {
+                .dropzone {
+                  min-height: 200px !important;
+                  padding: 24px !important;
+                }
+              }
+            `}</style>
           </section>
 
           {/* Step 2 — Choose scenes */}
@@ -552,6 +556,108 @@ function StepItem({
         </p>
       </div>
     </li>
+  );
+}
+
+function UploadedPreview({
+  file,
+  url,
+  extraCount,
+  onReplace,
+  onRemove,
+}: {
+  file: File;
+  url: string;
+  extraCount: number;
+  onReplace: () => void;
+  onRemove: () => void;
+}) {
+  const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
+  return (
+    <div
+      className="flex w-full flex-col items-stretch gap-4 sm:flex-row sm:items-center"
+      style={{
+        minHeight: 240,
+        padding: 16,
+        borderRadius: 20,
+        border: "1px solid rgba(0,0,0,0.08)",
+        background: "rgba(255,255,255,0.55)",
+      }}
+    >
+      <div
+        className="relative flex shrink-0 items-center justify-center overflow-hidden bg-paper-2"
+        style={{
+          width: "100%",
+          maxWidth: 320,
+          aspectRatio: "4 / 3",
+          borderRadius: 14,
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={url}
+          alt={file.name}
+          onLoad={(e) => {
+            const img = e.currentTarget;
+            setDims({ w: img.naturalWidth, h: img.naturalHeight });
+          }}
+          className="h-full w-full"
+          style={{ objectFit: "contain" }}
+        />
+      </div>
+      <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-[14px] font-medium text-ink">
+            {file.name}
+          </p>
+          <p
+            className="mt-1 font-mono text-[10px] uppercase text-ink-4"
+            style={{ letterSpacing: "0.12em" }}
+          >
+            {dims ? `${dims.w}×${dims.h} · ` : ""}
+            {(file.size / 1024 / 1024).toFixed(1)} MB
+            {extraCount > 0 ? ` · +${extraCount} more` : ""}
+          </p>
+          <button
+            type="button"
+            onClick={onReplace}
+            className="mt-3 inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3 transition-colors hover:text-ink"
+          >
+            <span aria-hidden>↺</span> Replace image
+          </button>
+        </div>
+        <button
+          type="button"
+          onClick={onRemove}
+          aria-label="Remove uploaded file"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-4 transition-colors hover:bg-paper-2 hover:text-ink"
+        >
+          <TrashIcon />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M3 6h18" />
+      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+    </svg>
   );
 }
 
