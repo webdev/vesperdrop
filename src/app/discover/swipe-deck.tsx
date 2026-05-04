@@ -312,9 +312,11 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
   const progress = totalCards === 0 ? 0 : totalDecided / totalCards;
   const remaining = totalCards - totalDecided;
 
-  // Contextual progress message — derived from real counts only.
+  // Contextual progress message — derived from real counts only. The
+  // zero-state ("Tap save on…") is dropped intentionally; the entry banner
+  // already orients the user.
   const progressMessage = (() => {
-    if (totalDecided === 0) return "Tap save on anything that catches your eye";
+    if (totalDecided === 0) return null;
     if (liked.length === 0 && skipped.length > 0)
       return "Each save sharpens your taste";
     if (remaining === 0) return null;
@@ -575,46 +577,9 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
         </button>
       </div>
 
-      {/* Helper block — restructured per density spec: micro progress
-          context → 120×1px divider → two compact lines. Replaces the
-          floating two-line paragraph that read as dead space. */}
-      <div className="!mt-3 mx-auto max-w-[420px] text-center">
-        <p
-          className="font-mono"
-          style={{
-            fontSize: 12,
-            letterSpacing: "0.02em",
-            color: "rgba(0,0,0,0.5)",
-          }}
-        >
-          {liked.length === 0
-            ? "You're building your aesthetic"
-            : remaining > 0
-              ? `${liked.length} ${liked.length === 1 ? "style" : "styles"} saved · ${remaining} more to go`
-              : `${liked.length} ${liked.length === 1 ? "style" : "styles"} saved`}
-        </p>
-        <div
-          aria-hidden
-          className="mx-auto"
-          style={{
-            width: 120,
-            height: 1,
-            background: "rgba(0,0,0,0.08)",
-            margin: "20px auto 16px",
-          }}
-        />
-        <p style={{ fontSize: 13, lineHeight: 1.4, color: "rgba(0,0,0,0.55)" }}>
-          Try it on your product
-        </p>
-        <p
-          className="mt-1"
-          style={{ fontSize: 14, lineHeight: 1.4, color: "rgba(0,0,0,0.65)" }}
-        >
-          You can generate{" "}
-          <strong className="font-medium text-terracotta">1 style</strong> for
-          free
-        </p>
-      </div>
+      {/* Helper block removed — the action buttons + end-cap CTA do all
+          the orientation work the helper text used to. The "1 style free"
+          value prop moved into the end-cap CTA caption. */}
 
       {/* Editorial end cap — pulled from mt-24 (96px) → 24px effective gap
           (40px spec gap − 16px overlap) so ~20-30% of the banner shows
@@ -623,6 +588,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
       <div className="!mt-6">
         <DiscoverEndcap
           likedCount={liked.length}
+          progressRatio={progress}
           thumbnails={presets
             .map((p) => p.heroImageUrl)
             .filter((u): u is string => Boolean(u))
