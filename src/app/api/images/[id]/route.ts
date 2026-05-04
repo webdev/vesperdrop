@@ -65,11 +65,22 @@ export async function GET(
     }
   }
 
-  // Watermark policy: when serving the output of a generation flagged
-  // `watermarked: true`, apply the watermark on the fly. Stored bytes are
-  // raw so the same image can be re-served with a different watermark
-  // (or none) without re-generation.
-  const shouldWatermark = type === "output" && gen.watermarked === true;
+  // Watermark policy is plan-driven at serve time. The `watermarked` flag
+  // on the row records "this gen was created under a watermarking plan",
+  // but whether we ACTUALLY apply the watermark depends on the user's
+  // CURRENT plan: only free users see watermarks. The moment Stripe
+  // upgrades them to a paid tier, the next image request renders clean —
+  // no backfill needed, no race with stored bytes.
+  let shouldWatermark = type === "output" && gen.watermarked === true;
+  if (shouldWatermark) {
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("plan")
+      .eq("id", user.id)
+      .single();
+    const plan = (profile?.plan as string | undefined) ?? "free";
+    if (plan !== "free") shouldWatermark = false;
+  }
 
   let body: ReadableStream<Uint8Array> | Buffer | null = null;
   let contentType = "image/png";

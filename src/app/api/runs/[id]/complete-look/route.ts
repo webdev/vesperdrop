@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { db } from "@/lib/db";
 import { generations } from "@/lib/db/schema";
 import { tryDeductCredits, addCredits } from "@/lib/db/credits";
@@ -59,11 +60,28 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       { status: 400 },
     );
   }
-  if (parent.quality !== "hd" || parent.watermarked) {
+  if (parent.quality !== "hd") {
     return NextResponse.json(
       { error: "complete-the-look requires an HD generation" },
       { status: 400 },
     );
+  }
+  // The watermarked flag is plan-driven at serve time — only block pack
+  // derivation if the user is currently on free. Paid users can spin off
+  // packs from gens that were originally watermarked.
+  if (parent.watermarked) {
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("plan")
+      .eq("id", user.id)
+      .single();
+    const plan = (profile?.plan as string | undefined) ?? "free";
+    if (plan === "free") {
+      return NextResponse.json(
+        { error: "complete-the-look requires an HD generation" },
+        { status: 400 },
+      );
+    }
   }
   if (!parent.sceneifyGenerationId) {
     return NextResponse.json(

@@ -1,7 +1,7 @@
 const ITEMS = [
   {
-    q: "What's the catch with the free shots?",
-    a: "There isn't one. Three watermarked previews per visitor, no card, no email needed. Sign up if you want one in HD.",
+    q: "Is there really no signup needed to try?",
+    a: "Right. Drop a photo, pick a scene, see the result — watermarked, no card, no email. Sign up if you want it in HD.",
   },
   {
     q: "What kinds of products work best?",

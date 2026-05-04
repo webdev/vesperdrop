@@ -30,6 +30,15 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const sceneRows = await db
     .select({ slug: scenesTable.slug, name: scenesTable.name })
     .from(scenesTable);
+  // Watermark + lock UI is plan-driven at serve time. Fetching the user's
+  // current plan once on the server keeps client logic simple.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("plan")
+    .eq("id", user.id)
+    .single();
+  const isFreePlan =
+    !profile || (profile.plan as string | undefined) === "free";
 
   const initial: Generation[] = rows.map((r) => ({
     id: r.id,
@@ -70,6 +79,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         scenes={sceneRows.map((s) => ({ slug: s.slug, name: s.name }))}
         initial={initial}
         initialPacks={initialPacks}
+        isFreePlan={isFreePlan}
       />
       {showMockToggle ? <MockGenToggle /> : null}
     </>

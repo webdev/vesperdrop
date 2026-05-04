@@ -10,6 +10,8 @@ export type ReconcileResult = {
   updated: number;
   unlinked: number;
   unknownPrice: number;
+  /** Paid users with no active Stripe sub — auto-downgraded to free. */
+  downgraded: number;
   errors: number;
   changes: Array<{
     customerId: string;
@@ -72,6 +74,7 @@ export async function reconcileSubscriptions(): Promise<ReconcileResult> {
     updated: 0,
     unlinked: 0,
     unknownPrice: 0,
+    downgraded: 0,
     errors: 0,
     changes: [],
   };
@@ -144,6 +147,53 @@ export async function reconcileSubscriptions(): Promise<ReconcileResult> {
       from: { plan: profile.plan ?? null, renewsAt: currentRenews },
       to: { plan, renewsAt },
     });
+  }
+
+  // Downgrade pass — catch missed customer.subscription.deleted webhooks.
+  // Any profile currently marked paid (plan != "free") whose
+  // stripe_customer_id is NOT in the active set above no longer has an
+  // active sub — flip them back to free. Credits are intentionally not
+  // touched (same policy as upgrades).
+  const activeCustomerIds = Array.from(byCustomer.keys());
+  const { data: paidProfiles, error: paidErr } = await supabaseAdmin
+    .from("profiles")
+    .select("id, plan, plan_renews_at, stripe_customer_id")
+    .neq("plan", "free")
+    .not("stripe_customer_id", "is", null);
+
+  if (paidErr) {
+    result.errors += 1;
+    console.error("[reconcile] failed to list paid profiles", paidErr);
+  } else if (paidProfiles) {
+    const activeSet = new Set(activeCustomerIds);
+    for (const p of paidProfiles) {
+      const cid = p.stripe_customer_id as string | null;
+      if (!cid) continue;
+      if (activeSet.has(cid)) continue;
+      const fromRenews = p.plan_renews_at
+        ? new Date(p.plan_renews_at as string).toISOString()
+        : null;
+      const { error: dErr } = await supabaseAdmin
+        .from("profiles")
+        .update({ plan: "free", plan_renews_at: null })
+        .eq("id", p.id);
+      if (dErr) {
+        result.errors += 1;
+        console.error("[reconcile] failed to downgrade profile", {
+          userId: p.id,
+          customerId: cid,
+          error: dErr,
+        });
+        continue;
+      }
+      result.downgraded += 1;
+      result.changes.push({
+        customerId: cid,
+        userId: p.id as string,
+        from: { plan: p.plan as string, renewsAt: fromRenews },
+        to: { plan: "free", renewsAt: null },
+      });
+    }
   }
 
   return result;

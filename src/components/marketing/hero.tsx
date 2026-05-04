@@ -49,7 +49,7 @@ export function Hero() {
               </Link>
             </div>
             <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-line-soft pt-6 sm:grid-cols-4">
-              <Stat label="Free shots" value="3" />
+              <Stat label="Free trial" value="Yes" />
               <Stat label="Marketplace" value="A+ ready" />
               <Stat label="Per batch" value="~90s" />
               <Stat label="Pro from" value="$20" />

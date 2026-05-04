@@ -30,7 +30,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </p>
 
           <ul className="space-y-3 text-[14px] text-ink-2">
-            <Bullet>3 free shots — no card required</Bullet>
+            <Bullet>Free preview — no card required</Bullet>
             <Bullet>Amazon A+ resolution (2000px)</Bullet>
             <Bullet>First batch ready in ~90 seconds</Bullet>
             <Bullet>Cancel any time</Bullet>

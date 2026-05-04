@@ -30,6 +30,7 @@ export async function GET(req: Request) {
       updated: result.updated,
       unlinked: result.unlinked,
       unknownPrice: result.unknownPrice,
+      downgraded: result.downgraded,
       errors: result.errors,
     });
     return NextResponse.json(result);

@@ -79,6 +79,9 @@ interface Props {
   scenes: SceneInfo[];
   initial: Generation[];
   initialPacks: Pack[];
+  /** Plan-driven watermark + lock policy. When false (paid), watermark
+      labels and complete-look paywall popovers don't show. */
+  isFreePlan: boolean;
 }
 
 const DATE_FMT = new Intl.DateTimeFormat("en-US", {
@@ -102,7 +105,14 @@ function deriveTitle(names: string[]): string {
   return `${names[0]} + ${names.length - 1} more`;
 }
 
-export function RunGrid({ runId, run, scenes, initial, initialPacks }: Props) {
+export function RunGrid({
+  runId,
+  run,
+  scenes,
+  initial,
+  initialPacks,
+  isFreePlan,
+}: Props) {
   const [gens, setGens] = useState<Generation[]>(initial);
   const [packs, setPacks] = useState<Pack[]>(initialPacks);
   const [activeScene, setActiveScene] = useState<string>("all");
@@ -149,8 +159,12 @@ export function RunGrid({ runId, run, scenes, initial, initialPacks }: Props) {
     () => gens.filter((g) => g.status === "succeeded" && g.outputUrl),
     [gens],
   );
+  // Effective watermarking is plan-driven: a row's `watermarked` flag
+  // only matters when the user is currently on free.
   const allWatermarked =
-    succeededTopLevel.length > 0 && succeededTopLevel.every((g) => g.watermarked);
+    isFreePlan &&
+    succeededTopLevel.length > 0 &&
+    succeededTopLevel.every((g) => g.watermarked);
 
   const groups = useMemo(() => {
     const m = new Map<string, Generation[]>();
@@ -406,6 +420,7 @@ export function RunGrid({ runId, run, scenes, initial, initialPacks }: Props) {
                       runId={runId}
                       name={group.name}
                       items={group.items}
+                      isFreePlan={isFreePlan}
                       onTileClick={openLightbox}
                       onPackCreated={handlePackCreated}
                     />
@@ -496,12 +511,14 @@ function SceneSection({
   runId,
   name,
   items,
+  isFreePlan,
   onTileClick,
   onPackCreated,
 }: {
   runId: string;
   name: string;
   items: Generation[];
+  isFreePlan: boolean;
   onTileClick: (id: string) => void;
   onPackCreated: (pack: Pack, shots: Generation[]) => void;
 }) {
@@ -528,6 +545,7 @@ function SceneSection({
             key={g.id}
             runId={runId}
             generation={g}
+            isFreePlan={isFreePlan}
             onPackCreated={onPackCreated}
             onClick={() => onTileClick(g.id)}
           />
@@ -540,16 +558,22 @@ function SceneSection({
 function Tile({
   runId,
   generation: g,
+  isFreePlan,
   onPackCreated,
   onClick,
 }: {
   runId: string;
   generation: Generation;
+  isFreePlan: boolean;
   onPackCreated: (pack: Pack, shots: Generation[]) => void;
   onClick: () => void;
 }) {
   const succeeded = g.status === "succeeded" && g.outputUrl;
   const showFaceBox = useFaceBoxEnabled();
+  // Effective watermarked: row's watermarked flag only matters if user
+  // is currently on free. Drives the Preview gradient + the locked
+  // paywall on the Complete-the-look popover.
+  const effectivelyWatermarked = g.watermarked && isFreePlan;
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -588,7 +612,7 @@ function Tile({
             {showFaceBox ? (
               <FaceBoxOverlay faceBox={g.faceBox} focalPoint={g.focalPoint} />
             ) : null}
-            {g.watermarked ? (
+            {effectivelyWatermarked ? (
               <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 bg-gradient-to-t from-ink/70 to-transparent px-3 pb-3 pt-8">
                 <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-cream/85">
                   Preview
@@ -624,7 +648,7 @@ function Tile({
           runId={runId}
           parentGenerationId={g.id}
           disabled={!g.sceneifyGenerationId}
-          locked={g.watermarked}
+          locked={effectivelyWatermarked}
           onPackCreated={onPackCreated}
         />
       ) : null}

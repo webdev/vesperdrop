@@ -45,6 +45,17 @@ export default async function Page({
   } = await supabase.auth.getUser();
   if (!user) redirect("/sign-in?next=/app/library");
 
+  // Plan-driven watermark + lock policy: fetch the user's current plan
+  // so the page renders Preview pills + Complete-the-look paywall only
+  // when free. Paid users see clean labels + the platform picker.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("plan")
+    .eq("id", user.id)
+    .single();
+  const isFreePlan =
+    !profile || (profile.plan as string | undefined) === "free";
+
   const userRuns = await db
     .select()
     .from(runs)
@@ -123,9 +134,13 @@ export default async function Page({
               ? [heroGen, ...allSucceeded.filter((g) => g.id !== heroGen.id)]
               : allSucceeded;
             const totalSucceeded = allSucceeded.length;
+            // Effective watermarked: only counts when the user is on free.
+            // Paid users see "HD" labels even on rows generated under free.
             const watermarkedCount = runGens.filter((g) => g.watermarked).length;
             const allWatermarked =
-              runGens.length > 0 && watermarkedCount === runGens.length;
+              isFreePlan &&
+              runGens.length > 0 &&
+              watermarkedCount === runGens.length;
 
             const sceneNamesForRun = Array.from(
               new Set(
