@@ -4,6 +4,10 @@ import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Pill } from "@/components/ui/pill";
+import {
+  downloadImage,
+  DownloadUpgradeRequiredError,
+} from "@/lib/download-image";
 
 type Props = {
   generationId: string;
@@ -13,6 +17,7 @@ type Props = {
   sourceUrl: string | null;
   dateLabel: string;
   onClose: () => void;
+  onUpgradeRequired: () => void;
 };
 
 export function Lightbox({
@@ -23,6 +28,7 @@ export function Lightbox({
   sourceUrl,
   dateLabel,
   onClose,
+  onUpgradeRequired,
 }: Props) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -111,13 +117,24 @@ export function Lightbox({
           ) : null}
 
           <div className="mt-auto flex flex-col gap-2.5">
-            <a
-              href={`/api/images/${generationId}?download=1`}
-              download
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await downloadImage(generationId);
+                } catch (e) {
+                  if (e instanceof DownloadUpgradeRequiredError) {
+                    onClose();
+                    onUpgradeRequired();
+                    return;
+                  }
+                  throw e;
+                }
+              }}
               className="inline-flex items-center justify-center gap-2 rounded-full bg-cream px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink transition-colors hover:bg-white"
             >
               Download
-            </a>
+            </button>
             <Link
               href="/try"
               className="inline-flex items-center justify-center gap-2 rounded-full border border-white/25 bg-transparent px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-white/10"

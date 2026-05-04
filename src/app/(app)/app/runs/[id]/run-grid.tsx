@@ -9,6 +9,11 @@ import { DeleteBatchDialog } from "@/components/app/delete-batch-dialog";
 import { EditableRunTitle } from "@/components/app/editable-run-title";
 import { HeroGenerationCard } from "@/components/app/hero-generation-card";
 import { PackGallery } from "@/components/app/pack-gallery";
+import { UpgradeRequiredDialog } from "@/components/app/upgrade-required-dialog";
+import {
+  downloadImage,
+  DownloadUpgradeRequiredError,
+} from "@/lib/download-image";
 import { useFaceBoxEnabled } from "@/components/dev/face-box-toggle";
 import { FaceSafeImage } from "@/components/ui/face-safe-image";
 import { PageShell } from "@/components/ui/page-shell";
@@ -102,6 +107,7 @@ export function RunGrid({ runId, run, scenes, initial, initialPacks }: Props) {
   const [packs, setPacks] = useState<Pack[]>(initialPacks);
   const [activeScene, setActiveScene] = useState<string>("all");
   const [lightboxId, setLightboxId] = useState<string | null>(null);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const completedTracked = useRef(false);
 
   useEffect(() => {
@@ -233,16 +239,18 @@ export function RunGrid({ runId, run, scenes, initial, initialPacks }: Props) {
     });
   }
 
-  function downloadAll(items: Generation[]) {
+  async function downloadAll(items: Generation[]) {
     for (const g of items) {
       if (!(g.status === "succeeded" && g.outputUrl)) continue;
-      const a = document.createElement("a");
-      a.href = `/api/images/${g.id}?download=1`;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      try {
+        await downloadImage(g.id);
+      } catch (e) {
+        if (e instanceof DownloadUpgradeRequiredError) {
+          setUpgradeOpen(true);
+          return;
+        }
+        throw e;
+      }
     }
   }
 
@@ -440,8 +448,11 @@ export function RunGrid({ runId, run, scenes, initial, initialPacks }: Props) {
           sourceUrl={sourceUrl}
           dateLabel={dateShort}
           onClose={() => setLightboxId(null)}
+          onUpgradeRequired={() => setUpgradeOpen(true)}
         />
       ) : null}
+
+      <UpgradeRequiredDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} />
     </PageShell>
   );
 }
@@ -621,24 +632,6 @@ function Tile({
   );
 }
 
-// Abstract "ghost preview" cards — communicate the kinds of images the
-// pack will produce without invoking any API or showing fake content.
-// Labels are intentionally generic; gradients hint at material quality.
-const GHOST_PREVIEWS = [
-  {
-    label: "Hero",
-    background: "linear-gradient(135deg, #f5f5f5 0%, #eaeaea 100%)",
-  },
-  {
-    label: "Lifestyle",
-    background: "linear-gradient(135deg, #f6e7da 0%, #f2d2b6 100%)",
-  },
-  {
-    label: "Detail",
-    background: "linear-gradient(135deg, #e8e8e8 0%, #dcdcdc 100%)",
-  },
-] as const;
-
 function CtaBlock({
   runId,
   parentGenerationId,
@@ -672,72 +665,7 @@ function CtaBlock({
       <p className="mt-1.5 text-[12px] leading-[1.4] text-ink-3 opacity-70 transition-opacity duration-200 group-hover/cta:opacity-100">
         Ready for Amazon, Shopify, and social
       </p>
-      {/* Ghost preview strip — labeled abstract cards with a "+3" tile.
-          Hover spreads them apart and scales each up subtly. Whole
-          strip opens the same popover via the shared trigger ref. */}
-      {!disabled ? (
-        <button
-          type="button"
-          onClick={() => triggerRef.current?.click()}
-          aria-label="Preview the pack"
-          className="group/strip mt-2.5 flex items-center justify-center pl-2 transition-opacity duration-200 group-hover/cta:opacity-100"
-          style={{ opacity: 0.9 }}
-        >
-          {GHOST_PREVIEWS.map((p, i) => (
-            <GhostCard
-              key={p.label}
-              label={p.label}
-              background={p.background}
-              isFirst={i === 0}
-            />
-          ))}
-          <span
-            className="flex h-14 w-10 shrink-0 items-center justify-center rounded-[10px] ml-[-8px] transition-all duration-200 ease-out group-hover/strip:ml-[-2px] group-hover/strip:scale-[1.05]"
-            style={{
-              background: "rgba(0,0,0,0.04)",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-            }}
-          >
-            <span className="font-mono text-[10px] text-ink-3 tabular-nums">
-              +3
-            </span>
-          </span>
-        </button>
-      ) : null}
     </div>
-  );
-}
-
-function GhostCard({
-  label,
-  background,
-  isFirst,
-}: {
-  label: string;
-  background: string;
-  isFirst: boolean;
-}) {
-  return (
-    <span
-      className={`flex h-14 w-10 shrink-0 items-center justify-center rounded-[10px] transition-all duration-200 ease-out group-hover/strip:scale-[1.05] ${
-        isFirst ? "" : "ml-[-8px] group-hover/strip:ml-[-2px]"
-      }`}
-      style={{
-        background,
-        boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-      }}
-    >
-      <span
-        className="font-mono uppercase"
-        style={{
-          fontSize: 8,
-          letterSpacing: "0.08em",
-          color: "rgba(0,0,0,0.6)",
-        }}
-      >
-        {label}
-      </span>
-    </span>
   );
 }
 
