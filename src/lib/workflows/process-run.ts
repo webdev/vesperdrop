@@ -48,10 +48,16 @@ async function generateOne(
   try {
     const sourceImageUrl = await mapUploadToUrl(row.sceneify_source_id, sourceUploads);
 
+    // Request gpt-image-2 for top-tier quality. Sceneify's image-gen
+    // pipeline auto-falls-back to nano-banana-2 (then the rest of the
+    // chain) when gpt-image-2 returns a 422 / content-policy refusal,
+    // so we don't need to handle the fallback here. The actual model
+    // that rendered is returned in result.model — already persisted
+    // via modelUsed below.
     const result = await generateViaSceneify({
       sourceUrl: sourceImageUrl,
       presetSlug: row.preset_id,
-      model: "nano-banana-2",
+      model: "gpt-image-2",
       quality: "high",
       callerRef: row.id,
     });
