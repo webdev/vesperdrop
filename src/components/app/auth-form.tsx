@@ -11,6 +11,11 @@ type Mode = "sign-in" | "sign-up";
 type Step = "credentials" | "mfa";
 type Variant = "stacked" | "split";
 
+// Toggle to re-enable the Apple + Facebook OAuth buttons. Hidden for
+// now; Google + email path stays. Handler + icon code preserved below
+// so flipping this back is one-line.
+const SHOW_APPLE_FACEBOOK_OAUTH = false;
+
 export function AuthForm({
   mode,
   variant = "stacked",
@@ -230,8 +235,12 @@ export function AuthForm({
 
         <div className="space-y-2.5">
           <SocialButton icon={<GoogleIcon />} label="Continue with Google" onClick={oauthRedirect("google")} />
-          <SocialButton icon={<AppleIcon />} label="Continue with Apple" onClick={oauthRedirect("apple")} />
-          <SocialButton icon={<FacebookIcon />} label="Continue with Facebook" onClick={oauthRedirect("facebook")} />
+          {SHOW_APPLE_FACEBOOK_OAUTH ? (
+            <>
+              <SocialButton icon={<AppleIcon />} label="Continue with Apple" onClick={oauthRedirect("apple")} />
+              <SocialButton icon={<FacebookIcon />} label="Continue with Facebook" onClick={oauthRedirect("facebook")} />
+            </>
+          ) : null}
         </div>
       </div>
     );
@@ -241,8 +250,12 @@ export function AuthForm({
     <div className="space-y-5">
       <div className="space-y-2.5">
         <SocialButton icon={<GoogleIcon />} label="Continue with Google" onClick={oauthRedirect("google")} />
-        <SocialButton icon={<FacebookIcon />} label="Continue with Facebook" onClick={oauthRedirect("facebook")} />
-        <SocialButton icon={<AppleIcon />} label="Continue with Apple" onClick={oauthRedirect("apple")} />
+        {SHOW_APPLE_FACEBOOK_OAUTH ? (
+          <>
+            <SocialButton icon={<FacebookIcon />} label="Continue with Facebook" onClick={oauthRedirect("facebook")} />
+            <SocialButton icon={<AppleIcon />} label="Continue with Apple" onClick={oauthRedirect("apple")} />
+          </>
+        ) : null}
       </div>
 
       <div className="flex items-center gap-3">
