@@ -4,27 +4,35 @@ import { Container } from "@/components/ui/container";
 import { sceneify } from "@/lib/sceneify/client";
 import type { SceneifyPublicPreset } from "@/lib/sceneify/types";
 
-// Editorial 7-scene "complete set" layout. Each card represents a role
-// in the deliverable pack — hero / lifestyle / detail / etc. Roles are
-// assigned by position so the section reads as a structured set, not a
-// random gallery. Presets come from Sceneify's public list; we cap at
-// 7 and walk SCENE_ROLES alongside.
-const SCENE_ROLES: Array<{ title: string; description: string }> = [
-  { title: "Hero", description: "Catalog-ready cover shot for the primary listing." },
-  { title: "Lifestyle", description: "On-model context for ads and editorial pages." },
-  { title: "Detail", description: "Close-up texture and craftsmanship reveal." },
-  { title: "Full length", description: "Full silhouette and proportions in frame." },
-  { title: "Ambient", description: "Atmospheric scene that sets the brand mood." },
-  { title: "Flat lay", description: "Top-down composition for shop banners." },
-  { title: "Back view", description: "Reverse angle to complete the listing." },
+// Editorial 7-scene "complete set" — each card represents a role in
+// the deliverable pack. Conversion-focused header + use-case pills +
+// before/after strip + micro CTA + value/price anchor frame the grid.
+// No data, API, or routing changes — backed by Sceneify's public list.
+const SCENE_LABELS: string[] = [
+  "Main product image",
+  "In-context lifestyle",
+  "Fabric & detail close-up",
+  "Fit reference (full body)",
+  "Mood / brand shot",
+  "Alternate angle",
+  "Back / complete view",
 ];
 
-const VALUE_STRIP = [
-  "Delivered in HD",
-  "E-commerce-optimized",
-  "Consistent styling",
-  "Ad & social ready",
+const USE_CASE_PILLS = [
+  "Amazon listing",
+  "Shopify PDP",
+  "Instagram ads",
+  "Email campaigns",
 ] as const;
+
+const VALUE_STRIP = [
+  "Looks like a real photoshoot",
+  "Works on your product instantly",
+  "Ready for ads, not just mockups",
+  "No design skills needed",
+] as const;
+
+const SOURCE_FLATLAY = "/marketing/before-after/skirt_before.png";
 
 export async function Gallery() {
   let presets: SceneifyPublicPreset[] = [];
@@ -35,7 +43,14 @@ export async function Gallery() {
   }
   const ordered = [...presets]
     .sort((a, b) => a.displayOrder - b.displayOrder)
-    .slice(0, SCENE_ROLES.length);
+    .slice(0, SCENE_LABELS.length);
+
+  // First three preset hero URLs used in the before/after strip's overlapping
+  // thumb stack. Falls back gracefully if fewer presets are available.
+  const thumbUrls = ordered
+    .map((p) => p.heroImageUrl)
+    .filter((u): u is string => Boolean(u))
+    .slice(0, 3);
 
   return (
     <section
@@ -43,35 +58,92 @@ export async function Gallery() {
       className="border-y border-line-soft bg-paper-soft py-20 md:py-24"
     >
       <Container width="marketing">
-        {/* Header */}
-        <div className="mb-10 flex flex-col items-start justify-between gap-6 md:mb-14 md:flex-row md:items-end">
-          <div className="md:max-w-2xl">
-            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-              The complete set
-            </p>
-            <h2 className="mt-4 font-serif text-[clamp(2.25rem,4.5vw,3.5rem)] leading-[1.02] tracking-[-0.02em] text-ink">
-              7 scenes,{" "}
-              <em className="not-italic font-serif italic text-terracotta-dark">
-                crafted to convert.
-              </em>
-            </h2>
-            <p className="mt-4 max-w-[520px] text-[15px] leading-[1.55] text-ink-3">
-              We transform your product into a full library of scroll-stopping
-              lifestyle images.
-            </p>
-          </div>
-          <Link
-            href="/discover"
-            className="inline-flex shrink-0 items-center gap-2 rounded-full border border-line bg-paper-soft px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink transition-colors hover:bg-paper-2"
-          >
-            Browse the deck <span aria-hidden>→</span>
-          </Link>
+        {/* Header — eyebrow → headline → subtext */}
+        <div className="max-w-2xl">
+          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+            The complete set
+          </p>
+          <h2 className="mt-2 font-serif text-[clamp(2.25rem,4.5vw,3.5rem)] leading-[1.02] tracking-[-0.02em] text-ink">
+            Everything you need to{" "}
+            <em className="not-italic font-serif italic text-terracotta-dark">
+              sell your product.
+            </em>
+          </h2>
+          <p className="mt-3 max-w-[520px] text-[15px] leading-[1.55] text-ink-3">
+            One photo → a full set for your store, ads, and socials.
+          </p>
+          {/* Use-case pills */}
+          <ul className="mt-6 flex flex-wrap items-center gap-2">
+            {USE_CASE_PILLS.map((label) => (
+              <li
+                key={label}
+                className="inline-flex items-center rounded-full"
+                style={{
+                  height: 28,
+                  padding: "0 10px",
+                  background: "rgba(255,255,255,0.65)",
+                  border: "1px solid rgba(0,0,0,0.05)",
+                  fontSize: 12,
+                  color: "rgba(0,0,0,0.6)",
+                }}
+              >
+                {label}
+              </li>
+            ))}
+          </ul>
         </div>
 
-        {/* Subtle divider — opacity 0.6 line, not a hard border */}
+        {/* Before → After strip */}
+        {thumbUrls.length > 0 ? (
+          <div className="mt-10 flex flex-col items-start gap-3 md:mt-12 md:flex-row md:items-center md:gap-6">
+            <div className="flex items-center gap-4">
+              <span
+                className="relative block h-14 w-14 overflow-hidden rounded-[10px] bg-paper-2 shadow-subtle"
+                style={{ border: "1px solid rgba(0,0,0,0.05)" }}
+              >
+                <img
+                  src={SOURCE_FLATLAY}
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              </span>
+              <span aria-hidden className="text-[16px] text-ink-4">
+                →
+              </span>
+              <span className="relative inline-flex items-center">
+                {thumbUrls.map((url, i) => (
+                  <span
+                    key={i}
+                    className="relative block h-14 w-14 overflow-hidden rounded-[10px] bg-paper-2"
+                    style={{
+                      marginLeft: i === 0 ? 0 : -10,
+                      zIndex: thumbUrls.length - i,
+                      border: "1px solid rgba(0,0,0,0.05)",
+                      boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
+                    }}
+                  >
+                    <img
+                      src={url}
+                      alt=""
+                      aria-hidden="true"
+                      loading="lazy"
+                      className="absolute inset-0 h-full w-full object-cover object-[center_25%]"
+                    />
+                  </span>
+                ))}
+              </span>
+            </div>
+            <p className="text-[13px] italic text-ink-3">
+              From one photo to a full campaign.
+            </p>
+          </div>
+        ) : null}
+
+        {/* Subtle divider */}
         <div
           aria-hidden
-          className="mb-10 h-px w-full"
+          className="mt-10 mb-10 h-px w-full"
           style={{ background: "rgba(0,0,0,0.06)" }}
         />
 
@@ -81,19 +153,16 @@ export async function Gallery() {
           </p>
         ) : (
           <>
-            {/* 4 + 3 editorial grid via 12-col layout: row 1 = 4 × col-span-3,
-                row 2 = 3 × col-span-4. Tablet drops to 2 columns; mobile 1. */}
+            {/* 4 + 3 editorial grid via 12-col layout. Tablet 2 cols, mobile 1. */}
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-12 md:gap-6">
               {ordered.map((preset, i) => {
-                const role = SCENE_ROLES[i] ?? SCENE_ROLES[0]!;
-                // Row 1 (i 0..3) = col-span-3; Row 2 (i 4..6) = col-span-4.
                 const span = i < 4 ? "md:col-span-3" : "md:col-span-4";
                 return (
                   <SceneCard
                     key={preset.slug}
                     index={i + 1}
                     span={span}
-                    role={role}
+                    label={SCENE_LABELS[i] ?? SCENE_LABELS[0]!}
                     preset={preset}
                     delayMs={i * 50}
                   />
@@ -101,32 +170,53 @@ export async function Gallery() {
               })}
             </div>
 
-            {/* Bottom value strip — soft warm card, 4 short benefits */}
+            {/* Micro CTA */}
+            <div className="mt-12 flex flex-col items-center text-center md:mt-14">
+              <p className="font-serif text-[clamp(1.5rem,2.4vw,1.875rem)] leading-[1.15] tracking-[-0.01em] text-ink">
+                Ready to generate your full set?
+              </p>
+              <Link
+                href="/try"
+                className="mt-3 inline-flex items-center gap-2 rounded-full bg-ink px-6 font-mono text-[12px] uppercase tracking-[0.12em] text-cream transition-all duration-200 ease-out hover:-translate-y-px hover:bg-ink-2 hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)]"
+                style={{ height: 44 }}
+              >
+                Generate my set <span aria-hidden>→</span>
+              </Link>
+              <p className="mt-2 text-[13px] text-ink-3">
+                No camera. No studio. No models.
+              </p>
+            </div>
+
+            {/* Value strip — 4 columns, evenly spaced, divider above */}
             <div
-              className="mt-12 flex flex-col gap-3 rounded-2xl px-5 py-4 md:mt-14 md:flex-row md:items-center md:justify-between md:gap-6 md:px-6 md:py-5"
-              style={{
-                background: "rgba(255,255,255,0.55)",
-                border: "1px solid rgba(0,0,0,0.05)",
-              }}
-            >
+              aria-hidden
+              className="mt-12 h-px w-full md:mt-14"
+              style={{ background: "rgba(0,0,0,0.06)" }}
+            />
+            <ul className="mt-6 grid grid-cols-1 gap-3 text-[13px] text-ink-3 sm:grid-cols-2 md:grid-cols-4 md:gap-6">
               {VALUE_STRIP.map((label) => (
-                <div
-                  key={label}
-                  className="flex items-center gap-2 text-[12px] text-ink-2"
-                >
+                <li key={label} className="flex items-center gap-2">
                   <span aria-hidden className="text-terracotta">
                     ✦
                   </span>
                   {label}
-                </div>
+                </li>
               ))}
+            </ul>
+
+            {/* Price anchor */}
+            <div className="mt-6 text-center text-[12px] text-ink-4">
+              Typical photoshoot: $300–$2,000 ·{" "}
+              <span className="text-ink-3">
+                Vesperdrop: starting at $19/mo
+              </span>
             </div>
           </>
         )}
       </Container>
 
-      {/* Card load + hover keyframes — global so the animation is
-          available without per-component style-jsx scoping. */}
+      {/* Card load keyframes — global so the animation is available
+          without per-component style-jsx scoping. */}
       <style>{`
         @keyframes scene-card-in {
           from { opacity: 0; transform: translateY(8px); }
@@ -140,13 +230,13 @@ export async function Gallery() {
 function SceneCard({
   index,
   span,
-  role,
+  label,
   preset,
   delayMs,
 }: {
   index: number;
   span: string;
-  role: { title: string; description: string };
+  label: string;
   preset: SceneifyPublicPreset;
   delayMs: number;
 }) {
@@ -162,12 +252,12 @@ function SceneCard({
         {preset.heroImageUrl ? (
           <img
             src={preset.heroImageUrl}
-            alt={`${role.title} — ${preset.name}`}
+            alt={`${label} — ${preset.name}`}
             loading="lazy"
             className="absolute inset-0 h-full w-full object-cover object-[center_25%] transition-transform duration-500 group-hover:scale-[1.02]"
           />
         ) : null}
-        {/* Scene index badge — top-left, dark pill, white number */}
+        {/* Scene index badge — top-left */}
         <span
           className="absolute left-3 top-3 inline-flex items-center justify-center rounded-full font-mono"
           style={{
@@ -180,14 +270,19 @@ function SceneCard({
         >
           {String(index).padStart(2, "0")}
         </span>
-      </div>
-      <div className="p-3.5">
-        <p className="text-[14px] font-medium leading-[1.25] text-ink">
-          {role.title}
-        </p>
-        <p className="mt-1 text-[12.5px] leading-[1.45] text-ink-3">
-          {role.description}
-        </p>
+        {/* Bottom-overlay caption — translucent dark pill, 11–12px */}
+        <span
+          className="absolute bottom-3 left-3 right-3 inline-flex items-center justify-center rounded-full backdrop-blur-sm"
+          style={{
+            background: "rgba(0,0,0,0.55)",
+            color: "rgba(255,255,255,0.95)",
+            fontSize: 11.5,
+            padding: "5px 10px",
+            letterSpacing: "0.02em",
+          }}
+        >
+          {label}
+        </span>
       </div>
     </article>
   );
