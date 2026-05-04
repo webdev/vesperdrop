@@ -1,8 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { updateGeneration } from "@/lib/db/generations";
-import { applyWatermark } from "@/lib/watermark";
-import { storeWatermarked } from "@/lib/storage";
 import { generateViaSceneify } from "@/lib/ai/sceneify";
 import { env } from "@/lib/env";
 
@@ -135,14 +133,19 @@ async function listSucceededUnwatermarked(runId: string): Promise<
   return data ?? [];
 }
 
-async function watermarkOne(row: { id: string; output_url: string | null }, origin: string): Promise<void> {
+/**
+ * Just flips the `watermarked` flag on the row — the actual watermarking
+ * happens at serve time in /api/images/[id] based on the user's current
+ * plan. This way, when someone upgrades, their existing images render
+ * cleanly on the next request without any backfill or byte rewrite.
+ *
+ * Renamed from watermarkOne (which used to bake the watermark into
+ * stored bytes — that broke plan upgrades because the bytes themselves
+ * stayed watermarked).
+ */
+async function markWatermarked(row: { id: string }): Promise<void> {
   "use step";
-  if (!row.output_url) return;
-  const res = await fetch(row.output_url);
-  const buf = Buffer.from(await res.arrayBuffer());
-  const out = await applyWatermark(buf, "VESPERDROP PREVIEW");
-  const url = await storeWatermarked(out, `${row.id}.png`, origin);
-  await updateGeneration(row.id, { outputUrl: url, watermarked: true });
+  await updateGeneration(row.id, { watermarked: true });
 }
 
 async function refundFailedCredits(userId: string, runId: string): Promise<void> {
@@ -189,7 +192,7 @@ export async function processRun(
 
   if (await shouldWatermarkForUser(userId)) {
     const succeeded = await listSucceededUnwatermarked(runId);
-    await Promise.all(succeeded.map((row) => watermarkOne(row, origin)));
+    await Promise.all(succeeded.map((row) => markWatermarked(row)));
   }
 
   await refundFailedCredits(userId, runId);
