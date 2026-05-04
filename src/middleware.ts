@@ -1,35 +1,48 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { refreshSession } from "@/lib/supabase/middleware";
-import { ADMIN_EMAILS } from "@/lib/admin";
 
-// During private development, only the admin allowlist may access the site.
-const ALLOWED_EMAILS = ADMIN_EMAILS;
-
-// Paths that bypass the gate entirely (auth UI + API routes handle their own auth).
-const PUBLIC_PREFIXES = [
+// Paths that don't require auth — marketing, anonymous /try, auth flow,
+// and API routes (which handle their own auth). The middleware now lets
+// ANY signed-in user through; the previous email allowlist (admin-only
+// dev gate) has been removed.
+const PUBLIC_PATHS = [
+  "/",
+  "/discover",
+  "/pricing",
   "/sign-in",
   "/sign-up",
   "/unauthorized",
   "/mfa-verify",
-  "/api/",
-  ...(process.env.E2E_SCENEIFY_MOCK === "1" ? ["/try"] : []),
+  "/try",
+  "/api",
 ];
+
+function isPublicPath(path: string): boolean {
+  for (const p of PUBLIC_PATHS) {
+    if (p === "/") {
+      if (path === "/") return true;
+      continue;
+    }
+    if (path === p || path.startsWith(`${p}/`)) return true;
+  }
+  return false;
+}
 
 export async function middleware(request: NextRequest) {
   const { response, user, needsMfa } = await refreshSession(request);
   const path = request.nextUrl.pathname;
 
-  // Local development: skip the allowlist gate entirely.
+  // Local development: pass through unchanged.
   if (process.env.NODE_ENV === "development") {
     return response;
   }
 
-  // Always pass through public paths and API routes unchanged.
-  if (PUBLIC_PREFIXES.some((p) => path === p || path.startsWith(p))) {
+  // Public paths bypass auth entirely.
+  if (isPublicPath(path)) {
     return response;
   }
 
-  // Not signed in → sign-in page.
+  // Anonymous user hitting a protected path → sign-in.
   if (!user) {
     const url = request.nextUrl.clone();
     url.pathname = "/sign-in";
@@ -37,14 +50,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Signed in but email not on the allowlist → access denied.
-  if (!ALLOWED_EMAILS.includes((user.email ?? "").toLowerCase())) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/unauthorized";
-    return NextResponse.redirect(url);
-  }
-
-  // Signed in but MFA enrolled and not yet verified this session → MFA verify page.
+  // Signed in with MFA enrolled but not yet verified → MFA verify page.
   if (needsMfa) {
     const url = request.nextUrl.clone();
     url.pathname = "/mfa-verify";
