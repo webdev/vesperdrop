@@ -54,7 +54,7 @@ const PAIRS: Pair[] = [
       // Taller, more dominant — center moment of the section
       afterAspect: "aspect-[3/4]",
       before: {
-        corner: "-bottom-6 left-4 md:-bottom-8 md:left-8",
+        corner: "-top-6 left-4 md:-top-8 md:left-8",
         rotate: "-rotate-4",
         width: "w-[26%]",
       },
