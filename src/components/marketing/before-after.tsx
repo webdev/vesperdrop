@@ -31,10 +31,12 @@ export function BeforeAfter({ pair }: { pair: Pair }) {
         </span>
       </div>
 
-      {/* Smaller before card, overlapping top-left, slightly tilted */}
+      {/* Smaller before card, overlapping top-left, slightly tilted.
+          translateX -45px shifts it past the model's face so the eyes
+          stay clear while the card still overlaps the after image. */}
       <div
         className="absolute left-[6%] top-[8%] w-[36%] overflow-hidden rounded-md border border-line bg-cream shadow-card"
-        style={{ transform: "rotate(-3deg)" }}
+        style={{ transform: "translate(-75px, -15px) rotate(-3deg)" }}
       >
         <div className="relative aspect-[4/5]">
           <Image
