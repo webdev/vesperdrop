@@ -24,7 +24,7 @@ export const profiles = pgTable("profiles", {
     .notNull()
     .default("free"),
   planRenewsAt: timestamp("plan_renews_at", { withTimezone: true }),
-  creditsBalance: integer("credits_balance").notNull().default(1),
+  creditsBalance: integer("credits_balance").notNull().default(4),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .default(sql`now()`),

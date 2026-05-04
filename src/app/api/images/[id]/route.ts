@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { readFile } from "node:fs/promises";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { db } from "@/lib/db";
 import { generations } from "@/lib/db/schema";
 import { isLocalPrivate, localPrivatePath } from "@/lib/storage";
@@ -44,6 +45,24 @@ export async function GET(
     type === "source" ? gen.sceneifySourceId : gen.outputUrl;
   if (!stored) {
     return NextResponse.json({ error: "no image" }, { status: 404 });
+  }
+
+  // Free plan can preview but not download. Pro/Starter/Studio/Agency get
+  // the file with content-disposition: attachment as before. Source-type
+  // requests are exempt — the user owns their own upload.
+  if (wantDownload && type === "output") {
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("plan")
+      .eq("id", user.id)
+      .single();
+    const plan = (profile?.plan as string | undefined) ?? "free";
+    if (plan === "free") {
+      return NextResponse.json(
+        { error: "downloads_require_upgrade" },
+        { status: 402 },
+      );
+    }
   }
 
   // Watermark policy: when serving the output of a generation flagged

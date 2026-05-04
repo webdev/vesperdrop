@@ -61,7 +61,7 @@ export function PricingCards({ tiers: tierRecords }: { tiers: PlanRecord[] }) {
             href="/try"
             className="mt-8 inline-flex items-center justify-center gap-2 rounded-full border border-line bg-paper-soft px-5 py-3 font-mono text-[11px] uppercase tracking-[0.12em] text-ink transition-colors hover:bg-paper-2"
           >
-            Try free — no account needed
+            Try free
           </Link>
         </div>
 

@@ -26,8 +26,7 @@ export const PLAN_CATALOG: Record<PlanSlug, PlanRecord> = {
     perCredit: "—",
     priceIdEnv: null,
     features: [
-      "1 full-resolution HD generation",
-      "5 watermarked 720p previews",
+      "4 watermarked previews",
       "All scene presets",
       "Email support",
     ],
