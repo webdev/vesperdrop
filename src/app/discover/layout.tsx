@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { SiteNav } from "@/components/marketing/site-nav";
+import { Nav } from "@/components/nav";
 import { Container } from "@/components/ui/container";
 
 export const metadata: Metadata = {
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-paper text-ink">
-      <SiteNav active="discover" />
+      <Nav />
       <Container as="main" width="app" className="flex-1 py-8">
         {children}
       </Container>

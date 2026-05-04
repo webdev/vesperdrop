@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Suspense } from "react";
 import { AuthForm } from "@/components/app/auth-form";
-import { SiteNav } from "@/components/marketing/site-nav";
+import { Nav } from "@/components/nav";
 import { Container } from "@/components/ui/container";
 
 export const metadata: Metadata = {
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <div className="flex min-h-screen flex-col bg-paper text-ink">
-      <SiteNav />
+      <Nav width="marketing" />
 
       <main className="flex-1 py-12 md:py-16">
         <Container width="marketing">

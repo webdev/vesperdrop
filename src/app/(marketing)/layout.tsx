@@ -1,4 +1,4 @@
-import { SiteNav } from "@/components/marketing/site-nav";
+import { Nav } from "@/components/nav";
 import { Footer } from "@/components/marketing/footer";
 import {
   OrganizationJsonLd,
@@ -10,7 +10,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-paper text-ink">
       <OrganizationJsonLd />
       <WebSiteJsonLd />
-      <SiteNav />
+      <Nav width="marketing" />
       <main>{children}</main>
       <Footer />
     </div>

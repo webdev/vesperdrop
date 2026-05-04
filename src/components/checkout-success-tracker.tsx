@@ -12,7 +12,7 @@ import { track } from "@/lib/analytics";
  * and typically completes 1–3s later. Without help, the user lands on
  * `/account` while the server still reads stale credit/plan values.
  *
- * We re-run the server components a handful of times so the AppNav credit
+ * We re-run the server components a handful of times so the Nav credit
  * pill and the PlanSummaryCard reflect the new state without a manual
  * refresh. The delays bracket the typical webhook latency window.
  */
