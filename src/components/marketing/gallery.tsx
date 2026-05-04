@@ -8,15 +8,8 @@ import type { SceneifyPublicPreset } from "@/lib/sceneify/types";
 // the deliverable pack. Conversion-focused header + use-case pills +
 // before/after strip + micro CTA + value/price anchor frame the grid.
 // No data, API, or routing changes — backed by Sceneify's public list.
-const SCENE_LABELS: string[] = [
-  "Main product image",
-  "In-context lifestyle",
-  "Fabric & detail close-up",
-  "Fit reference (full body)",
-  "Mood / brand shot",
-  "Alternate angle",
-  "Back / complete view",
-];
+// Cap the grid at 7 scenes to match the "complete set" framing.
+const MAX_SCENES = 7;
 
 const USE_CASE_PILLS = [
   "Amazon listing",
@@ -43,7 +36,7 @@ export async function Gallery() {
   }
   const ordered = [...presets]
     .sort((a, b) => a.displayOrder - b.displayOrder)
-    .slice(0, SCENE_LABELS.length);
+    .slice(0, MAX_SCENES);
 
   // First three preset hero URLs used in the before/after strip's overlapping
   // thumb stack. Falls back gracefully if fewer presets are available.
@@ -162,7 +155,6 @@ export async function Gallery() {
                     key={preset.slug}
                     index={i + 1}
                     span={span}
-                    label={SCENE_LABELS[i] ?? SCENE_LABELS[0]!}
                     preset={preset}
                     delayMs={i * 50}
                   />
@@ -230,13 +222,11 @@ export async function Gallery() {
 function SceneCard({
   index,
   span,
-  label,
   preset,
   delayMs,
 }: {
   index: number;
   span: string;
-  label: string;
   preset: SceneifyPublicPreset;
   delayMs: number;
 }) {
@@ -252,7 +242,7 @@ function SceneCard({
         {preset.heroImageUrl ? (
           <img
             src={preset.heroImageUrl}
-            alt={`${label} — ${preset.name}`}
+            alt={preset.name}
             loading="lazy"
             className="absolute inset-0 h-full w-full object-cover object-[center_25%] transition-transform duration-500 group-hover:scale-[1.02]"
           />
@@ -269,19 +259,6 @@ function SceneCard({
           }}
         >
           {String(index).padStart(2, "0")}
-        </span>
-        {/* Bottom-overlay caption — translucent dark pill, 11–12px */}
-        <span
-          className="absolute bottom-3 left-3 right-3 inline-flex items-center justify-center rounded-full backdrop-blur-sm"
-          style={{
-            background: "rgba(0,0,0,0.55)",
-            color: "rgba(255,255,255,0.95)",
-            fontSize: 11.5,
-            padding: "5px 10px",
-            letterSpacing: "0.02em",
-          }}
-        >
-          {label}
         </span>
       </div>
     </article>
