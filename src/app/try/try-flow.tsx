@@ -1,7 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   useCallback,
@@ -58,12 +57,10 @@ type Photo = { url: string; name: string; isObjectUrl: boolean; file: File | nul
 
 export function TryFlow({
   scenes,
-  firstName,
   isAdmin = false,
   isAuthed = false,
 }: {
   scenes: Scene[];
-  firstName: string | null;
   isAdmin?: boolean;
   isAuthed?: boolean;
 }) {
@@ -162,42 +159,9 @@ export function TryFlow({
 
   return (
     <div className="flex min-h-screen flex-col bg-paper text-ink">
-      <header className="border-b border-line-soft bg-paper">
-        <Container width="app" className="flex items-center justify-between py-4">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 font-serif text-[22px] font-medium tracking-tight text-ink transition-colors hover:text-terracotta"
-          >
-            <span aria-hidden>←</span> Vesperdrop
-          </Link>
-          <div className="flex items-center gap-4 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-            {firstName ? (
-              <>
-                <span className="text-ink">Hello, {firstName}</span>
-                <form action="/api/auth/sign-out" method="post">
-                  <button
-                    type="submit"
-                    className="text-ink-3 transition-colors hover:text-ink"
-                  >
-                    Sign out
-                  </button>
-                </form>
-              </>
-            ) : (
-              <span className="text-ink-3">
-                Have an account?{" "}
-                <Link
-                  href="/sign-in"
-                  className="text-ink underline-offset-4 hover:text-terracotta hover:underline"
-                >
-                  Sign in
-                </Link>
-              </span>
-            )}
-          </div>
-        </Container>
-      </header>
-
+      {/* Global <Nav /> is rendered by /try/page.tsx — no second header
+          here. The wizard step indicator below remains, scoped to the
+          /try flow. */}
       <WizardSteps current={step} />
 
       <Container as="main" width="app" className="flex-1 py-10 md:py-16">
