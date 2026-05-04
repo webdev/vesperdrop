@@ -135,7 +135,13 @@ export function RunForm({ scenes, initialSceneIds = [], credits }: Props) {
         {/* Center workflow — section gap 32px (var(--space-6)) */}
         <div className="space-y-8">
           {/* Step 1 — Upload */}
-          <section className="rounded-lg border border-line bg-surface p-6">
+          <section
+            className="rounded-lg border bg-surface p-6"
+            style={{
+              borderColor: "rgba(0,0,0,0.05)",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.035)",
+            }}
+          >
             <header className="mb-5">
               <h2 className="font-serif text-[clamp(1.5rem,2vw,1.875rem)] leading-[1.1] tracking-[-0.01em] text-ink">
                 1. Upload product
@@ -233,7 +239,13 @@ export function RunForm({ scenes, initialSceneIds = [], credits }: Props) {
           </section>
 
           {/* Step 2 — Choose scenes */}
-          <section className="rounded-lg border border-line bg-surface p-6">
+          <section
+            className="rounded-lg border bg-surface p-6"
+            style={{
+              borderColor: "rgba(0,0,0,0.05)",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.035)",
+            }}
+          >
             <header className="mb-5 flex items-baseline justify-between gap-4">
               <div>
                 <h2 className="font-serif text-[clamp(1.5rem,2vw,1.875rem)] leading-[1.1] tracking-[-0.01em] text-ink">
@@ -247,6 +259,40 @@ export function RunForm({ scenes, initialSceneIds = [], credits }: Props) {
                 {sceneIds.length} scene{sceneIds.length === 1 ? "" : "s"} selected
               </p>
             </header>
+
+            {/* Selected strip — compact pills above the grid; clicking ×
+                removes the scene. Hidden when nothing is selected. */}
+            {sceneIds.length > 0 ? (
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-4">
+                  Selected
+                </span>
+                {sceneIds.map((id) => {
+                  const s = scenes.find((x) => x.slug === id);
+                  if (!s) return null;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => toggleScene(id)}
+                      aria-label={`Remove ${s.name}`}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-terracotta-wash px-2.5 py-1 text-[11px] text-terracotta-dark transition-colors hover:bg-terracotta-wash/80"
+                      style={{
+                        border: "1px solid rgba(194,96,76,0.18)",
+                      }}
+                    >
+                      {s.name}
+                      <span
+                        aria-hidden
+                        className="text-[12px] leading-none opacity-70"
+                      >
+                        ×
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
 
             <div
               className="grid gap-4"
@@ -263,19 +309,30 @@ export function RunForm({ scenes, initialSceneIds = [], credits }: Props) {
                     type="button"
                     onClick={() => toggleScene(s.slug)}
                     aria-pressed={sel}
-                    className={`group relative overflow-hidden rounded-md border text-left transition-all duration-200 ${
-                      sel
-                        ? "border-terracotta ring-2 ring-terracotta shadow-card"
-                        : "border-line-soft hover:-translate-y-0.5 hover:border-line hover:shadow-subtle"
-                    }`}
+                    className="group relative overflow-hidden rounded-md text-left transition-all duration-200 hover:-translate-y-0.5"
+                    style={{
+                      border: sel
+                        ? "1px solid var(--color-terracotta, #c2604c)"
+                        : "1px solid rgba(0,0,0,0.08)",
+                      // Soft halo on selected; subtle drop on hover otherwise.
+                      boxShadow: sel
+                        ? "0 0 0 2px rgba(198,95,61,0.12), 0 6px 16px rgba(0,0,0,0.04)"
+                        : "0 0 0 0 rgba(0,0,0,0)",
+                    }}
                   >
                     <div className="relative aspect-[4/5] overflow-hidden bg-paper-2">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={s.imageUrl}
-                        alt={s.name}
-                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-                      />
+                      <SceneImage src={s.imageUrl} alt={s.name} />
+                      {/* Warm bottom tint when selected — barely-there cue. */}
+                      {sel ? (
+                        <div
+                          aria-hidden
+                          className="pointer-events-none absolute inset-0"
+                          style={{
+                            background:
+                              "linear-gradient(to top, rgba(198,95,61,0.06), transparent)",
+                          }}
+                        />
+                      ) : null}
                       {s.isPro ? (
                         <span
                           className="absolute left-2.5 top-2.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-ink/55 backdrop-blur-sm"
@@ -286,22 +343,38 @@ export function RunForm({ scenes, initialSceneIds = [], credits }: Props) {
                           <span className="sr-only">Pro scene</span>
                         </span>
                       ) : null}
-                      <span
-                        className={`absolute right-2.5 top-2.5 inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] transition-colors ${
-                          sel
-                            ? "bg-terracotta text-cream"
-                            : "border border-cream/70 bg-cream/30 backdrop-blur"
-                        }`}
-                      >
-                        {sel ? "✓" : ""}
-                      </span>
+                      {/* Selection check — 22px, fade+scale in via key. */}
+                      {sel ? (
+                        <span
+                          key="check"
+                          aria-hidden
+                          className="absolute right-2.5 top-2.5 inline-flex h-[22px] w-[22px] items-center justify-center rounded-full bg-terracotta text-[10px] text-cream shadow-subtle motion-safe:animate-[check-in_180ms_ease-out]"
+                        >
+                          ✓
+                        </span>
+                      ) : (
+                        <span
+                          aria-hidden
+                          className="absolute right-2.5 top-2.5 inline-flex h-[22px] w-[22px] items-center justify-center rounded-full border border-cream/70 bg-cream/25 backdrop-blur"
+                        />
+                      )}
                     </div>
-                    <div className="bg-surface px-3 py-3">
+                    {/* Min-height keeps title/mood block aligned across cards
+                        regardless of name length or mood presence. */}
+                    <div className="min-h-[72px] bg-surface px-3 py-3">
                       <p className="font-serif text-[15px] leading-[1.2] text-ink">
                         {s.name}
                       </p>
                       {s.mood ? (
-                        <span className="mt-1.5 inline-block max-w-full truncate rounded-full bg-paper-2 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-ink-4">
+                        <span
+                          className="mt-2 inline-block max-w-full truncate rounded-full font-mono text-[11px] uppercase tracking-[0.04em]"
+                          style={{
+                            padding: "6px 10px",
+                            background: "rgba(255,255,255,0.75)",
+                            border: "1px solid rgba(0,0,0,0.05)",
+                            color: "rgba(0,0,0,0.55)",
+                          }}
+                        >
                           {s.mood}
                         </span>
                       ) : null}
@@ -313,16 +386,35 @@ export function RunForm({ scenes, initialSceneIds = [], credits }: Props) {
               {/* Locked card — Pro plan affordance */}
               <Link
                 href="/pricing"
-                className="group relative overflow-hidden rounded-md border border-dashed border-line bg-paper-soft text-left opacity-70 transition-all duration-200 hover:opacity-100"
+                className="group relative overflow-hidden rounded-md text-left transition-all duration-200 hover:-translate-y-0.5"
+                style={{
+                  border: "1px dashed rgba(0,0,0,0.08)",
+                  background: "var(--color-paper-soft, #f1ede5)",
+                  boxShadow: "0 0 0 0 rgba(0,0,0,0)",
+                }}
               >
-                <div className="relative flex aspect-[4/5] items-center justify-center bg-paper-2 text-ink-3">
+                <div
+                  className="relative flex aspect-[4/5] items-center justify-center text-ink-3"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, var(--color-paper-2, #ebe6dc) 0%, var(--color-paper-soft, #f1ede5) 100%)",
+                  }}
+                >
                   <LockIcon />
                 </div>
-                <div className="bg-surface px-3 py-3">
+                <div className="min-h-[72px] bg-surface px-3 py-3">
                   <p className="font-serif text-[15px] leading-[1.2] text-ink-2">
-                    More scenes
+                    Unlock more scenes
                   </p>
-                  <span className="mt-1.5 inline-block rounded-full bg-paper-2 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-ink-4">
+                  <span
+                    className="mt-2 inline-block rounded-full font-mono text-[11px] uppercase tracking-[0.04em]"
+                    style={{
+                      padding: "6px 10px",
+                      background: "rgba(255,255,255,0.75)",
+                      border: "1px solid rgba(0,0,0,0.05)",
+                      color: "rgba(0,0,0,0.55)",
+                    }}
+                  >
                     Available on Pro
                   </span>
                 </div>
@@ -347,9 +439,15 @@ export function RunForm({ scenes, initialSceneIds = [], credits }: Props) {
         </div>
       </div>
 
-      {/* Sticky bottom action bar — replaces the right sidebar.
-          3-part flex: credits info | session stats | primary CTA */}
-      <div className="sticky bottom-6 mx-auto w-full max-w-[980px] rounded-lg border border-line bg-surface p-5 shadow-card">
+      {/* Sticky bottom action bar. Upward shadow per spec so the bar
+          reads as elevated above the page rather than floating flatly. */}
+      <div
+        className="sticky bottom-6 mx-auto w-full max-w-[980px] rounded-lg bg-surface p-5"
+        style={{
+          border: "1px solid rgba(0,0,0,0.05)",
+          boxShadow: "0 -8px 30px rgba(0,0,0,0.05)",
+        }}
+      >
         <div className="flex flex-col items-stretch gap-4 md:flex-row md:items-center md:justify-between">
           <div className="md:flex-1">
             <p className="text-[14px] font-medium text-ink">
@@ -365,15 +463,32 @@ export function RunForm({ scenes, initialSceneIds = [], credits }: Props) {
               </Link>
             </p>
           </div>
-          <p className="text-[14px] text-ink-3 md:text-center">
-            {sceneIds.length} scene{sceneIds.length === 1 ? "" : "s"} selected ·
-            Est. credits: <span className="text-ink">{total}</span>
+          <p
+            className="text-[14px] md:text-center"
+            style={{
+              color: canSubmit ? "rgba(0,0,0,0.65)" : "rgba(0,0,0,0.5)",
+            }}
+          >
+            {!canSubmit && sceneIds.length === 0
+              ? files.length === 0
+                ? "Upload a photo and select a scene to continue"
+                : "Select at least one scene to continue"
+              : files.length === 0
+                ? "Upload a photo to continue"
+                : (
+                    <>
+                      {sceneIds.length}{" "}
+                      {sceneIds.length === 1 ? "scene" : "scenes"} selected ·
+                      Est. credits:{" "}
+                      <span className="text-ink">{total}</span>
+                    </>
+                  )}
           </p>
           <button
             type="button"
             disabled={!canSubmit}
             onClick={submit}
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-ink px-7 py-3.5 text-[14px] font-medium text-cream transition-colors hover:bg-ink-2 disabled:cursor-not-allowed disabled:opacity-40 md:flex-none"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-ink px-7 py-3.5 text-[14px] font-medium text-cream transition-all duration-200 hover:bg-ink-2 hover:shadow-[0_6px_18px_rgba(0,0,0,0.15)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:shadow-none md:flex-none"
           >
             {pending ? "Starting…" : "Continue to review"}
           </button>
@@ -397,7 +512,10 @@ function StepItem({
   hasConnector?: boolean;
 }) {
   return (
-    <li className="relative flex gap-4">
+    <li
+      className="relative flex gap-4 transition-opacity duration-200"
+      style={{ opacity: state === "pending" ? 0.55 : 1 }}
+    >
       <div className="flex flex-col items-center">
         <div
           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-mono text-[12px] ${
@@ -455,6 +573,65 @@ function UploadIcon() {
       <circle cx="9" cy="9" r="1.5" />
       <path d="m21 15-4.5-4.5L9 18" />
     </svg>
+  );
+}
+
+/**
+ * Image with intentional skeleton fallback for loading + error states.
+ * Avoids the broken-image icon and the bare beige rectangle that read
+ * as "broken card" — instead shows a warm shimmer until the image
+ * decodes, and stays in skeleton mode if the URL fails entirely.
+ */
+function SceneImage({ src, alt }: { src: string; alt: string }) {
+  const [state, setState] = useState<"loading" | "loaded" | "error">(
+    "loading",
+  );
+  return (
+    <>
+      {state !== "loaded" ? (
+        <div
+          aria-hidden
+          className="absolute inset-0 motion-safe:animate-[scene-shimmer_1600ms_ease-in-out_infinite]"
+          style={{
+            background:
+              "linear-gradient(110deg, var(--color-paper-2, #ebe6dc) 0%, var(--color-paper-soft, #f1ede5) 50%, var(--color-paper-2, #ebe6dc) 100%)",
+            backgroundSize: "200% 100%",
+          }}
+        />
+      ) : null}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        onLoad={() => setState("loaded")}
+        onError={() => setState("error")}
+        className="absolute inset-0 h-full w-full object-cover transition-all duration-700 group-hover:scale-[1.03]"
+        style={{
+          opacity: state === "loaded" ? 1 : 0,
+        }}
+      />
+      <style jsx global>{`
+        @keyframes scene-shimmer {
+          0% {
+            background-position: 200% 0;
+          }
+          100% {
+            background-position: -100% 0;
+          }
+        }
+        @keyframes check-in {
+          from {
+            opacity: 0;
+            transform: scale(0.7);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+      `}</style>
+    </>
   );
 }
 
