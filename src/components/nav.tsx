@@ -70,7 +70,7 @@ export async function Nav({ width = "app" }: NavProps = {}) {
               ) : null}
               <Link
                 href="/account"
-                className="hidden text-[13px] text-ink-3 transition-colors hover:text-ink md:inline"
+                className="hidden py-1 text-[14px] text-ink-3 transition-colors hover:text-ink md:inline"
                 title={email}
               >
                 {firstName ?? email}
@@ -82,7 +82,7 @@ export async function Nav({ width = "app" }: NavProps = {}) {
               >
                 <button
                   type="submit"
-                  className="text-[13px] text-ink-3 transition-colors hover:text-ink"
+                  className="py-1 text-[14px] text-ink-3 transition-colors hover:text-ink"
                 >
                   Sign out
                 </button>
@@ -92,7 +92,7 @@ export async function Nav({ width = "app" }: NavProps = {}) {
             <>
               <Link
                 href="/sign-in"
-                className="hidden text-[14px] text-ink-3 transition-colors hover:text-ink md:inline"
+                className="hidden py-1 text-[14px] text-ink-3 transition-colors hover:text-ink md:inline"
               >
                 Sign in
               </Link>
