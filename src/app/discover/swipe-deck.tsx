@@ -590,9 +590,14 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
           likedCount={liked.length}
           progressRatio={progress}
           thumbnails={presets
-            .map((p) => p.heroImageUrl)
-            .filter((u): u is string => Boolean(u))
-            .slice(0, 4)}
+            .filter((p): p is SceneifyPublicPreset & { heroImageUrl: string } =>
+              Boolean(p.heroImageUrl),
+            )
+            .slice(0, 4)
+            .map((p) => ({
+              url: p.heroImageUrl,
+              alt: `${p.name} — lifestyle photography scene preset`,
+            }))}
         />
       </div>
 
@@ -670,7 +675,9 @@ function PeekCard({
       {preset.heroImageUrl ? (
         <img
           src={preset.heroImageUrl}
-          alt=""
+          alt={`${preset.name} — lifestyle photography scene preset preview${
+            preset.description ? `: ${preset.description}` : ""
+          }`}
           aria-hidden="true"
           className="pointer-events-none h-full w-full object-cover object-top"
         />
@@ -732,7 +739,9 @@ function TopCard({
       {preset.heroImageUrl ? (
         <img
           src={preset.heroImageUrl}
-          alt={preset.name}
+          alt={`${preset.name} — lifestyle photography scene preset${
+            preset.description ? `: ${preset.description}` : ""
+          }`}
           draggable={false}
           className="pointer-events-none block h-full w-full object-cover object-top"
         />

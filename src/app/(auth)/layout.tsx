@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 const QUOTES = [
@@ -5,6 +6,13 @@ const QUOTES = [
   { text: "Sold out in three days. Buyers thought I had a real studio.", handle: "@bloomintimates" },
   { text: "I shoot on a bedsheet. Customers see Vogue.", handle: "@plisséstudio" },
 ];
+
+// Auth surfaces should never be indexed — even though pages inside this
+// group also set robots:noindex, declaring it on the layout is a defense-in-
+// depth against new auth pages forgetting it.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false, nocache: true },
+};
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (

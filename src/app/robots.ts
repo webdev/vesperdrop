@@ -1,6 +1,14 @@
 import type { MetadataRoute } from "next";
 import { env } from "@/lib/env";
 
+/**
+ * robots.txt
+ *
+ * Public production must have SITE_PUBLIC=true in Vercel env. When
+ * SITE_PUBLIC is unset/false the whole site is disallowed (use this for
+ * preview/staging deployments). When public, marketing routes are allowed
+ * and authenticated/auth surfaces are disallowed.
+ */
 export default function robots(): MetadataRoute.Robots {
   const base = env.SITE_URL.replace(/\/$/, "");
 
@@ -15,7 +23,15 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/api/", "/account", "/app", "/mfa-verify", "/unauthorized"],
+        disallow: [
+          "/api/",
+          "/account",
+          "/app",
+          "/sign-in",
+          "/sign-up",
+          "/mfa-verify",
+          "/unauthorized",
+        ],
       },
     ],
     sitemap: `${base}/sitemap.xml`,

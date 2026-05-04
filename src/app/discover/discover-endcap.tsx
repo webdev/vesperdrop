@@ -4,6 +4,9 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
+/** A thumbnail in the layered composition — paired url + descriptive alt. */
+export type EndcapThumbnail = { url: string; alt: string };
+
 interface Props {
   /** Real liked count drives the headline copy. */
   likedCount: number;
@@ -13,8 +16,8 @@ interface Props {
    * lifts, and scale settles toward 1 as progress advances. Clamped.
    */
   progressRatio: number;
-  /** Up to 4 hero image URLs reused for the layered thumbnail composition. */
-  thumbnails: string[];
+  /** Up to 4 hero thumbnails reused for the layered composition. */
+  thumbnails: EndcapThumbnail[];
 }
 
 /**
@@ -211,7 +214,7 @@ export function DiscoverEndcap({
   );
 }
 
-function ThumbnailStack({ thumbs }: { thumbs: string[] }) {
+function ThumbnailStack({ thumbs }: { thumbs: EndcapThumbnail[] }) {
   // Up to 4 layered thumbnails per spec — front → back, alternating tilt.
   // Hover scales the front one slightly and lifts its shadow.
   const layouts: Array<{
@@ -229,11 +232,11 @@ function ThumbnailStack({ thumbs }: { thumbs: string[] }) {
 
   return (
     <div className="relative h-[200px] w-[320px] shrink-0">
-      {thumbs.map((url, i) => {
+      {thumbs.map((thumb, i) => {
         const layout = layouts[i]!;
         return (
           <div
-            key={`${i}-${url}`}
+            key={`${i}-${thumb.url}`}
             className="group/thumb absolute h-[180px] w-[140px] overflow-hidden rounded-2xl transition-all duration-200 ease-out hover:scale-[1.02]"
             style={{
               left: layout.left,
@@ -244,9 +247,12 @@ function ThumbnailStack({ thumbs }: { thumbs: string[] }) {
               boxShadow: "0 12px 30px rgba(0,0,0,0.08)",
             }}
           >
+            {/* aria-hidden keeps screen readers from announcing the layered
+                composition twice (the headline already names the page).
+                alt text remains for image-search crawlers. */}
             <img
-              src={url}
-              alt=""
+              src={thumb.url}
+              alt={thumb.alt}
               aria-hidden="true"
               loading="lazy"
               className="h-full w-full object-cover transition-transform duration-300 group-hover/thumb:scale-105"

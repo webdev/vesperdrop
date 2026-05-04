@@ -2,11 +2,24 @@ import type { Metadata } from "next";
 import { Nav } from "@/components/nav";
 import { Container } from "@/components/ui/container";
 
+const DISCOVER_TITLE = "Discover lifestyle photography styles";
+const DISCOVER_DESCRIPTION =
+  "Swipe through scene presets — beach, kitchen, studio, golden hour — and find the look that fits your product. Try Vesperdrop with one preset, free.";
+
 export const metadata: Metadata = {
-  title: "Discover styles",
-  description:
-    "Swipe through scene presets and find the look that fits your product. Try Vesperdrop with one preset, free.",
+  title: DISCOVER_TITLE,
+  description: DISCOVER_DESCRIPTION,
   alternates: { canonical: "/discover" },
+  openGraph: {
+    title: DISCOVER_TITLE,
+    description: DISCOVER_DESCRIPTION,
+    url: "/discover",
+    type: "website",
+  },
+  twitter: {
+    title: DISCOVER_TITLE,
+    description: DISCOVER_DESCRIPTION,
+  },
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

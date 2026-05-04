@@ -5,17 +5,25 @@ import { PricingProductJsonLd } from "@/components/marketing/structured-data";
 import { Container } from "@/components/ui/container";
 import { PLAN_CATALOG, PAID_PLAN_SLUGS } from "@/lib/plans";
 
+const PRICING_TITLE = "Pricing — AI lifestyle photography from $19/mo";
+const PRICING_DESCRIPTION =
+  "Simple credit-based pricing. 1 credit = 1 lifestyle shot at 2000px. Free tier with 1 HD generation, Pro from $49/mo for 200 credits. Cancel any time.";
+
 export const metadata: Metadata = {
-  title: "Pricing",
-  description:
-    "Simple credit-based pricing. 1 credit = 1 lifestyle shot at 2000px. Free tier with 1 HD generation, Pro from $49/mo for 200 credits. Cancel any time.",
+  // `absolute` skips the root template so the SERP title is the SEO copy,
+  // not "Pricing — … · Vesperdrop · Vesperdrop".
+  title: { absolute: `${PRICING_TITLE} · Vesperdrop` },
+  description: PRICING_DESCRIPTION,
   alternates: { canonical: "/pricing" },
   openGraph: {
-    title: "Pricing · Vesperdrop",
-    description:
-      "Simple credit-based pricing. 1 credit = 1 lifestyle shot at 2000px. Free tier with 1 HD generation, Pro from $49/mo for 200 credits.",
+    title: PRICING_TITLE,
+    description: PRICING_DESCRIPTION,
     url: "/pricing",
     type: "website",
+  },
+  twitter: {
+    title: PRICING_TITLE,
+    description: PRICING_DESCRIPTION,
   },
 };
 
