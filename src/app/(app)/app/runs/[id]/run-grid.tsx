@@ -533,61 +533,51 @@ function Tile({
   const showFaceBox = useFaceBoxEnabled();
 
   return (
-    <div className="group relative aspect-[4/5] overflow-hidden rounded-md border border-line-soft bg-paper-2">
-      {succeeded ? (
-        <>
-          <button
-            type="button"
-            onClick={onClick}
-            aria-label="View full size"
-            className="absolute inset-0 z-0 cursor-zoom-in"
-          >
+    <div className="flex flex-col gap-3">
+      {/* Image card — image only, no CTA overlay. Image is fully visible. */}
+      <div className="group relative aspect-[4/5] overflow-hidden rounded-md border border-line-soft bg-paper-2">
+        {succeeded ? (
+          <>
+            <button
+              type="button"
+              onClick={onClick}
+              aria-label="View full size"
+              className="absolute inset-0 z-0 cursor-zoom-in"
+            >
+              {showFaceBox ? (
+                <Image
+                  src={`/api/images/${g.id}`}
+                  alt=""
+                  fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                  unoptimized
+                  className="object-contain transition-transform duration-700 group-hover:scale-[1.03]"
+                />
+              ) : (
+                <FaceSafeImage
+                  src={`/api/images/${g.id}`}
+                  alt=""
+                  fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                  unoptimized
+                  className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                  faceBox={g.faceBox}
+                  focalPoint={g.focalPoint}
+                />
+              )}
+            </button>
             {showFaceBox ? (
-              <Image
-                src={`/api/images/${g.id}`}
-                alt=""
-                fill
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                unoptimized
-                className="object-contain transition-transform duration-700 group-hover:scale-[1.03]"
-              />
-            ) : (
-              <FaceSafeImage
-                src={`/api/images/${g.id}`}
-                alt=""
-                fill
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                unoptimized
-                className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-                faceBox={g.faceBox}
-                focalPoint={g.focalPoint}
-              />
-            )}
-          </button>
-          {showFaceBox ? (
-            <FaceBoxOverlay faceBox={g.faceBox} focalPoint={g.focalPoint} />
-          ) : null}
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="absolute left-2 top-2 z-10 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
-          >
-            <CompleteLookButton
-              runId={runId}
-              parentGenerationId={g.id}
-              disabled={!g.sceneifyGenerationId}
-              locked={g.watermarked}
-              onPackCreated={onPackCreated}
-            />
-          </div>
-          {g.watermarked ? (
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 bg-gradient-to-t from-ink/70 to-transparent px-3 pb-3 pt-8">
-              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-cream/85">
-                Preview
-              </span>
-            </div>
-          ) : null}
-        </>
-      ) : g.status === "failed" ? (
+              <FaceBoxOverlay faceBox={g.faceBox} focalPoint={g.focalPoint} />
+            ) : null}
+            {g.watermarked ? (
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 bg-gradient-to-t from-ink/70 to-transparent px-3 pb-3 pt-8">
+                <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-cream/85">
+                  Preview
+                </span>
+              </div>
+            ) : null}
+          </>
+        ) : g.status === "failed" ? (
         <div className="flex h-full flex-col items-center justify-center p-4 text-center">
           <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-terracotta">
             Failed
@@ -596,14 +586,40 @@ function Tile({
             {g.error ?? "Generation failed"}
           </span>
         </div>
-      ) : (
-        <div className="flex h-full flex-col items-center justify-center gap-2">
-          <div className="h-5 w-5 rounded-full border-2 border-ink-4 border-t-transparent animate-spin" />
-          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4">
-            {g.status === "running" ? "Generating" : "Queued"}
-          </span>
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center gap-2">
+            <div className="h-5 w-5 rounded-full border-2 border-ink-4 border-t-transparent animate-spin" />
+            <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4">
+              {g.status === "running" ? "Generating" : "Queued"}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* CTA block — sits below the image so the photo stays fully
+          visible. Only renders for succeeded gens; pending/running/failed
+          tiles don't get a CTA. Group-scoped so subtext fades in on
+          hover (with always-visible default opacity per spec). */}
+      {succeeded ? (
+        <div className="group/cta flex flex-col items-stretch gap-1 text-center">
+          <CompleteLookButton
+            runId={runId}
+            parentGenerationId={g.id}
+            disabled={!g.sceneifyGenerationId}
+            locked={g.watermarked}
+            onPackCreated={onPackCreated}
+            triggerClassName="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-ink px-5 text-[14px] font-medium text-cream transition-all duration-200 ease-out hover:-translate-y-px hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+            triggerLabel={
+              <>
+                Complete the look <span aria-hidden>→</span>
+              </>
+            }
+          />
+          <p className="text-[12px] leading-[1.4] text-ink-3 opacity-70 transition-opacity duration-200 group-hover/cta:opacity-100">
+            Generate marketplace pack
+          </p>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
