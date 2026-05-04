@@ -139,6 +139,10 @@ export function RunGrid({ runId, run, scenes, initial, initialPacks }: Props) {
     () => topLevel.filter((g) => g.status === "succeeded" && g.outputUrl),
     [topLevel],
   );
+  const allSucceeded = useMemo(
+    () => gens.filter((g) => g.status === "succeeded" && g.outputUrl),
+    [gens],
+  );
   const allWatermarked =
     succeededTopLevel.length > 0 && succeededTopLevel.every((g) => g.watermarked);
 
@@ -291,7 +295,7 @@ export function RunGrid({ runId, run, scenes, initial, initialPacks }: Props) {
             <div className="flex flex-col gap-2.5">
               <button
                 type="button"
-                onClick={() => downloadAll(succeededTopLevel)}
+                onClick={() => downloadAll(allSucceeded)}
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-ink-2"
               >
                 <span aria-hidden>↓</span> Download all
@@ -387,7 +391,6 @@ export function RunGrid({ runId, run, scenes, initial, initialPacks }: Props) {
                     runId={runId}
                     name={group.name}
                     items={group.items}
-                    onDownloadAll={() => downloadAll(group.succeeded)}
                     onTileClick={openLightbox}
                     onPackCreated={handlePackCreated}
                   />
@@ -474,14 +477,12 @@ function SceneSection({
   runId,
   name,
   items,
-  onDownloadAll,
   onTileClick,
   onPackCreated,
 }: {
   runId: string;
   name: string;
   items: Generation[];
-  onDownloadAll: () => void;
   onTileClick: (id: string) => void;
   onPackCreated: (pack: Pack, shots: Generation[]) => void;
 }) {
@@ -500,15 +501,6 @@ function SceneSection({
             · {succeededCount} {succeededCount === 1 ? "image" : "images"}
           </span>
         </div>
-        {succeededCount > 0 ? (
-          <button
-            type="button"
-            onClick={onDownloadAll}
-            className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3 transition-colors hover:text-ink"
-          >
-            <span aria-hidden>↓</span> Download all
-          </button>
-        ) : null}
       </header>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
