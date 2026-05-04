@@ -45,26 +45,28 @@ export function LibraryCompleteLookButton({
       onPackCreated={(pack: Pack) => {
         router.push(`/app/runs/${runId}#pack-${pack.id}`);
       }}
-      triggerClassName="inline-flex items-center gap-2 rounded-full border border-line bg-paper-soft px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink transition-colors hover:border-ink-4 hover:bg-paper-2"
+      triggerClassName="group/cta inline-flex items-center gap-2 rounded-full border border-line bg-cream px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink shadow-subtle transition-all duration-200 hover:border-terracotta/40 hover:bg-terracotta-wash hover:shadow-[0_4px_14px_rgba(194,96,76,0.15)]"
       triggerLabel={
         <>
-          Complete the look <PlusIcon />
+          <SparkIcon />
+          Complete the look
         </>
       }
     />
   );
 }
 
-function PlusIcon() {
+function SparkIcon() {
   return (
     <svg
-      width="10"
-      height="10"
-      viewBox="0 0 10 10"
+      width="11"
+      height="11"
+      viewBox="0 0 24 24"
       fill="currentColor"
       aria-hidden
+      className="text-terracotta transition-transform duration-200 group-hover/cta:scale-110"
     >
-      <path d="M4.4 0h1.2v4.4H10v1.2H5.6V10H4.4V5.6H0V4.4h4.4z" />
+      <path d="M12 2 14 10 22 12 14 14 12 22 10 14 2 12 10 10z" />
     </svg>
   );
 }

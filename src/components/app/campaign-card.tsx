@@ -30,6 +30,14 @@ export type CampaignCardProps = {
   pill?: { label: string; tone?: PillTone } | null;
   description?: string | null;
   highlightLabel?: string | null;
+  /**
+   * Visual variant for the multi-image cluster. Library rotates these by
+   * row index for editorial rhythm. Single-image rows always use the
+   * cinematic hero regardless of pattern.
+   *  - "horizontal" (default) — hero left, supporting strip right
+   *  - "stacked"  — wide hero on top, supporting row below
+   */
+  layoutPattern?: "horizontal" | "stacked";
 };
 
 const HERO_ASPECT_MULTI = "aspect-[5/4]";
@@ -58,6 +66,7 @@ export function CampaignCard(props: CampaignCardProps) {
     pill,
     description,
     highlightLabel,
+    layoutPattern = "horizontal",
   } = props;
   const title = customName ?? fallbackTitle;
 
@@ -89,7 +98,7 @@ export function CampaignCard(props: CampaignCardProps) {
         <span aria-hidden className="px-2 text-line">·</span>
         <span>{meta}</span>
       </p>
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
         <EditableRunTitle
           runId={runId}
           customName={customName}
@@ -104,19 +113,19 @@ export function CampaignCard(props: CampaignCardProps) {
         ) : null}
       </div>
       {description ? (
-        <p className="mt-5 line-clamp-2 max-w-[280px] text-[14px] leading-[1.55] text-ink-3">
+        <p className="mt-2 line-clamp-2 max-w-[280px] text-[14px] leading-[1.55] text-ink-3">
           {description}
         </p>
       ) : null}
       {source ? (
-        <div className="mt-5">
+        <div className="mt-7">
           <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-4">
             Source
           </p>
           <Link
             href={`/app/runs/${runId}`}
             aria-label={`Source photo for ${title}`}
-            className="mt-2 block w-[88px] overflow-hidden rounded-md border border-line-soft bg-paper-2 transition-colors hover:border-ink-4"
+            className="mt-2 block w-[88px] overflow-hidden rounded-lg border border-line-soft bg-paper-2 transition-colors hover:border-ink-4"
           >
             <div className="relative aspect-[4/5]">
               <FaceSafeImage
@@ -133,10 +142,10 @@ export function CampaignCard(props: CampaignCardProps) {
           </Link>
         </div>
       ) : null}
-      <div className="mt-7 flex flex-wrap items-center gap-2">
+      <div className="mt-7 flex flex-wrap items-center gap-1.5">
         <Link
           href={`/app/runs/${runId}`}
-          className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-ink-2"
+          className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-cream transition-all duration-200 hover:bg-ink-2"
         >
           View batch <span aria-hidden>→</span>
         </Link>
@@ -154,6 +163,7 @@ export function CampaignCard(props: CampaignCardProps) {
             Use this style <RefreshIcon />
           </Link>
         )}
+        <span aria-hidden className="mx-1 h-5 w-px bg-line" />
         <DeleteBatchDialog runId={runId} label={customName ?? fallbackTitle}>
           <button
             type="button"
@@ -199,7 +209,7 @@ export function CampaignCard(props: CampaignCardProps) {
           {isSingle ? (
             // ── CASE A — single image: cinematic wide hero ──
             <div
-              className={`relative overflow-hidden rounded-md border border-line-soft bg-paper-2 ${HERO_ASPECT_SINGLE}`}
+              className={`relative overflow-hidden rounded-2xl border border-line-soft bg-paper-2 shadow-subtle transition-shadow duration-200 group-hover:shadow-card ${HERO_ASPECT_SINGLE}`}
             >
               <FaceSafeImage
                 src={hero!.url}
@@ -221,11 +231,63 @@ export function CampaignCard(props: CampaignCardProps) {
                 1 look generated
               </span>
             </div>
+          ) : layoutPattern === "stacked" ? (
+            // ── CASE C — multi-image: wide hero on top, supporting row below ──
+            <div className="flex flex-col gap-1.5">
+              <div
+                className={`relative overflow-hidden rounded-2xl border border-line-soft bg-paper-2 shadow-subtle transition-shadow duration-200 group-hover:shadow-card ${HERO_ASPECT_SINGLE}`}
+              >
+                <FaceSafeImage
+                  src={hero!.url}
+                  alt={hero!.alt}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 60vw"
+                  priority
+                  unoptimized
+                  className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+                  faceBox={hero!.faceBox}
+                  focalPoint={hero!.focalPoint ?? { x: 0.5, y: 0.25 }}
+                />
+              </div>
+              {visibleSupporting.length > 0 || showMore ? (
+                <div className="flex gap-1.5">
+                  {visibleSupporting.map((tile) => (
+                    <div
+                      key={tile.id}
+                      className="relative aspect-[4/5] flex-1 overflow-hidden rounded-lg border border-line-soft bg-paper-2"
+                    >
+                      <FaceSafeImage
+                        src={tile.url}
+                        alt={tile.alt}
+                        fill
+                        sizes="(max-width: 768px) 30vw, 130px"
+                        unoptimized
+                        className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+                        faceBox={tile.faceBox}
+                        focalPoint={tile.focalPoint}
+                      />
+                    </div>
+                  ))}
+                  {showMore ? (
+                    <div className="flex aspect-[4/5] flex-1 items-center justify-center rounded-lg border border-line-soft bg-paper-soft transition-all duration-200 group-hover:-translate-y-1 group-hover:border-ink-4 group-hover:bg-cream group-hover:shadow-card">
+                      <div className="flex flex-col items-center gap-0.5 text-ink-2">
+                        <span className="font-serif text-[clamp(1.25rem,1.6vw,1.625rem)] leading-none tracking-[-0.01em] text-ink">
+                          +{moreCount}
+                        </span>
+                        <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-ink-3">
+                          more
+                        </span>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
           ) : (
-            // ── CASE B — multi-image: hero + supporting strip ──
+            // ── CASE B — multi-image: hero + supporting strip (default) ──
             <div className="flex gap-1.5">
               <div
-                className={`relative ${heroFlex} overflow-hidden rounded-md border border-line-soft bg-paper-2 ${HERO_ASPECT_MULTI}`}
+                className={`relative ${heroFlex} overflow-hidden rounded-2xl border border-line-soft bg-paper-2 shadow-subtle transition-shadow duration-200 group-hover:shadow-card ${HERO_ASPECT_MULTI}`}
               >
                 <FaceSafeImage
                   src={hero!.url}
@@ -243,7 +305,7 @@ export function CampaignCard(props: CampaignCardProps) {
               {visibleSupporting.map((tile) => (
                 <div
                   key={tile.id}
-                  className="relative flex-1 overflow-hidden rounded-md border border-line-soft bg-paper-2"
+                  className="relative flex-1 overflow-hidden rounded-lg border border-line-soft bg-paper-2"
                 >
                   <FaceSafeImage
                     src={tile.url}
@@ -259,7 +321,7 @@ export function CampaignCard(props: CampaignCardProps) {
               ))}
 
               {showMore ? (
-                <div className="flex flex-1 items-center justify-center rounded-md border border-line-soft bg-paper-soft transition-colors group-hover:border-ink-4 group-hover:bg-cream">
+                <div className="flex flex-1 items-center justify-center rounded-lg border border-line-soft bg-paper-soft transition-all duration-200 group-hover:-translate-y-1 group-hover:border-ink-4 group-hover:bg-cream group-hover:shadow-card">
                   <div className="flex flex-col items-center gap-0.5 text-ink-2">
                     <span className="font-serif text-[clamp(1.25rem,1.6vw,1.625rem)] leading-none tracking-[-0.01em] text-ink">
                       +{moreCount}
@@ -267,10 +329,14 @@ export function CampaignCard(props: CampaignCardProps) {
                     <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-ink-3">
                       more
                     </span>
+                    {/* "View all →" appears on hover; collapses to "→" at rest. */}
                     <span
                       aria-hidden
-                      className="mt-1 font-mono text-[10px] text-ink-3 transition-transform group-hover:translate-x-0.5"
+                      className="mt-1 font-mono text-[10px] text-ink-3 transition-all duration-200 group-hover:translate-x-0.5"
                     >
+                      <span className="hidden uppercase tracking-[0.12em] group-hover:inline">
+                        View all{" "}
+                      </span>
                       →
                     </span>
                   </div>
