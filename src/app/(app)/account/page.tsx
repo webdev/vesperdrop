@@ -77,12 +77,6 @@ export default async function Page({
         </div>
         <PlanGrid tiers={tiers} currentPlan={plan} />
       </section>
-
-      <form action="/api/auth/sign-out" method="post" className="pt-2">
-        <button className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3 transition-colors hover:text-ink">
-          Sign out
-        </button>
-      </form>
     </PageShell>
   );
 }
