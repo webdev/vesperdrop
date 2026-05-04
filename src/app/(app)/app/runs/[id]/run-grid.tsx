@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { track } from "@/lib/analytics";
@@ -261,7 +261,7 @@ export function RunGrid({ runId, run, scenes, initial, initialPacks }: Props) {
 
       <div className="flex flex-col gap-10 md:flex-row md:gap-12 lg:gap-16">
         {/* Left rail */}
-        <aside className="flex flex-col gap-8 md:w-[280px] md:shrink-0 md:self-start lg:sticky lg:top-24">
+        <aside className="flex flex-col gap-8 md:w-[260px] md:shrink-0 md:self-start lg:sticky lg:top-24">
           <div>
             <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-4">
               {dateShort}
@@ -385,15 +385,23 @@ export function RunGrid({ runId, run, scenes, initial, initialPacks }: Props) {
                   </p>
                 </div>
               ) : (
-                visibleGroups.map((group) => (
-                  <SceneSection
-                    key={group.slug}
-                    runId={runId}
-                    name={group.name}
-                    items={group.items}
-                    onTileClick={openLightbox}
-                    onPackCreated={handlePackCreated}
-                  />
+                visibleGroups.map((group, i) => (
+                  <Fragment key={group.slug}>
+                    {i > 0 ? (
+                      <div
+                        aria-hidden
+                        className="h-px w-full"
+                        style={{ background: "rgba(0,0,0,0.08)" }}
+                      />
+                    ) : null}
+                    <SceneSection
+                      runId={runId}
+                      name={group.name}
+                      items={group.items}
+                      onTileClick={openLightbox}
+                      onPackCreated={handlePackCreated}
+                    />
+                  </Fragment>
                 ))
               )}
             </>
@@ -533,9 +541,9 @@ function Tile({
   const showFaceBox = useFaceBoxEnabled();
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2.5">
       {/* Image card — image only, no CTA overlay. Image is fully visible. */}
-      <div className="group relative aspect-[4/5] overflow-hidden rounded-md border border-line-soft bg-paper-2">
+      <div className="group relative aspect-[4/5] overflow-hidden rounded-md border border-line-soft bg-paper-2 transition-shadow duration-200 ease-out hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
         {succeeded ? (
           <>
             <button
@@ -551,7 +559,7 @@ function Tile({
                   fill
                   sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                   unoptimized
-                  className="object-contain transition-transform duration-700 group-hover:scale-[1.03]"
+                  className="object-contain transition-transform duration-200 ease-out group-hover:scale-[1.02]"
                 />
               ) : (
                 <FaceSafeImage
@@ -560,7 +568,7 @@ function Tile({
                   fill
                   sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                   unoptimized
-                  className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                  className="object-cover transition-transform duration-200 ease-out group-hover:scale-[1.02]"
                   faceBox={g.faceBox}
                   focalPoint={g.focalPoint}
                 />
@@ -597,30 +605,139 @@ function Tile({
       </div>
 
       {/* CTA block — sits below the image so the photo stays fully
-          visible. Only renders for succeeded gens; pending/running/failed
-          tiles don't get a CTA. Group-scoped so subtext fades in on
-          hover (with always-visible default opacity per spec). */}
+          visible. Only renders for succeeded gens. Mini pack previews
+          underneath communicate value before click; each preview opens
+          the same popover the main CTA opens via a shared trigger ref. */}
       {succeeded ? (
-        <div className="group/cta flex flex-col items-stretch gap-1 text-center">
-          <CompleteLookButton
-            runId={runId}
-            parentGenerationId={g.id}
-            disabled={!g.sceneifyGenerationId}
-            locked={g.watermarked}
-            onPackCreated={onPackCreated}
-            triggerClassName="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-ink px-5 text-[14px] font-medium text-cream transition-all duration-200 ease-out hover:-translate-y-px hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-none"
-            triggerLabel={
-              <>
-                Complete the look <span aria-hidden>→</span>
-              </>
-            }
-          />
-          <p className="text-[12px] leading-[1.4] text-ink-3 opacity-70 transition-opacity duration-200 group-hover/cta:opacity-100">
-            Generate marketplace pack
-          </p>
-        </div>
+        <CtaBlock
+          runId={runId}
+          parentGenerationId={g.id}
+          disabled={!g.sceneifyGenerationId}
+          locked={g.watermarked}
+          onPackCreated={onPackCreated}
+        />
       ) : null}
     </div>
+  );
+}
+
+// Abstract "ghost preview" cards — communicate the kinds of images the
+// pack will produce without invoking any API or showing fake content.
+// Labels are intentionally generic; gradients hint at material quality.
+const GHOST_PREVIEWS = [
+  {
+    label: "Hero",
+    background: "linear-gradient(135deg, #f5f5f5 0%, #eaeaea 100%)",
+  },
+  {
+    label: "Lifestyle",
+    background: "linear-gradient(135deg, #f6e7da 0%, #f2d2b6 100%)",
+  },
+  {
+    label: "Detail",
+    background: "linear-gradient(135deg, #e8e8e8 0%, #dcdcdc 100%)",
+  },
+] as const;
+
+function CtaBlock({
+  runId,
+  parentGenerationId,
+  disabled,
+  locked,
+  onPackCreated,
+}: {
+  runId: string;
+  parentGenerationId: string;
+  disabled: boolean;
+  locked: boolean;
+  onPackCreated: (pack: Pack, shots: Generation[]) => void;
+}) {
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  return (
+    <div className="group/cta flex flex-col items-stretch text-center">
+      <CompleteLookButton
+        runId={runId}
+        parentGenerationId={parentGenerationId}
+        disabled={disabled}
+        locked={locked}
+        onPackCreated={onPackCreated}
+        triggerRef={triggerRef}
+        triggerClassName="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-ink px-5 text-[14px] font-medium text-cream transition-all duration-200 ease-out hover:-translate-y-px hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+        triggerLabel={
+          <>
+            Generate full set <span aria-hidden>→</span>
+          </>
+        }
+      />
+      <p className="mt-1.5 text-[12px] leading-[1.4] text-ink-3 opacity-70 transition-opacity duration-200 group-hover/cta:opacity-100">
+        Ready for Amazon, Shopify, and social
+      </p>
+      {/* Ghost preview strip — labeled abstract cards with a "+3" tile.
+          Hover spreads them apart and scales each up subtly. Whole
+          strip opens the same popover via the shared trigger ref. */}
+      {!disabled ? (
+        <button
+          type="button"
+          onClick={() => triggerRef.current?.click()}
+          aria-label="Preview the pack"
+          className="group/strip mt-2.5 flex items-center justify-center pl-2 transition-opacity duration-200 group-hover/cta:opacity-100"
+          style={{ opacity: 0.9 }}
+        >
+          {GHOST_PREVIEWS.map((p, i) => (
+            <GhostCard
+              key={p.label}
+              label={p.label}
+              background={p.background}
+              isFirst={i === 0}
+            />
+          ))}
+          <span
+            className="flex h-14 w-10 shrink-0 items-center justify-center rounded-[10px] ml-[-8px] transition-all duration-200 ease-out group-hover/strip:ml-[-2px] group-hover/strip:scale-[1.05]"
+            style={{
+              background: "rgba(0,0,0,0.04)",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+            }}
+          >
+            <span className="font-mono text-[10px] text-ink-3 tabular-nums">
+              +3
+            </span>
+          </span>
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function GhostCard({
+  label,
+  background,
+  isFirst,
+}: {
+  label: string;
+  background: string;
+  isFirst: boolean;
+}) {
+  return (
+    <span
+      className={`flex h-14 w-10 shrink-0 items-center justify-center rounded-[10px] transition-all duration-200 ease-out group-hover/strip:scale-[1.05] ${
+        isFirst ? "" : "ml-[-8px] group-hover/strip:ml-[-2px]"
+      }`}
+      style={{
+        background,
+        boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+      }}
+    >
+      <span
+        className="font-mono uppercase"
+        style={{
+          fontSize: 8,
+          letterSpacing: "0.08em",
+          color: "rgba(0,0,0,0.6)",
+        }}
+      >
+        {label}
+      </span>
+    </span>
   );
 }
 

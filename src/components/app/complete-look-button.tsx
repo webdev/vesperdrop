@@ -25,6 +25,13 @@ interface Props {
   triggerClassName?: string;
   /** Override the trigger button's label content. */
   triggerLabel?: React.ReactNode;
+  /**
+   * Optional external ref to the trigger button. Lets sibling elements
+   * programmatically open the popover by calling `ref.current?.click()`
+   * (used by Tile mini-pack previews so each preview opens the same
+   * popover the main CTA opens, no duplicate submission logic).
+   */
+  triggerRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
 export function CompleteLookButton({
@@ -35,13 +42,16 @@ export function CompleteLookButton({
   onPackCreated,
   triggerClassName,
   triggerLabel,
+  triggerRef,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState<PlatformId | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
-  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const internalButtonRef = useRef<HTMLButtonElement | null>(null);
+  // Use the external ref if provided so siblings can `.click()` us.
+  const buttonRef = triggerRef ?? internalButtonRef;
 
   useEffect(() => {
     if (!open) return;
@@ -67,7 +77,7 @@ export function CompleteLookButton({
       document.removeEventListener("mousedown", onDoc);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open, submitting]);
+  }, [open, submitting, buttonRef]);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -84,7 +94,7 @@ export function CompleteLookButton({
       window.removeEventListener("scroll", update, true);
       window.removeEventListener("resize", update);
     };
-  }, [open]);
+  }, [open, buttonRef]);
 
   async function handleSubmit(platform: PlatformId) {
     if (submitting) return;

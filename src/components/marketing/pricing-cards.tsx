@@ -19,6 +19,11 @@ function toTier(record: PlanRecord): Tier {
   };
 }
 
+// Toggle to re-enable the one-time packs section. Hidden for now while
+// we focus the pricing flow on subscriptions; logic + checkout routes
+// are intact and ready when we want it back.
+const SHOW_ONE_TIME_PACKS = false;
+
 const ONE_TIME_PACKS = [
   { credits: 10, price: 9, perCredit: "90¢" },
   { credits: 25, price: 19, perCredit: "76¢" },
@@ -152,6 +157,7 @@ export function PricingCards({ tiers: tierRecords }: { tiers: PlanRecord[] }) {
       </div>
 
       {/* One-time packs */}
+      {SHOW_ONE_TIME_PACKS ? (
       <div className="mb-10 rounded-xl border border-dashed border-line bg-paper-soft p-7 md:p-8">
         <div className="mb-5">
           <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
@@ -187,6 +193,7 @@ export function PricingCards({ tiers: tierRecords }: { tiers: PlanRecord[] }) {
           Subscribers pay less per credit — packs are the on-ramp to a plan.
         </p>
       </div>
+      ) : null}
 
       <div className="flex flex-col items-center justify-between gap-4 rounded-xl border border-dashed border-line px-6 py-5 sm:flex-row">
         <div>
