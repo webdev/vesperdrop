@@ -14,21 +14,8 @@ const ClientEnv = z.object({
     .optional(),
 });
 
-// In deployed environments NEXT_PUBLIC_SUPABASE_URL is injected by the
-// Vercel-Supabase Marketplace integration as the bare *.supabase.co URL,
-// which then leaks onto the Google OAuth consent screen. We've enabled
-// Supabase Custom Domains so https://auth.vesperdrop.com points at the
-// same project — rewrite the URL here so every Supabase client (browser,
-// server, middleware, admin) routes through our own domain. Local dev
-// (e.g. http://127.0.0.1:54321) is unaffected.
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.endsWith(
-  ".supabase.co",
-)
-  ? "https://auth.vesperdrop.com"
-  : process.env.NEXT_PUBLIC_SUPABASE_URL;
-
 export const clientEnv = ClientEnv.parse({
-  NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
+  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
   NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN: process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN,
