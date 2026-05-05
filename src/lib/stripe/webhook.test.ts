@@ -59,8 +59,8 @@ vi.mock("@/lib/db", () => {
   };
 });
 
-vi.mock("@/lib/posthog-server", () => ({
-  getPostHogClient: () => ({ capture: vi.fn() }),
+vi.mock("@/lib/analytics-server", () => ({
+  serverTrack: vi.fn(),
 }));
 
 // Stripe SDK — return a canned subscription object (per-test mutable)

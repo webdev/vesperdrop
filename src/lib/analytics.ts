@@ -1,6 +1,19 @@
 "use client";
 
-import posthog from "posthog-js";
+// Client-side analytics. Backed by Google Analytics 4 (gtag.js loaded by
+// AnalyticsProvider). The event union is the source of truth — server
+// events go through `serverTrack` in analytics-server.ts and use the same
+// names so dashboards line up.
+//
+// All entry points are no-ops when gtag isn't on the page (e.g. before
+// the GA script loads, or when NEXT_PUBLIC_GA_MEASUREMENT_ID is unset).
+
+declare global {
+  interface Window {
+    dataLayer?: unknown[];
+    gtag?: (...args: unknown[]) => void;
+  }
+}
 
 export type AnalyticsEvent =
   | { name: "try_upload_started"; props?: { source: "drop" | "browse" | "sample" } }
@@ -35,18 +48,25 @@ export type AnalyticsEvent =
 
 export function track<E extends AnalyticsEvent>(name: E["name"], props?: E["props"]) {
   if (typeof window === "undefined") return;
-  if (!posthog.__loaded) return;
-  posthog.capture(name, props as Record<string, unknown> | undefined);
+  if (!window.gtag) return;
+  window.gtag("event", name, (props as Record<string, unknown>) ?? undefined);
 }
 
+/**
+ * Pin a user_id to the GA stream. Subsequent events on this client are
+ * attributed to the same person across sessions/devices when the same id
+ * is set. Traits become user_properties (24 char keys, 36 char values
+ * are GA's hard limits — caller's responsibility to keep small).
+ */
 export function identify(userId: string, traits?: Record<string, unknown>) {
   if (typeof window === "undefined") return;
-  if (!posthog.__loaded) return;
-  posthog.identify(userId, traits);
+  if (!window.gtag) return;
+  window.gtag("set", "user_properties", { ...(traits ?? {}) });
+  window.gtag("set", { user_id: userId });
 }
 
 export function resetIdentity() {
   if (typeof window === "undefined") return;
-  if (!posthog.__loaded) return;
-  posthog.reset();
+  if (!window.gtag) return;
+  window.gtag("set", { user_id: undefined });
 }

@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import type { Metadata, Viewport } from "next";
 import { Geist, Fraunces, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { PostHogProvider } from "@/components/posthog-provider";
+import { AnalyticsProvider } from "@/components/analytics-provider";
 import { env } from "@/lib/env";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
@@ -90,7 +90,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <Suspense fallback={null}>
-          <PostHogProvider>{children}</PostHogProvider>
+          <AnalyticsProvider>{children}</AnalyticsProvider>
         </Suspense>
       </body>
     </html>

@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { runs, generations } from "@/lib/db/schema";
 import { TryClaimSchema } from "@/lib/schema/runs";
-import { getPostHogClient } from "@/lib/posthog-server";
+import { serverTrack } from "@/lib/analytics-server";
 import { copyToPrivate } from "@/lib/storage";
 
 export const runtime = "nodejs";
@@ -132,7 +132,7 @@ export async function POST(req: Request) {
     return runRow.id;
   });
 
-  getPostHogClient().capture({
+  serverTrack({
     distinctId: user.id,
     event: "try_claim_persisted",
     properties: {

@@ -13,7 +13,7 @@ import { tryTakeToken } from "@/lib/db/rate-limit";
 import { tryDeductCredits } from "@/lib/db/credits";
 import { processRun } from "@/lib/workflows/process-run";
 import { env } from "@/lib/env";
-import { getPostHogClient } from "@/lib/posthog-server";
+import { serverTrack } from "@/lib/analytics-server";
 import { isAdminEmail } from "@/lib/admin";
 
 export const runtime = "nodejs";
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
   if (isFreePlan && !mockMode) {
     const creditsAvailable = profile?.credits_balance ?? 0;
     if (creditsAvailable < total) {
-      getPostHogClient().capture({
+      serverTrack({
         distinctId: user.id,
         event: "run_credits_insufficient",
         properties: { plan, credits_available: creditsAvailable, credits_needed: total },
@@ -93,7 +93,7 @@ export async function POST(req: Request) {
   if (isFreePlan && !mockMode) {
     const ok = await tryDeductCredits(user.id, total);
     if (!ok) {
-      getPostHogClient().capture({
+      serverTrack({
         distinctId: user.id,
         event: "run_credits_insufficient",
         properties: { plan, credits_available: 0, credits_needed: total },
@@ -144,7 +144,7 @@ export async function POST(req: Request) {
 
   const run = await start(processRun, [runId, user.id, sourceUploads, origin, mockMode]);
 
-  getPostHogClient().capture({
+  serverTrack({
     distinctId: user.id,
     event: "run_started",
     properties: {

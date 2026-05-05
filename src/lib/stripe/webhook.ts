@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { refillCredits } from "@/lib/db/credits";
 import { PLAN_MONTHLY_CREDITS } from "@/lib/ai/models";
 import { env } from "@/lib/env";
-import { getPostHogClient } from "@/lib/posthog-server";
+import { serverTrack } from "@/lib/analytics-server";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -97,8 +97,9 @@ async function resolveSubscription(
 }
 
 /**
- * Fire-and-forget PostHog capture — telemetry must never crash the webhook.
- * A 5xx triggers Stripe to retry, which can cause duplicate side effects.
+ * Fire-and-forget analytics capture — telemetry must never crash the
+ * webhook. A 5xx triggers Stripe to retry, which can cause duplicate
+ * side effects.
  */
 function safeCapture(args: {
   distinctId: string;
@@ -106,9 +107,9 @@ function safeCapture(args: {
   properties?: Record<string, unknown>;
 }): void {
   try {
-    getPostHogClient().capture(args);
+    void serverTrack(args);
   } catch (err) {
-    console.error("[stripe-webhook] posthog capture failed", err);
+    console.error("[stripe-webhook] analytics capture failed", err);
   }
 }
 
