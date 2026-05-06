@@ -33,6 +33,20 @@ export default async function EtsyCandidatesPage() {
             id: preview.id,
             token: preview.token,
             status: preview.status,
+            slots: {
+              hero: {
+                url: preview.heroUrl,
+                status: preview.heroStatus,
+              },
+              lifestyle: {
+                url: preview.lifestyleUrl,
+                status: preview.lifestyleStatus,
+              },
+              detail: {
+                url: preview.detailUrl,
+                status: preview.detailStatus,
+              },
+            },
           }
         : null,
     };

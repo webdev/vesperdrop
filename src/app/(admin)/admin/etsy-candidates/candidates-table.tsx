@@ -24,8 +24,19 @@ export type CandidateRow = {
     | "skipped"
     | "to_review";
   updatedAt: string;
-  preview: { id: string; token: string; status: string } | null;
+  preview: {
+    id: string;
+    token: string;
+    status: string;
+    slots: {
+      hero: { url: string | null; status: string };
+      lifestyle: { url: string | null; status: string };
+      detail: { url: string | null; status: string };
+    };
+  } | null;
 };
+
+type SlotKey = "hero" | "lifestyle" | "detail";
 
 function formatRelative(iso: string): string {
   const seconds = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
@@ -48,6 +59,23 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
   const [busy, setBusy] = useState(false);
   const [regenSet, setRegenSet] = useState<Set<string>>(new Set());
   const [slotMenuFor, setSlotMenuFor] = useState<string | null>(null);
+  const [pickedSlots, setPickedSlots] = useState<Set<SlotKey>>(
+    new Set(["hero", "lifestyle", "detail"]),
+  );
+
+  function openSlotMenu(pageId: string) {
+    setPickedSlots(new Set(["hero", "lifestyle", "detail"]));
+    setSlotMenuFor(pageId);
+  }
+
+  function toggleSlot(slot: SlotKey) {
+    setPickedSlots((prev) => {
+      const next = new Set(prev);
+      if (next.has(slot)) next.delete(slot);
+      else next.add(slot);
+      return next;
+    });
+  }
 
   // Close the slot menu when clicking outside or pressing Escape.
   useEffect(() => {
@@ -449,76 +477,117 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
                       >
                         <button
                           type="button"
-                          onClick={() => regenerate(row)}
-                          disabled={
-                            row.preview ? regenSet.has(row.preview.id) : true
-                          }
-                          title="Regenerate based on row status (failed slots, or all if completed)"
-                          className="rounded-l-full border border-r-0 border-line bg-paper px-3 py-1 text-[11px] text-ink-2 hover:bg-surface disabled:opacity-50"
-                        >
-                          {row.preview && regenSet.has(row.preview.id)
-                            ? "Regen…"
-                            : "Regen"}
-                        </button>
-                        <button
-                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSlotMenuFor(
-                              row.preview && slotMenuFor === row.preview.id
-                                ? null
-                                : row.preview?.id ?? null,
-                            );
+                            if (!row.preview) return;
+                            if (slotMenuFor === row.preview.id) {
+                              setSlotMenuFor(null);
+                            } else {
+                              openSlotMenu(row.preview.id);
+                            }
                           }}
                           disabled={
                             row.preview ? regenSet.has(row.preview.id) : true
                           }
-                          aria-label="Regen specific slot"
                           aria-expanded={
                             row.preview ? slotMenuFor === row.preview.id : false
                           }
-                          className="rounded-r-full border border-line bg-paper px-2 py-1 text-[11px] text-ink-3 hover:bg-surface disabled:opacity-50"
+                          title="Pick which images to regenerate"
+                          className="rounded-full border border-line bg-paper px-3 py-1 text-[11px] text-ink-2 hover:bg-surface disabled:opacity-50"
                         >
-                          ▾
+                          {row.preview && regenSet.has(row.preview.id)
+                            ? "Regen…"
+                            : "Regen ▾"}
                         </button>
                         {row.preview && slotMenuFor === row.preview.id ? (
                           <div
                             data-slot-menu
-                            className="absolute right-0 bottom-full z-30 mb-1 flex flex-col rounded-xl border border-line-soft bg-paper p-1 shadow-[0_18px_40px_-22px_rgba(40,30,20,0.35)]"
+                            className="absolute right-0 bottom-full z-30 mb-2 w-[260px] rounded-xl border border-line-soft bg-paper p-2 shadow-[0_24px_48px_-24px_rgba(40,30,20,0.4)]"
                           >
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSlotMenuFor(null);
-                                void regenerate(row, [
-                                  "hero",
-                                  "lifestyle",
-                                  "detail",
-                                ]);
-                              }}
-                              className="whitespace-nowrap rounded-md px-3 py-1.5 text-left text-[11px] text-ink-2 hover:bg-surface"
-                            >
-                              Regen all
-                            </button>
-                            <span
-                              aria-hidden
-                              className="my-0.5 h-px bg-line-soft/70"
-                            />
-                            {(["hero", "lifestyle", "detail"] as const).map(
-                              (slot) => (
-                                <button
-                                  key={slot}
-                                  type="button"
-                                  onClick={() => {
-                                    setSlotMenuFor(null);
-                                    void regenerate(row, [slot]);
-                                  }}
-                                  className="whitespace-nowrap rounded-md px-3 py-1.5 text-left text-[11px] capitalize text-ink-2 hover:bg-surface"
-                                >
-                                  Regen {slot}
-                                </button>
-                              ),
-                            )}
+                            <p className="mb-2 px-2 pt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-4">
+                              Select to regenerate
+                            </p>
+                            <ul className="flex flex-col">
+                              {(["hero", "lifestyle", "detail"] as const).map(
+                                (slot) => {
+                                  const s = row.preview!.slots[slot];
+                                  const checked = pickedSlots.has(slot);
+                                  return (
+                                    <li key={slot}>
+                                      <label className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 hover:bg-surface">
+                                        <input
+                                          type="checkbox"
+                                          checked={checked}
+                                          onChange={() => toggleSlot(slot)}
+                                          className="h-3.5 w-3.5"
+                                        />
+                                        <span className="relative h-10 w-10 overflow-hidden rounded-md border border-line-soft bg-cream/50">
+                                          {s.url ? (
+                                            <Image
+                                              src={s.url}
+                                              alt=""
+                                              fill
+                                              sizes="40px"
+                                              className="object-cover"
+                                              unoptimized
+                                            />
+                                          ) : null}
+                                        </span>
+                                        <span className="flex flex-col">
+                                          <span className="text-[12px] capitalize text-ink">
+                                            {slot}
+                                          </span>
+                                          <span
+                                            className={
+                                              s.status === "succeeded"
+                                                ? "font-mono text-[9px] uppercase tracking-[0.14em] text-emerald-700"
+                                                : s.status === "failed"
+                                                  ? "font-mono text-[9px] uppercase tracking-[0.14em] text-rose-700"
+                                                  : s.status === "running"
+                                                    ? "font-mono text-[9px] uppercase tracking-[0.14em] text-amber-700"
+                                                    : "font-mono text-[9px] uppercase tracking-[0.14em] text-ink-4"
+                                            }
+                                          >
+                                            {s.status}
+                                          </span>
+                                        </span>
+                                      </label>
+                                    </li>
+                                  );
+                                },
+                              )}
+                            </ul>
+                            <div className="mt-2 flex items-center justify-between gap-2 border-t border-line-soft/70 px-2 pt-2">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPickedSlots(
+                                    pickedSlots.size === 3
+                                      ? new Set()
+                                      : new Set([
+                                          "hero",
+                                          "lifestyle",
+                                          "detail",
+                                        ]),
+                                  )
+                                }
+                                className="font-mono text-[9px] uppercase tracking-[0.16em] text-ink-4 hover:text-ink-2"
+                              >
+                                {pickedSlots.size === 3 ? "none" : "all"}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={pickedSlots.size === 0}
+                                onClick={() => {
+                                  const slots = Array.from(pickedSlots);
+                                  setSlotMenuFor(null);
+                                  void regenerate(row, slots as SlotKey[]);
+                                }}
+                                className="rounded-full bg-ink px-3.5 py-1 text-[11px] font-medium text-cream hover:bg-ink-2 disabled:opacity-40"
+                              >
+                                Regenerate
+                              </button>
+                            </div>
                           </div>
                         ) : null}
                       </div>
