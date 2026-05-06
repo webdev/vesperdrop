@@ -133,6 +133,26 @@ export async function finalizePreviewStatus(id: string): Promise<PreviewStatus> 
   return next;
 }
 
+export async function resetAllSlots(id: string): Promise<void> {
+  await db
+    .update(schema.etsyPreviewPages)
+    .set({
+      status: "pending",
+      heroStatus: "pending",
+      heroUrl: null,
+      heroError: null,
+      lifestyleStatus: "pending",
+      lifestyleUrl: null,
+      lifestyleError: null,
+      detailStatus: "pending",
+      detailUrl: null,
+      detailError: null,
+      completedAt: null,
+      updatedAt: sql`now()`,
+    })
+    .where(eq(schema.etsyPreviewPages.id, id));
+}
+
 export async function resetFailedSlots(id: string): Promise<void> {
   const page = await getPreviewById(id);
   if (!page) throw new Error(`preview ${id} not found`);

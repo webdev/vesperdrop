@@ -152,6 +152,25 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
     });
   }
 
+  async function regenerate(row: CandidateRow) {
+    if (!row.preview) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/admin/etsy/regenerate", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ pageId: row.preview.id, mock }),
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(body);
+      }
+      window.location.reload();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <section className="rounded-2xl border border-line-soft bg-surface">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line-soft px-6 py-4">
@@ -309,6 +328,15 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
                       >
                         Open
                       </Link>
+                      <button
+                        type="button"
+                        onClick={() => regenerate(row)}
+                        disabled={busy}
+                        title="Regenerate all images with fresh presets"
+                        className="rounded-full border border-line bg-paper px-3 py-1 text-[11px] text-ink-2 hover:bg-surface disabled:opacity-50"
+                      >
+                        Regen
+                      </button>
                     </div>
                   ) : (
                     <span className="text-ink-4">—</span>

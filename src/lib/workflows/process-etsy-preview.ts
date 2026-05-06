@@ -1,7 +1,11 @@
 import "server-only";
 import { generateViaSceneify } from "@/lib/ai/sceneify";
 import { snapshotEtsyImage } from "@/lib/etsy-outreach/snapshot";
-import { ETSY_PRESETS, PREVIEW_SLOTS, type PreviewSlotKey } from "@/lib/etsy-outreach/presets";
+import {
+  PREVIEW_SLOTS,
+  pickPresetsForAllSlots,
+  type PreviewSlotKey,
+} from "@/lib/etsy-outreach/presets";
 import {
   finalizePreviewStatus,
   getPreviewById,
@@ -25,10 +29,16 @@ async function loadAndSnapshot(pageId: string): Promise<string | null> {
   return blobUrl;
 }
 
+async function pickPresets(): Promise<Record<PreviewSlotKey, string>> {
+  "use step";
+  return pickPresetsForAllSlots();
+}
+
 async function generateOneSlot(
   pageId: string,
   sourceUrl: string,
   slot: PreviewSlotKey,
+  presetSlug: string,
   mock: boolean,
 ): Promise<void> {
   "use step";
@@ -41,7 +51,7 @@ async function generateOneSlot(
     }
     const result = await generateViaSceneify({
       sourceUrl,
-      presetSlug: ETSY_PRESETS[slot],
+      presetSlug,
       model: "gpt-image-2",
       quality: "high",
       callerRef: `etsy-preview:${pageId}:${slot}`,
@@ -80,8 +90,11 @@ export async function processEtsyPreview(
   if (!sourceUrl) {
     await failAllSlots(pageId, "no source image on candidate");
   } else {
+    const picks = await pickPresets();
     await Promise.all(
-      PREVIEW_SLOTS.map((slot) => generateOneSlot(pageId, sourceUrl, slot, mock)),
+      PREVIEW_SLOTS.map((slot) =>
+        generateOneSlot(pageId, sourceUrl, slot, picks[slot], mock),
+      ),
     );
   }
 
