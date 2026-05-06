@@ -44,7 +44,42 @@ export type AnalyticsEvent =
   | { name: "try_stream_attributes"; props: { batchId: string; slug: string; hasAttributes: boolean } }
   | { name: "try_stream_phase"; props: { batchId: string; slug: string; phaseId: string; elapsedMs: number } }
   | { name: "try_stream_completed"; props: { batchId: string; slug: string; totalMs: number } }
-  | { name: "try_stream_error"; props: { batchId: string; slug: string; message: string; retryable: boolean } };
+  | { name: "try_stream_error"; props: { batchId: string; slug: string; message: string; retryable: boolean } }
+  | {
+      name: "etsy_preview_view";
+      props: {
+        preview_token: string;
+        candidate_id: string;
+        seller_name: string | null;
+        listing_url: string;
+        source: "etsy_outreach";
+      };
+    }
+  | {
+      name: "etsy_preview_cta_click";
+      props: {
+        preview_token: string;
+        candidate_id: string;
+        seller_name: string | null;
+        listing_url: string;
+        source: "etsy_outreach";
+        label: "email_submit" | "google" | "start_trial";
+      };
+    }
+  | {
+      name: "etsy_preview_signup_start";
+      props: {
+        preview_token: string;
+        candidate_id: string;
+        seller_name: string | null;
+        listing_url: string;
+        source: "etsy_outreach";
+        method: "email" | "google";
+      };
+    }
+  | { name: "etsy_admin_generation_submitted"; props: { count: number; mock: boolean } }
+  | { name: "etsy_admin_generation_completed"; props: { page_id: string; status: "completed" | "partial" | "failed" } }
+  | { name: "etsy_admin_copy_preview_link"; props: { page_id: string; preview_token: string } };
 
 export function track<E extends AnalyticsEvent>(name: E["name"], props?: E["props"]) {
   if (typeof window === "undefined") return;
