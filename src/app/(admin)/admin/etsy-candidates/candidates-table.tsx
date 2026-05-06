@@ -48,7 +48,11 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
   const fired = useRef<Set<string>>(new Set());
   useEffect(() => {
     const inflight = rows.filter(
-      (r) => r.preview && (r.status === "generating" || r.status === "pending"),
+      (r) =>
+        r.preview &&
+        r.preview.status !== "completed" &&
+        r.preview.status !== "partial" &&
+        r.preview.status !== "failed",
     );
     if (inflight.length === 0) return;
     const interval = window.setInterval(async () => {
