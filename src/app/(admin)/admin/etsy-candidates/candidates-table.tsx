@@ -25,6 +25,7 @@ export type CandidateRow = {
     | "failed"
     | "skipped"
     | "to_review";
+  reachedOutAt: string | null;
   updatedAt: string;
   preview: {
     id: string;
@@ -74,6 +75,11 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
   const [msgMenuFor, setMsgMenuFor] = useState<string | null>(null);
   const [msgMenuRect, setMsgMenuRect] = useState<DOMRect | null>(null);
   const [copiedTpl, setCopiedTpl] = useState<string | null>(null);
+  // Optimistic overlay so the Reached-out pill flips immediately on
+  // click; resolves to the server state on the next router.refresh().
+  const [reachedOverride, setReachedOverride] = useState<
+    Map<string, string | null>
+  >(new Map());
 
   function openSlotMenu(pageId: string, trigger: HTMLElement) {
     setPickedSlots(new Set(["hero", "lifestyle", "detail"]));
@@ -117,6 +123,39 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
         body: `Hi ${shop} — quick question: have you ever wanted lifestyle/on-model imagery for your listings without doing a photoshoot? I built a tool that generates them from your existing photos and made you a private sample with your ${title}:\n\n${url}\n\nMind taking a look and telling me if it's something you'd actually use? I'd really appreciate the feedback either way.`,
       },
     ];
+  }
+
+  function reachedOutOf(row: CandidateRow): string | null {
+    const override = reachedOverride.get(row.id);
+    return override === undefined ? row.reachedOutAt : override;
+  }
+
+  async function toggleReachedOut(row: CandidateRow) {
+    const current = reachedOutOf(row);
+    const nextOn = current === null;
+    // Optimistic
+    setReachedOverride((prev) => {
+      const next = new Map(prev);
+      next.set(row.id, nextOn ? new Date().toISOString() : null);
+      return next;
+    });
+    try {
+      const res = await fetch("/api/admin/etsy/reach", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ candidateId: row.id, on: nextOn }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      router.refresh();
+    } catch {
+      // Roll back optimistic update on failure
+      setReachedOverride((prev) => {
+        const next = new Map(prev);
+        next.delete(row.id);
+        return next;
+      });
+    }
   }
 
   async function copyMessage(row: CandidateRow, template: OutreachTemplate) {
@@ -492,6 +531,7 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
               <th className="px-3 py-3 text-left">Location</th>
               <th className="px-3 py-3 text-left">Status</th>
               <th className="px-3 py-3 text-left">Preview</th>
+              <th className="px-3 py-3 text-left">Outreach</th>
               <th className="px-3 py-3 text-left">Updated</th>
             </tr>
           </thead>
@@ -624,6 +664,36 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
                   ) : (
                     <span className="text-ink-4">—</span>
                   )}
+                </td>
+                <td className="px-3 py-3">
+                  {(() => {
+                    const reached = reachedOutOf(row);
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => toggleReachedOut(row)}
+                        title={
+                          reached
+                            ? `Reached out ${formatRelative(reached)} — click to undo`
+                            : "Mark as reached out"
+                        }
+                        className={
+                          reached
+                            ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] text-emerald-800 hover:bg-emerald-100"
+                            : "inline-flex items-center gap-1.5 rounded-full border border-line bg-paper px-3 py-1 text-[11px] text-ink-3 hover:bg-surface hover:text-ink-2"
+                        }
+                      >
+                        <span aria-hidden>{reached ? "✓" : "○"}</span>
+                        {reached ? (
+                          <span suppressHydrationWarning>
+                            Reached out · {formatRelative(reached)}
+                          </span>
+                        ) : (
+                          <span>Mark sent</span>
+                        )}
+                      </button>
+                    );
+                  })()}
                 </td>
                 <td className="px-3 py-3 text-ink-4" suppressHydrationWarning>
                   {formatRelative(row.updatedAt)}

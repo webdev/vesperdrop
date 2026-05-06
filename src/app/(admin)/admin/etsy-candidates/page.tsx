@@ -33,6 +33,7 @@ export default async function EtsyCandidatesPage() {
       listingUrl: c.listingUrl,
       location: c.category,
       status: displayStatus,
+      reachedOutAt: c.reachedOutAt ? c.reachedOutAt.toISOString() : null,
       updatedAt: c.updatedAt.toISOString(),
       preview: preview
         ? {

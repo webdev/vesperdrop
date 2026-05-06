@@ -223,6 +223,7 @@ export const etsyCandidates = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .default(sql`now()`),
+    reachedOutAt: timestamp("reached_out_at", { withTimezone: true }),
   },
   (t) => [index("etsy_candidates_status_idx").on(t.status)],
 );
