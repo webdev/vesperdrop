@@ -51,7 +51,7 @@ export default async function EtsyPreviewPage({
   return (
     <div className="flex min-h-screen flex-col bg-paper text-ink">
       {/* ─── Header ──────────────────────────────────────────────── */}
-      <header className="border-b border-line-soft py-5">
+      <header className="border-b border-line-soft py-4">
         <Container width="marketing" className="flex items-center justify-between">
           <Link href="/" className="font-serif text-[20px] tracking-tight">
             Vesperdrop
@@ -71,8 +71,8 @@ export default async function EtsyPreviewPage({
             listingUrl={snap.listingUrl}
           />
 
-          {/* ─── Hero ──────────────────────────────────────────── */}
-          <section className="pt-20 pb-16 md:pt-28 md:pb-20">
+          {/* ─── Hero — compact, leaves room for the transformation above the fold ─── */}
+          <section className="pt-8 pb-6 md:pt-12 md:pb-8">
             <div className="max-w-[20ch]">
               <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-4">
                 Private preview
@@ -81,12 +81,12 @@ export default async function EtsyPreviewPage({
                 Created for your Etsy listing
               </p>
             </div>
-            <h1 className="mt-10 max-w-[18ch] font-serif text-[clamp(2.6rem,5.4vw,4.5rem)] leading-[1.02] tracking-[-0.025em] text-ink">
+            <h1 className="mt-5 max-w-[18ch] font-serif text-[clamp(2.2rem,4.6vw,3.6rem)] leading-[1.02] tracking-[-0.025em] text-ink">
               {greeting}{" "}
               <span className="text-terracotta">your product</span> could look
               like on Etsy.
             </h1>
-            <p className="mt-7 max-w-[52ch] text-[15px] leading-[1.55] text-ink-3">
+            <p className="mt-4 max-w-[52ch] text-[14.5px] leading-[1.5] text-ink-3">
               We created these examples privately, just for you, to help you
               see what your listings could look like as a premium brand.
             </p>
@@ -95,22 +95,22 @@ export default async function EtsyPreviewPage({
           <div className="h-px w-full bg-line-soft" />
 
           {/* ─── Editorial transformation ─────────────────────── */}
-          <section className="relative py-16 md:py-24">
+          <section className="relative pt-6 pb-14 md:pt-8 md:pb-20">
             {/* Faint staged backdrop — the transformation rests on its own surface */}
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-x-[-2vw] inset-y-6 -z-10 rounded-[40px] bg-[radial-gradient(ellipse_at_top,_oklch(0.96_0.013_75)_0%,_transparent_70%)]"
+              className="pointer-events-none absolute inset-x-[-2vw] inset-y-2 -z-10 rounded-[40px] bg-[radial-gradient(ellipse_at_top,_oklch(0.96_0.013_75)_0%,_transparent_70%)]"
             />
-            <div className="mb-10 flex items-baseline justify-between gap-4">
+            <div className="mb-5 flex items-baseline justify-between gap-4 md:mb-7">
               <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-4">
                 The transformation
               </p>
-              <p className="hidden font-mono text-[9px] uppercase tracking-[0.22em] text-ink-4 sm:block">
-                Transformed with Vesperdrop
+              <p className="hidden font-mono text-[9px] uppercase tracking-[0.22em] text-ink-3 sm:block">
+                Generated from your real Etsy listing
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-x-10 gap-y-14 md:grid-cols-[260px_minmax(0,1fr)] md:items-start">
+            <div className="grid grid-cols-1 gap-x-10 gap-y-10 md:grid-cols-[240px_minmax(0,1fr)] md:items-start md:gap-x-12">
               {/* Left — archival "before" card (intentionally raw) */}
               <aside className="md:sticky md:top-12 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-700">
                 <div className="relative rounded-[28px] border border-[oklch(0.78_0.02_70)]/60 bg-cream/80 p-5 shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_22px_38px_-24px_rgba(60,45,25,0.28)]">
@@ -192,7 +192,7 @@ export default async function EtsyPreviewPage({
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-12 md:grid-rows-[auto_auto]">
                   {/* Lifestyle hero — dominant, with stronger shadow */}
                   {lifestyleUrl ? (
-                    <figure className="group relative motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-700 motion-safe:[animation-delay:120ms] md:col-span-7 md:row-span-2 md:scale-[1.06] md:origin-top-left">
+                    <figure className="group relative motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-700 motion-safe:[animation-delay:120ms] md:col-span-7 md:row-span-2 md:scale-[1.08] md:origin-top-left">
                       <span className="absolute -top-3 left-4 z-10 rounded-full border border-line-soft bg-paper/95 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-3 shadow-[0_8px_20px_-12px_rgba(40,30,20,0.25)]">
                         Lifestyle hero
                       </span>
@@ -249,7 +249,7 @@ export default async function EtsyPreviewPage({
                 </div>
 
                 {/* Quiet caption row */}
-                <div className="mt-12 grid grid-cols-2 gap-x-6 gap-y-2 font-mono text-[9px] uppercase tracking-[0.2em] text-ink-4 md:grid-cols-4">
+                <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-2 font-mono text-[9px] uppercase tracking-[0.2em] text-ink-4 md:grid-cols-4">
                   <span>Lifestyle hero</span>
                   <span>Mobile-ready</span>
                   <span>Editorial crop</span>
@@ -261,26 +261,26 @@ export default async function EtsyPreviewPage({
 
           <div className="h-px w-full bg-line-soft" />
 
-          {/* ─── Benefits — editorial proof points ────────────── */}
-          <section className="py-20 md:py-28">
-            <div className="grid grid-cols-1 gap-y-12 sm:grid-cols-2 md:grid-cols-4 md:gap-y-0 md:divide-x md:divide-line-soft/60">
+          {/* ─── Benefits — lightweight credibility strip ─────── */}
+          <section className="py-10 md:py-14">
+            <div className="grid grid-cols-1 gap-y-7 sm:grid-cols-2 md:grid-cols-4 md:gap-y-0 md:divide-x md:divide-line-soft/60">
               {[
-                ["01", "Etsy ready", "Sized and styled for Etsy product pages from day one."],
-                ["02", "Lifestyle focused", "Imagery that helps customers picture themselves wearing it."],
-                ["03", "Higher conversions", "Editorial-grade visuals consistently outperform flat lays."],
-                ["04", "Save time & money", "No photoshoot. No models. Minutes instead of days."],
+                ["01", "Etsy ready", "Sized for product pages from day one."],
+                ["02", "Lifestyle focused", "Helps customers picture themselves wearing it."],
+                ["03", "Higher conversions", "Editorial visuals outperform flat lays."],
+                ["04", "Save time & money", "No photoshoot. Minutes instead of days."],
               ].map(([num, title, body]) => (
                 <div
                   key={title}
-                  className="px-0 first:pl-0 md:px-10 md:first:pl-0"
+                  className="px-0 first:pl-0 md:px-8 md:first:pl-0"
                 >
                   <p className="font-mono text-[9px] uppercase tracking-[0.24em] text-ink-4">
                     {num}
                   </p>
-                  <p className="mt-4 font-serif text-[22px] leading-[1.12] tracking-[-0.012em] text-ink">
+                  <p className="mt-2.5 font-serif text-[19px] leading-[1.12] tracking-[-0.012em] text-ink">
                     {title}
                   </p>
-                  <p className="mt-3 max-w-[20ch] text-[13px] leading-[1.55] text-ink-3">
+                  <p className="mt-1.5 max-w-[22ch] text-[12.5px] leading-[1.5] text-ink-3">
                     {body}
                   </p>
                 </div>
