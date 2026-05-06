@@ -1,6 +1,20 @@
 import "server-only";
 import { getVercelOidcToken } from "@vercel/oidc";
 import { env } from "@/lib/env";
+import { ConcurrencyGate } from "./concurrency-gate";
+
+/**
+ * Process-local gate around all fal.ai-bound Sceneify calls. Default 4
+ * concurrent in flight; override per-environment via FAL_MAX_CONCURRENT.
+ * The cap protects fal.ai's plan limits and Sceneify's Vercel function
+ * timeout, both of which manifest as upstream 502s when overwhelmed.
+ *
+ * Single shared instance across the whole server runtime so that admin
+ * outreach batches and end-user /try traffic share the same budget.
+ */
+const FAL_GATE = new ConcurrencyGate(
+  Math.max(1, Number(process.env.FAL_MAX_CONCURRENT ?? 4)),
+);
 
 export type SceneifyModelId =
   | "gpt-image-2"
@@ -68,36 +82,38 @@ export async function generateViaSceneify(
   input: SceneifyGenerateInput,
   init?: { signal?: AbortSignal },
 ): Promise<SceneifyGenerateResult> {
-  const token = await getVercelOidcToken();
-  if (!token) {
-    throw new SceneifyError(
-      "missing Vercel OIDC token (run on Vercel or via `vercel dev`)",
-      500,
-    );
-  }
+  return FAL_GATE.run(async () => {
+    const token = await getVercelOidcToken();
+    if (!token) {
+      throw new SceneifyError(
+        "missing Vercel OIDC token (run on Vercel or via `vercel dev`)",
+        500,
+      );
+    }
 
-  const base = env.SCENEIFY_API_URL.replace(/\/$/, "");
-  const res = await fetch(`${base}/api/internal/generations`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(input),
-    cache: "no-store",
-    signal: init?.signal,
+    const base = env.SCENEIFY_API_URL.replace(/\/$/, "");
+    const res = await fetch(`${base}/api/internal/generations`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(input),
+      cache: "no-store",
+      signal: init?.signal,
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new SceneifyError(
+        `sceneify ${res.status}`,
+        res.status,
+        body.slice(0, 500),
+      );
+    }
+
+    return (await res.json()) as SceneifyGenerateResult;
   });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new SceneifyError(
-      `sceneify ${res.status}`,
-      res.status,
-      body.slice(0, 500),
-    );
-  }
-
-  return (await res.json()) as SceneifyGenerateResult;
 }
 
 // ---------------------------------------------------------------------------
@@ -170,23 +186,25 @@ export async function completeLookViaSceneify(
   input: SceneifyCompleteLookInput,
   init?: { signal?: AbortSignal },
 ): Promise<SceneifyCompleteLookResult> {
-  const token = await bearerToken();
-  const base = env.SCENEIFY_API_URL.replace(/\/$/, "");
-  const res = await fetch(`${base}/api/internal/complete-look`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(input),
-    cache: "no-store",
-    signal: init?.signal,
+  return FAL_GATE.run(async () => {
+    const token = await bearerToken();
+    const base = env.SCENEIFY_API_URL.replace(/\/$/, "");
+    const res = await fetch(`${base}/api/internal/complete-look`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(input),
+      cache: "no-store",
+      signal: init?.signal,
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new SceneifyError(`sceneify ${res.status}`, res.status, body.slice(0, 500));
+    }
+    return (await res.json()) as SceneifyCompleteLookResult;
   });
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new SceneifyError(`sceneify ${res.status}`, res.status, body.slice(0, 500));
-  }
-  return (await res.json()) as SceneifyCompleteLookResult;
 }
 
 export async function getCompleteLookStatus(
