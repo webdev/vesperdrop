@@ -53,7 +53,7 @@ async function generateOneSlot(
       sourceUrl,
       presetSlug,
       model: "gpt-image-2",
-      quality: "high",
+      quality: "medium",
       callerRef: `etsy-preview:${pageId}:${slot}`,
     });
     await setSlotResult(pageId, slot, { url: result.outputUrl });

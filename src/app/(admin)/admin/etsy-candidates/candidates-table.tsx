@@ -196,6 +196,14 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
             />
             Replace all
           </label>
+          <Link
+            href="https://fal.ai/dashboard"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-4 hover:text-ink-2"
+          >
+            fal.ai ↗
+          </Link>
         </div>
         <div className="flex items-center gap-2">
           <button
