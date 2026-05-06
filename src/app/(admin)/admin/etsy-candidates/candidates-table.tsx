@@ -66,6 +66,9 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
   const [pickedSlots, setPickedSlots] = useState<Set<SlotKey>>(
     new Set(["hero", "lifestyle", "detail"]),
   );
+  const [msgMenuFor, setMsgMenuFor] = useState<string | null>(null);
+  const [msgMenuRect, setMsgMenuRect] = useState<DOMRect | null>(null);
+  const [copiedTpl, setCopiedTpl] = useState<string | null>(null);
 
   function openSlotMenu(pageId: string, trigger: HTMLElement) {
     setPickedSlots(new Set(["hero", "lifestyle", "detail"]));
@@ -73,18 +76,70 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
     setSlotMenuFor(pageId);
   }
 
-  // Close popover on scroll/resize so its anchor doesn't drift away
-  // from the trigger button (we use position:fixed coordinates).
+  function openMsgMenu(pageId: string, trigger: HTMLElement) {
+    setMsgMenuRect(trigger.getBoundingClientRect());
+    setMsgMenuFor(pageId);
+  }
+
+  type OutreachTemplate = {
+    id: "compliment" | "direct" | "question";
+    label: string;
+    body: string;
+  };
+
+  function buildMessages(row: CandidateRow): OutreachTemplate[] {
+    if (!row.preview) return [];
+    const url =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/etsy-preview/${row.preview.token}`
+        : `/etsy-preview/${row.preview.token}`;
+    const shop = row.shopName ?? "there";
+    const title = row.title;
+    return [
+      {
+        id: "compliment",
+        label: "Compliment",
+        body: `Hi ${shop} — your ${title} caught my eye while I was browsing vintage shops. I built a tool that turns Etsy flat-lays into editorial campaign imagery, and I made you a free preview of what it could look like:\n\n${url}\n\nNo signup to view. If it's interesting, the same thing takes about 5 minutes for any listing. Would love to hear what you think.`,
+      },
+      {
+        id: "direct",
+        label: "Direct",
+        body: `Hi ${shop} — I'm building a tool for independent Etsy sellers that creates lifestyle/on-model shots from existing flat-lay photos. I made you a private preview using your ${title} to show what it looks like:\n\n${url}\n\nNo account needed. If you have 20 seconds, take a look. Genuinely curious whether this would be useful or not.`,
+      },
+      {
+        id: "question",
+        label: "Question",
+        body: `Hi ${shop} — quick question: have you ever wanted lifestyle/on-model imagery for your listings without doing a photoshoot? I built a tool that generates them from your existing photos and made you a private sample with your ${title}:\n\n${url}\n\nMind taking a look and telling me if it's something you'd actually use? I'd really appreciate the feedback either way.`,
+      },
+    ];
+  }
+
+  async function copyMessage(row: CandidateRow, template: OutreachTemplate) {
+    if (!row.preview) return;
+    await navigator.clipboard.writeText(template.body);
+    setCopiedTpl(`${row.preview.id}:${template.id}`);
+    window.setTimeout(() => {
+      setCopiedTpl((cur) =>
+        cur === `${row.preview!.id}:${template.id}` ? null : cur,
+      );
+    }, 1500);
+  }
+
+  // Close popovers on scroll/resize so their anchors don't drift away
+  // from their trigger buttons (we use position:fixed coordinates).
   useEffect(() => {
-    if (!slotMenuFor) return;
-    const close = () => setSlotMenuFor(null);
+    if (!slotMenuFor && !msgMenuFor) return;
+    const close = () => {
+      setSlotMenuFor(null);
+      setMsgMenuFor(null);
+    };
     window.addEventListener("scroll", close, true);
     window.addEventListener("resize", close);
     return () => {
       window.removeEventListener("scroll", close, true);
       window.removeEventListener("resize", close);
     };
-  }, [slotMenuFor]);
+  }, [slotMenuFor, msgMenuFor]);
 
   function toggleSlot(slot: SlotKey) {
     setPickedSlots((prev) => {
@@ -95,15 +150,19 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
     });
   }
 
-  // Close the slot menu when clicking outside or pressing Escape.
+  // Close any open popover when clicking outside or pressing Escape.
   useEffect(() => {
-    if (!slotMenuFor) return;
+    if (!slotMenuFor && !msgMenuFor) return;
     const onPointer = (e: PointerEvent) => {
       const t = e.target as HTMLElement | null;
       if (!t?.closest("[data-slot-menu]")) setSlotMenuFor(null);
+      if (!t?.closest("[data-msg-menu]")) setMsgMenuFor(null);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setSlotMenuFor(null);
+      if (e.key === "Escape") {
+        setSlotMenuFor(null);
+        setMsgMenuFor(null);
+      }
     };
     document.addEventListener("pointerdown", onPointer);
     document.addEventListener("keydown", onKey);
@@ -111,7 +170,7 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
       document.removeEventListener("pointerdown", onPointer);
       document.removeEventListener("keydown", onKey);
     };
-  }, [slotMenuFor]);
+  }, [slotMenuFor, msgMenuFor]);
 
   const allSelected = rows.length > 0 && selected.size === rows.length;
   const selectedIds = useMemo(() => Array.from(selected), [selected]);
@@ -521,6 +580,26 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
                           ? "Regen…"
                           : "Regen ▾"}
                       </button>
+                      <button
+                        type="button"
+                        data-msg-menu
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!row.preview) return;
+                          if (msgMenuFor === row.preview.id) {
+                            setMsgMenuFor(null);
+                          } else {
+                            openMsgMenu(row.preview.id, e.currentTarget);
+                          }
+                        }}
+                        aria-expanded={
+                          row.preview ? msgMenuFor === row.preview.id : false
+                        }
+                        title="Copy outreach message for this seller"
+                        className="rounded-full border border-line bg-paper px-3 py-1 text-[11px] text-ink-2 hover:bg-surface"
+                      >
+                        Msg ▾
+                      </button>
                     </div>
                   ) : (
                     <span className="text-ink-4">—</span>
@@ -644,6 +723,81 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
                     Regenerate
                   </button>
                 </div>
+              </div>,
+              document.body,
+            );
+          })()
+        : null}
+      {msgMenuFor && msgMenuRect
+        ? (() => {
+            const row = rows.find((r) => r.preview?.id === msgMenuFor);
+            if (!row || !row.preview) return null;
+            const messages = buildMessages(row);
+            const POPOVER_W = 380;
+            const POPOVER_H_EST = 360;
+            const placeAbove = msgMenuRect.top > POPOVER_H_EST + 16;
+            const top = placeAbove
+              ? Math.max(8, msgMenuRect.top - POPOVER_H_EST - 8)
+              : msgMenuRect.bottom + 8;
+            const left = Math.max(
+              8,
+              Math.min(
+                window.innerWidth - POPOVER_W - 8,
+                msgMenuRect.right - POPOVER_W,
+              ),
+            );
+            return createPortal(
+              <div
+                data-msg-menu
+                style={{
+                  position: "fixed",
+                  top,
+                  left,
+                  width: POPOVER_W,
+                  zIndex: 9999,
+                }}
+                className="rounded-xl border border-line-soft bg-paper p-3 shadow-[0_24px_60px_-20px_rgba(40,30,20,0.45)]"
+              >
+                <p className="mb-3 px-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-4">
+                  Outreach message
+                </p>
+                <ul className="flex flex-col gap-1.5">
+                  {messages.map((tpl) => {
+                    const isCopied =
+                      copiedTpl === `${row.preview!.id}:${tpl.id}`;
+                    return (
+                      <li
+                        key={tpl.id}
+                        className="rounded-lg border border-line-soft bg-cream/30 p-3"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-3">
+                            {tpl.label}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void copyMessage(row, tpl);
+                            }}
+                            className={
+                              isCopied
+                                ? "rounded-full bg-emerald-700 px-3 py-0.5 text-[10px] font-medium text-cream"
+                                : "rounded-full bg-ink px-3 py-0.5 text-[10px] font-medium text-cream hover:bg-ink-2"
+                            }
+                          >
+                            {isCopied ? "Copied" : "Copy"}
+                          </button>
+                        </div>
+                        <p className="mt-2 line-clamp-3 whitespace-pre-line text-[11px] leading-[1.4] text-ink-3">
+                          {tpl.body}
+                        </p>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <p className="mt-3 px-1 font-mono text-[9px] uppercase tracking-[0.16em] text-ink-4">
+                  Tip · personalize before sending
+                </p>
               </div>,
               document.body,
             );
