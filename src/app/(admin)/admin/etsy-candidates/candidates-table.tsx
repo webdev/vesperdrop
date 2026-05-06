@@ -49,6 +49,24 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
   const [regenSet, setRegenSet] = useState<Set<string>>(new Set());
   const [slotMenuFor, setSlotMenuFor] = useState<string | null>(null);
 
+  // Close the slot menu when clicking outside or pressing Escape.
+  useEffect(() => {
+    if (!slotMenuFor) return;
+    const onPointer = (e: PointerEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (!t?.closest("[data-slot-menu]")) setSlotMenuFor(null);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSlotMenuFor(null);
+    };
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [slotMenuFor]);
+
   const allSelected = rows.length > 0 && selected.size === rows.length;
   const selectedIds = useMemo(() => Array.from(selected), [selected]);
 
@@ -425,7 +443,10 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
                       >
                         Open
                       </Link>
-                      <div className="relative inline-flex items-stretch overflow-hidden rounded-full border border-line bg-paper">
+                      <div
+                        className="relative inline-flex items-stretch"
+                        data-slot-menu
+                      >
                         <button
                           type="button"
                           onClick={() => regenerate(row)}
@@ -433,7 +454,7 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
                             row.preview ? regenSet.has(row.preview.id) : true
                           }
                           title="Regenerate based on row status (failed slots, or all if completed)"
-                          className="px-3 py-1 text-[11px] text-ink-2 hover:bg-surface disabled:opacity-50"
+                          className="rounded-l-full border border-r-0 border-line bg-paper px-3 py-1 text-[11px] text-ink-2 hover:bg-surface disabled:opacity-50"
                         >
                           {row.preview && regenSet.has(row.preview.id)
                             ? "Regen…"
@@ -441,23 +462,30 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
                         </button>
                         <button
                           type="button"
-                          onClick={() =>
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setSlotMenuFor(
                               row.preview && slotMenuFor === row.preview.id
                                 ? null
                                 : row.preview?.id ?? null,
-                            )
-                          }
+                            );
+                          }}
                           disabled={
                             row.preview ? regenSet.has(row.preview.id) : true
                           }
                           aria-label="Regen specific slot"
-                          className="border-l border-line px-2 py-1 text-[11px] text-ink-3 hover:bg-surface disabled:opacity-50"
+                          aria-expanded={
+                            row.preview ? slotMenuFor === row.preview.id : false
+                          }
+                          className="rounded-r-full border border-line bg-paper px-2 py-1 text-[11px] text-ink-3 hover:bg-surface disabled:opacity-50"
                         >
                           ▾
                         </button>
                         {row.preview && slotMenuFor === row.preview.id ? (
-                          <div className="absolute right-0 top-full z-20 mt-1 flex flex-col rounded-xl border border-line-soft bg-paper p-1 shadow-[0_18px_40px_-22px_rgba(40,30,20,0.35)]">
+                          <div
+                            data-slot-menu
+                            className="absolute right-0 bottom-full z-30 mb-1 flex flex-col rounded-xl border border-line-soft bg-paper p-1 shadow-[0_18px_40px_-22px_rgba(40,30,20,0.35)]"
+                          >
                             {(["hero", "lifestyle", "detail"] as const).map(
                               (slot) => (
                                 <button
@@ -467,7 +495,7 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
                                     setSlotMenuFor(null);
                                     void regenerate(row, [slot]);
                                   }}
-                                  className="rounded-md px-3 py-1.5 text-left text-[11px] capitalize text-ink-2 hover:bg-surface"
+                                  className="whitespace-nowrap rounded-md px-3 py-1.5 text-left text-[11px] capitalize text-ink-2 hover:bg-surface"
                                 >
                                   Regen {slot}
                                 </button>
