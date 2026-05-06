@@ -52,7 +52,9 @@ function formatRelative(iso: string): string {
 export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [mock, setMock] = useState(true);
+  // Mock mode defaults OFF — operators reaching for Generate / Regen
+  // expect real fal.ai output. Mock is opt-in for layout iteration.
+  const [mock, setMock] = useState(false);
   const [replaceAll, setReplaceAll] = useState(false);
   // Global busy: only for batch operations that affect every row
   // (Generate selected, Re-ingest, Upload). Regenerate uses regenSet
@@ -331,13 +333,20 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
               </>
             ) : null}
           </span>
-          <label className="flex items-center gap-2 text-[12px] text-ink-3">
+          <label
+            className={
+              mock
+                ? "flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[12px] text-amber-800"
+                : "flex items-center gap-2 text-[12px] text-ink-3"
+            }
+            title="When on, generation skips fal.ai and writes the source URL to each slot"
+          >
             <input
               type="checkbox"
               checked={mock}
               onChange={(e) => setMock(e.target.checked)}
             />
-            Mock mode
+            Mock mode{mock ? " · ON" : ""}
           </label>
           <label className="flex items-center gap-2 text-[12px] text-ink-3">
             <input
