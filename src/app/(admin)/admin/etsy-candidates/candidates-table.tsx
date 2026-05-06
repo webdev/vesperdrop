@@ -60,6 +60,10 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
   // (Generate selected, Re-ingest, Upload). Regenerate uses regenSet
   // so other rows stay enabled.
   const [busy, setBusy] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
   const [regenSet, setRegenSet] = useState<Set<string>>(new Set());
   const [slotMenuFor, setSlotMenuFor] = useState<string | null>(null);
   const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
@@ -228,22 +232,35 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
 
   async function generate() {
     if (selectedIds.length === 0) return;
+    // Chunk client-side and feed the API sequentially. Each chunk
+    // creates DB rows and starts workflows synchronously inside the
+    // route handler, so a Vercel function instance can't be terminated
+    // mid-batch. The runtime concurrency is still gated server-side
+    // (FAL_GATE + chunkAndRun).
+    const CHUNK = 25;
+    const total = selectedIds.length;
     setBusy(true);
+    setBatchProgress({ done: 0, total });
     try {
-      track("etsy_admin_generation_submitted", { count: selectedIds.length, mock });
-      const res = await fetch("/api/admin/etsy/generate", {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ candidateIds: selectedIds, mock }),
-      });
-      if (!res.ok) {
-        const body = await res.text();
-        throw new Error(body);
+      track("etsy_admin_generation_submitted", { count: total, mock });
+      for (let i = 0; i < total; i += CHUNK) {
+        const ids = selectedIds.slice(i, i + CHUNK);
+        const res = await fetch("/api/admin/etsy/generate", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ candidateIds: ids, mock }),
+        });
+        if (!res.ok) {
+          const body = await res.text();
+          throw new Error(body);
+        }
+        setBatchProgress({ done: Math.min(i + CHUNK, total), total });
       }
-      window.location.reload();
+      router.refresh();
     } finally {
       setBusy(false);
+      setBatchProgress(null);
     }
   }
 
@@ -449,7 +466,9 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
             disabled={busy || selectedIds.length === 0}
             className="rounded-full bg-ink px-5 py-2 text-[13px] font-medium text-cream hover:bg-ink-2 disabled:opacity-40"
           >
-            Generate selected
+            {batchProgress
+              ? `Enqueueing ${batchProgress.done} / ${batchProgress.total}…`
+              : "Generate selected"}
           </button>
         </div>
       </header>

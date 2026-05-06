@@ -11,7 +11,10 @@ import { createPreviewPage } from "@/lib/etsy-outreach/pages";
 import { processEtsyPreview } from "@/lib/workflows/process-etsy-preview";
 
 const Body = z.object({
-  candidateIds: z.array(z.string().uuid()).min(1).max(50),
+  // Cap is large because the runtime concurrency gate (FAL_GATE +
+  // chunkAndRun) limits how many generations actually run in parallel
+  // — this cap is just a guard against accidental gigantic payloads.
+  candidateIds: z.array(z.string().uuid()).min(1).max(500),
   mock: z.boolean().default(false),
 });
 
