@@ -59,7 +59,10 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
       let anyTerminal = false;
       for (const row of inflight) {
         if (!row.preview || fired.current.has(row.preview.id)) continue;
-        const res = await fetch(`/api/admin/etsy/status?pageId=${row.preview.id}`);
+        const res = await fetch(
+          `/api/admin/etsy/status?pageId=${row.preview.id}`,
+          { credentials: "same-origin" },
+        );
         if (!res.ok) continue;
         const data = (await res.json()) as { status: string };
         if (
@@ -100,6 +103,7 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
       track("etsy_admin_generation_submitted", { count: selectedIds.length, mock });
       const res = await fetch("/api/admin/etsy/generate", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ candidateIds: selectedIds, mock }),
       });
@@ -116,7 +120,10 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
   async function ingest() {
     setBusy(true);
     try {
-      await fetch("/api/admin/etsy/ingest", { method: "POST" });
+      await fetch("/api/admin/etsy/ingest", {
+        method: "POST",
+        credentials: "same-origin",
+      });
       window.location.reload();
     } finally {
       setBusy(false);
@@ -131,7 +138,11 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
       const fd = new FormData();
       fd.append("file", file);
       fd.append("replaceAll", String(replaceAll));
-      const res = await fetch("/api/admin/etsy/upload", { method: "POST", body: fd });
+      const res = await fetch("/api/admin/etsy/upload", {
+        method: "POST",
+        credentials: "same-origin",
+        body: fd,
+      });
       if (!res.ok) {
         const body = await res.text();
         throw new Error(body);
@@ -158,6 +169,7 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
     try {
       const res = await fetch("/api/admin/etsy/regenerate", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ pageId: row.preview.id, mock }),
       });
