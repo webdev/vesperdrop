@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { Nav } from "@/components/nav";
-import { Container } from "@/components/ui/container";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
 import { AdminSidebar } from "./admin/etsy-candidates/admin-sidebar";
@@ -24,12 +23,12 @@ export default async function AdminLayout({
     <div className="flex min-h-screen flex-col bg-paper text-ink">
       <Nav width="app" />
       <main className="flex-1 py-8 md:py-10">
-        <Container width="app">
+        <div className="w-full px-5 md:px-8">
           <div className="grid grid-cols-1 gap-8 md:grid-cols-[220px_minmax(0,1fr)]">
             <AdminSidebar />
             <div className="min-w-0">{children}</div>
           </div>
-        </Container>
+        </div>
       </main>
     </div>
   );
