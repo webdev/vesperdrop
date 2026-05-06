@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { track } from "@/lib/analytics";
@@ -37,10 +38,15 @@ function formatRelative(iso: string): string {
 }
 
 export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
+  const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [mock, setMock] = useState(true);
   const [replaceAll, setReplaceAll] = useState(false);
+  // Global busy: only for batch operations that affect every row
+  // (Generate selected, Re-ingest, Upload). Regenerate uses regenSet
+  // so other rows stay enabled.
   const [busy, setBusy] = useState(false);
+  const [regenSet, setRegenSet] = useState<Set<string>>(new Set());
 
   const allSelected = rows.length > 0 && selected.size === rows.length;
   const selectedIds = useMemo(() => Array.from(selected), [selected]);
@@ -78,10 +84,10 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
           anyTerminal = true;
         }
       }
-      if (anyTerminal) window.location.reload();
+      if (anyTerminal) router.refresh();
     }, 5000);
     return () => window.clearInterval(interval);
-  }, [rows]);
+  }, [rows, router]);
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -165,21 +171,33 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
 
   async function regenerate(row: CandidateRow) {
     if (!row.preview) return;
-    setBusy(true);
+    const pageId = row.preview.id;
+    setRegenSet((prev) => {
+      const next = new Set(prev);
+      next.add(pageId);
+      return next;
+    });
     try {
       const res = await fetch("/api/admin/etsy/regenerate", {
         method: "POST",
         credentials: "same-origin",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ pageId: row.preview.id, mock }),
+        body: JSON.stringify({ pageId, mock }),
       });
       if (!res.ok) {
         const body = await res.text();
         throw new Error(body);
       }
-      window.location.reload();
+      // Soft refresh — re-renders the server component without disturbing
+      // scroll position, selection, or other rows. The polling effect
+      // picks up the new pending state for this row only.
+      router.refresh();
     } finally {
-      setBusy(false);
+      setRegenSet((prev) => {
+        const next = new Set(prev);
+        next.delete(pageId);
+        return next;
+      });
     }
   }
 
@@ -351,11 +369,15 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
                       <button
                         type="button"
                         onClick={() => regenerate(row)}
-                        disabled={busy}
-                        title="Regenerate all images with fresh presets"
+                        disabled={
+                          row.preview ? regenSet.has(row.preview.id) : true
+                        }
+                        title="Regenerate all images for this row with fresh presets"
                         className="rounded-full border border-line bg-paper px-3 py-1 text-[11px] text-ink-2 hover:bg-surface disabled:opacity-50"
                       >
-                        Regen
+                        {row.preview && regenSet.has(row.preview.id)
+                          ? "Regen…"
+                          : "Regen"}
                       </button>
                     </div>
                   ) : (
