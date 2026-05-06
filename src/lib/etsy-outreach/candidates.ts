@@ -14,6 +14,8 @@ export async function upsertCandidatesFromParsed(
     listingUrl: p.listingUrl,
     title: p.title,
     imageUrl: p.imageUrl,
+    shopName: p.shopName,
+    shopUrl: p.shopUrl,
     category: p.category,
     rawMd: p.rawMd,
   }));
@@ -25,6 +27,8 @@ export async function upsertCandidatesFromParsed(
       set: {
         title: sql`excluded.title`,
         imageUrl: sql`excluded.image_url`,
+        shopName: sql`excluded.shop_name`,
+        shopUrl: sql`excluded.shop_url`,
         category: sql`excluded.category`,
         rawMd: sql`excluded.raw_md`,
         updatedAt: sql`now()`,
@@ -32,6 +36,13 @@ export async function upsertCandidatesFromParsed(
     })
     .returning({ id: schema.etsyCandidates.id });
   return { inserted: result.length, updated: 0 };
+}
+
+export async function deleteAllCandidates(): Promise<number> {
+  const result = await db
+    .delete(schema.etsyCandidates)
+    .returning({ id: schema.etsyCandidates.id });
+  return result.length;
 }
 
 export async function listCandidates(): Promise<EtsyCandidate[]> {

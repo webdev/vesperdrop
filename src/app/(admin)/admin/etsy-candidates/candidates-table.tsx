@@ -37,6 +37,7 @@ function formatRelative(iso: string): string {
 export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [mock, setMock] = useState(true);
+  const [replaceAll, setReplaceAll] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const allSelected = rows.length > 0 && selected.size === rows.length;
@@ -116,6 +117,25 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
     }
   }
 
+  async function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("replaceAll", String(replaceAll));
+      const res = await fetch("/api/admin/etsy/upload", { method: "POST", body: fd });
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(body);
+      }
+      window.location.reload();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function copyLink(row: CandidateRow) {
     if (!row.preview) return;
     const url = `${window.location.origin}/etsy-preview/${row.preview.token}`;
@@ -143,6 +163,14 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
             />
             Mock mode
           </label>
+          <label className="flex items-center gap-2 text-[12px] text-ink-3">
+            <input
+              type="checkbox"
+              checked={replaceAll}
+              onChange={(e) => setReplaceAll(e.target.checked)}
+            />
+            Replace all
+          </label>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -153,6 +181,16 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
           >
             Re-ingest MD
           </button>
+          <label className="cursor-pointer rounded-full border border-line bg-paper px-4 py-2 text-[13px] text-ink-2 hover:bg-surface">
+            Upload MD
+            <input
+              type="file"
+              accept=".md,text/markdown,text/plain"
+              className="hidden"
+              onChange={onUpload}
+              disabled={busy}
+            />
+          </label>
           <button
             type="button"
             onClick={generate}

@@ -61,4 +61,44 @@ describe("parseEtsyCandidatesMd", () => {
     expect(candidates).toHaveLength(0);
     expect(errors).toHaveLength(0);
   });
+
+  it("parses sellers pilot format", () => {
+    const SELLER_SAMPLE = `## 1. [Vintiish](https://www.etsy.com/shop/Vintiish) — Atlanta, Georgia (US)
+
+![Vintiish](https://i.etsystatic.com/14026293/il_765x1020.jpg)
+
+**Sample listing:** [Bohemian Dress](https://www.etsy.com/listing/720578678/bohemian-dress)
+
+---
+`;
+    const { candidates } = parseEtsyCandidatesMd(SELLER_SAMPLE);
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]).toMatchObject({
+      title: "Bohemian Dress",
+      listingUrl: "https://www.etsy.com/listing/720578678/bohemian-dress",
+      imageUrl: "https://i.etsystatic.com/14026293/il_765x1020.jpg",
+      shopName: "Vintiish",
+      shopUrl: "https://www.etsy.com/shop/Vintiish",
+      category: "Atlanta, Georgia (US)",
+    });
+  });
+
+  it("parses mixed-format file (auto-detect per block)", () => {
+    const MIXED = `## 1. [Listing Title](https://www.etsy.com/listing/123/foo)
+
+![alt](https://img.example.com/a.jpg)
+
+_Surfaced via search: vintage dress_
+
+## 2. [ShopName](https://www.etsy.com/shop/ShopName) — NYC (US)
+
+![ShopName](https://img.example.com/b.jpg)
+
+**Sample listing:** [Sample](https://www.etsy.com/listing/456/bar)
+`;
+    const { candidates } = parseEtsyCandidatesMd(MIXED);
+    expect(candidates).toHaveLength(2);
+    expect(candidates[0].shopName).toBeNull();
+    expect(candidates[1].shopName).toBe("ShopName");
+  });
 });
