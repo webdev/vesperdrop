@@ -4,6 +4,7 @@ import { Container, type ContainerWidth } from "@/components/ui/container";
 import { NavLink } from "@/components/ui/nav-link";
 import { firstNameFrom } from "@/lib/user-display";
 import { getCreditsBalance } from "@/lib/db/credits";
+import { isAdminEmail } from "@/lib/admin";
 
 type NavProps = {
   width?: ContainerWidth;
@@ -18,6 +19,7 @@ export async function Nav({ width = "app" }: NavProps = {}) {
   const firstName = user ? firstNameFrom(user) : null;
   const credits = user ? await getCreditsBalance(user.id) : null;
   const email = user?.email ?? "";
+  const isAdmin = isAdminEmail(email);
 
   return (
     <header className="sticky top-0 z-30 border-b border-line-soft bg-paper/85 backdrop-blur-md">
@@ -44,6 +46,7 @@ export async function Nav({ width = "app" }: NavProps = {}) {
                 Styles
               </NavLink>
               <NavLink href="/account">Account</NavLink>
+              {isAdmin ? <NavLink href="/admin/etsy-candidates">Admin</NavLink> : null}
             </>
           ) : (
             <Link
