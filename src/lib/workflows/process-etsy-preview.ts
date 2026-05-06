@@ -9,6 +9,7 @@ import {
   setSlotRunning,
   updatePreviewSourceBlob,
 } from "@/lib/etsy-outreach/pages";
+import { setCandidateStatus } from "@/lib/etsy-outreach/candidates";
 
 async function loadAndSnapshot(pageId: string): Promise<string | null> {
   "use step";
@@ -62,7 +63,11 @@ async function failAllSlots(pageId: string, message: string): Promise<void> {
 
 async function finalize(pageId: string): Promise<void> {
   "use step";
-  await finalizePreviewStatus(pageId);
+  const finalStatus = await finalizePreviewStatus(pageId);
+  const page = await getPreviewById(pageId);
+  if (page) {
+    await setCandidateStatus(page.candidateId, finalStatus);
+  }
 }
 
 export async function processEtsyPreview(
