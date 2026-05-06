@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -59,14 +60,29 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
   const [busy, setBusy] = useState(false);
   const [regenSet, setRegenSet] = useState<Set<string>>(new Set());
   const [slotMenuFor, setSlotMenuFor] = useState<string | null>(null);
+  const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
   const [pickedSlots, setPickedSlots] = useState<Set<SlotKey>>(
     new Set(["hero", "lifestyle", "detail"]),
   );
 
-  function openSlotMenu(pageId: string) {
+  function openSlotMenu(pageId: string, trigger: HTMLElement) {
     setPickedSlots(new Set(["hero", "lifestyle", "detail"]));
+    setMenuRect(trigger.getBoundingClientRect());
     setSlotMenuFor(pageId);
   }
+
+  // Close popover on scroll/resize so its anchor doesn't drift away
+  // from the trigger button (we use position:fixed coordinates).
+  useEffect(() => {
+    if (!slotMenuFor) return;
+    const close = () => setSlotMenuFor(null);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [slotMenuFor]);
 
   function toggleSlot(slot: SlotKey) {
     setPickedSlots((prev) => {
@@ -471,126 +487,31 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
                       >
                         Open
                       </Link>
-                      <div
-                        className="relative inline-flex items-stretch"
+                      <button
+                        type="button"
                         data-slot-menu
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!row.preview) return;
+                          if (slotMenuFor === row.preview.id) {
+                            setSlotMenuFor(null);
+                          } else {
+                            openSlotMenu(row.preview.id, e.currentTarget);
+                          }
+                        }}
+                        disabled={
+                          row.preview ? regenSet.has(row.preview.id) : true
+                        }
+                        aria-expanded={
+                          row.preview ? slotMenuFor === row.preview.id : false
+                        }
+                        title="Pick which images to regenerate"
+                        className="rounded-full border border-line bg-paper px-3 py-1 text-[11px] text-ink-2 hover:bg-surface disabled:opacity-50"
                       >
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (!row.preview) return;
-                            if (slotMenuFor === row.preview.id) {
-                              setSlotMenuFor(null);
-                            } else {
-                              openSlotMenu(row.preview.id);
-                            }
-                          }}
-                          disabled={
-                            row.preview ? regenSet.has(row.preview.id) : true
-                          }
-                          aria-expanded={
-                            row.preview ? slotMenuFor === row.preview.id : false
-                          }
-                          title="Pick which images to regenerate"
-                          className="rounded-full border border-line bg-paper px-3 py-1 text-[11px] text-ink-2 hover:bg-surface disabled:opacity-50"
-                        >
-                          {row.preview && regenSet.has(row.preview.id)
-                            ? "Regen…"
-                            : "Regen ▾"}
-                        </button>
-                        {row.preview && slotMenuFor === row.preview.id ? (
-                          <div
-                            data-slot-menu
-                            className="absolute right-0 bottom-full z-30 mb-2 w-[260px] rounded-xl border border-line-soft bg-paper p-2 shadow-[0_24px_48px_-24px_rgba(40,30,20,0.4)]"
-                          >
-                            <p className="mb-2 px-2 pt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-4">
-                              Select to regenerate
-                            </p>
-                            <ul className="flex flex-col">
-                              {(["hero", "lifestyle", "detail"] as const).map(
-                                (slot) => {
-                                  const s = row.preview!.slots[slot];
-                                  const checked = pickedSlots.has(slot);
-                                  return (
-                                    <li key={slot}>
-                                      <label className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 hover:bg-surface">
-                                        <input
-                                          type="checkbox"
-                                          checked={checked}
-                                          onChange={() => toggleSlot(slot)}
-                                          className="h-3.5 w-3.5"
-                                        />
-                                        <span className="relative h-10 w-10 overflow-hidden rounded-md border border-line-soft bg-cream/50">
-                                          {s.url ? (
-                                            <Image
-                                              src={s.url}
-                                              alt=""
-                                              fill
-                                              sizes="40px"
-                                              className="object-cover"
-                                              unoptimized
-                                            />
-                                          ) : null}
-                                        </span>
-                                        <span className="flex flex-col">
-                                          <span className="text-[12px] capitalize text-ink">
-                                            {slot}
-                                          </span>
-                                          <span
-                                            className={
-                                              s.status === "succeeded"
-                                                ? "font-mono text-[9px] uppercase tracking-[0.14em] text-emerald-700"
-                                                : s.status === "failed"
-                                                  ? "font-mono text-[9px] uppercase tracking-[0.14em] text-rose-700"
-                                                  : s.status === "running"
-                                                    ? "font-mono text-[9px] uppercase tracking-[0.14em] text-amber-700"
-                                                    : "font-mono text-[9px] uppercase tracking-[0.14em] text-ink-4"
-                                            }
-                                          >
-                                            {s.status}
-                                          </span>
-                                        </span>
-                                      </label>
-                                    </li>
-                                  );
-                                },
-                              )}
-                            </ul>
-                            <div className="mt-2 flex items-center justify-between gap-2 border-t border-line-soft/70 px-2 pt-2">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setPickedSlots(
-                                    pickedSlots.size === 3
-                                      ? new Set()
-                                      : new Set([
-                                          "hero",
-                                          "lifestyle",
-                                          "detail",
-                                        ]),
-                                  )
-                                }
-                                className="font-mono text-[9px] uppercase tracking-[0.16em] text-ink-4 hover:text-ink-2"
-                              >
-                                {pickedSlots.size === 3 ? "none" : "all"}
-                              </button>
-                              <button
-                                type="button"
-                                disabled={pickedSlots.size === 0}
-                                onClick={() => {
-                                  const slots = Array.from(pickedSlots);
-                                  setSlotMenuFor(null);
-                                  void regenerate(row, slots as SlotKey[]);
-                                }}
-                                className="rounded-full bg-ink px-3.5 py-1 text-[11px] font-medium text-cream hover:bg-ink-2 disabled:opacity-40"
-                              >
-                                Regenerate
-                              </button>
-                            </div>
-                          </div>
-                        ) : null}
-                      </div>
+                        {row.preview && regenSet.has(row.preview.id)
+                          ? "Regen…"
+                          : "Regen ▾"}
+                      </button>
                     </div>
                   ) : (
                     <span className="text-ink-4">—</span>
@@ -604,6 +525,121 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
           </tbody>
         </table>
       </div>
+      {slotMenuFor && menuRect
+        ? (() => {
+            const row = rows.find((r) => r.preview?.id === slotMenuFor);
+            if (!row || !row.preview) return null;
+            // Position above the trigger when there's room above; otherwise
+            // below. Right-align with the trigger's right edge so the
+            // popover stays inside the viewport on narrow screens.
+            const POPOVER_W = 280;
+            const POPOVER_H_EST = 280;
+            const placeAbove = menuRect.top > POPOVER_H_EST + 16;
+            const top = placeAbove
+              ? Math.max(8, menuRect.top - POPOVER_H_EST - 8)
+              : menuRect.bottom + 8;
+            const left = Math.max(
+              8,
+              Math.min(
+                window.innerWidth - POPOVER_W - 8,
+                menuRect.right - POPOVER_W,
+              ),
+            );
+            return createPortal(
+              <div
+                data-slot-menu
+                style={{
+                  position: "fixed",
+                  top,
+                  left,
+                  width: POPOVER_W,
+                  zIndex: 9999,
+                }}
+                className="rounded-xl border border-line-soft bg-paper p-2 shadow-[0_24px_60px_-20px_rgba(40,30,20,0.45)]"
+              >
+                <p className="mb-2 px-2 pt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-4">
+                  Select to regenerate
+                </p>
+                <ul className="flex flex-col">
+                  {(["hero", "lifestyle", "detail"] as const).map((slot) => {
+                    const s = row.preview!.slots[slot];
+                    const checked = pickedSlots.has(slot);
+                    return (
+                      <li key={slot}>
+                        <label className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 hover:bg-surface">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleSlot(slot)}
+                            className="h-3.5 w-3.5"
+                          />
+                          <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md border border-line-soft bg-cream/50">
+                            {s.url ? (
+                              <Image
+                                src={s.url}
+                                alt=""
+                                fill
+                                sizes="40px"
+                                className="object-cover"
+                                unoptimized
+                              />
+                            ) : null}
+                          </span>
+                          <span className="flex flex-col">
+                            <span className="text-[12px] capitalize text-ink">
+                              {slot}
+                            </span>
+                            <span
+                              className={
+                                s.status === "succeeded"
+                                  ? "font-mono text-[9px] uppercase tracking-[0.14em] text-emerald-700"
+                                  : s.status === "failed"
+                                    ? "font-mono text-[9px] uppercase tracking-[0.14em] text-rose-700"
+                                    : s.status === "running"
+                                      ? "font-mono text-[9px] uppercase tracking-[0.14em] text-amber-700"
+                                      : "font-mono text-[9px] uppercase tracking-[0.14em] text-ink-4"
+                              }
+                            >
+                              {s.status}
+                            </span>
+                          </span>
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <div className="mt-2 flex items-center justify-between gap-2 border-t border-line-soft/70 px-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPickedSlots(
+                        pickedSlots.size === 3
+                          ? new Set()
+                          : new Set(["hero", "lifestyle", "detail"]),
+                      )
+                    }
+                    className="font-mono text-[9px] uppercase tracking-[0.16em] text-ink-4 hover:text-ink-2"
+                  >
+                    {pickedSlots.size === 3 ? "none" : "all"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={pickedSlots.size === 0}
+                    onClick={() => {
+                      const slots = Array.from(pickedSlots);
+                      setSlotMenuFor(null);
+                      void regenerate(row, slots as SlotKey[]);
+                    }}
+                    className="rounded-full bg-ink px-3.5 py-1 text-[11px] font-medium text-cream hover:bg-ink-2 disabled:opacity-40"
+                  >
+                    Regenerate
+                  </button>
+                </div>
+              </div>,
+              document.body,
+            );
+          })()
+        : null}
     </section>
   );
 }
