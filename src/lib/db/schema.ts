@@ -191,6 +191,120 @@ export const completeLookPacks = pgTable(
   ],
 );
 
+export const etsyCandidates = pgTable(
+  "etsy_candidates",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    listingUrl: text("listing_url").notNull().unique(),
+    title: text("title").notNull(),
+    imageUrl: text("image_url"),
+    shopName: text("shop_name"),
+    shopUrl: text("shop_url"),
+    category: text("category"),
+    description: text("description"),
+    tags: text("tags").array(),
+    rawMd: text("raw_md").notNull(),
+    status: text("status", {
+      enum: [
+        "pending",
+        "generating",
+        "completed",
+        "partial",
+        "failed",
+        "skipped",
+        "to_review",
+      ],
+    })
+      .notNull()
+      .default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [index("etsy_candidates_status_idx").on(t.status)],
+);
+
+export const etsyPreviewPages = pgTable(
+  "etsy_preview_pages",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    candidateId: uuid("candidate_id")
+      .notNull()
+      .references(() => etsyCandidates.id, { onDelete: "cascade" }),
+    token: text("token").notNull().unique(),
+    status: text("status", {
+      enum: ["pending", "generating", "partial", "completed", "failed"],
+    })
+      .notNull()
+      .default("pending"),
+    sourceBlobUrl: text("source_blob_url"),
+    listingSnapshot: jsonb("listing_snapshot")
+      .notNull()
+      .$type<{
+        title: string;
+        listingUrl: string;
+        imageUrl: string | null;
+        shopName: string | null;
+        category: string | null;
+      }>(),
+    heroUrl: text("hero_url"),
+    heroStatus: text("hero_status").notNull().default("pending"),
+    heroError: text("hero_error"),
+    lifestyleUrl: text("lifestyle_url"),
+    lifestyleStatus: text("lifestyle_status").notNull().default("pending"),
+    lifestyleError: text("lifestyle_error"),
+    detailUrl: text("detail_url"),
+    detailStatus: text("detail_status").notNull().default("pending"),
+    detailError: text("detail_error"),
+    viewCount: integer("view_count").notNull().default(0),
+    ctaClickCount: integer("cta_click_count").notNull().default(0),
+    signupClickCount: integer("signup_click_count").notNull().default(0),
+    signupCount: integer("signup_count").notNull().default(0),
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("etsy_preview_pages_candidate_idx").on(t.candidateId),
+    index("etsy_preview_pages_status_idx").on(t.status),
+  ],
+);
+
+export const etsyPreviewEvents = pgTable(
+  "etsy_preview_events",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    pageId: uuid("page_id")
+      .notNull()
+      .references(() => etsyPreviewPages.id, { onDelete: "cascade" }),
+    kind: text("kind", {
+      enum: ["view", "cta_click", "signup_start", "signup"],
+    }).notNull(),
+    label: text("label"),
+    userAgent: text("user_agent"),
+    ipHash: text("ip_hash"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [
+    index("etsy_preview_events_page_idx").on(t.pageId),
+    index("etsy_preview_events_created_idx").on(t.createdAt.desc()),
+  ],
+);
+
+export type EtsyCandidate = typeof etsyCandidates.$inferSelect;
+export type EtsyPreviewPage = typeof etsyPreviewPages.$inferSelect;
+export type EtsyPreviewEvent = typeof etsyPreviewEvents.$inferSelect;
+
 export type Profile = typeof profiles.$inferSelect;
 export type Run = typeof runs.$inferSelect;
 export type Generation = typeof generations.$inferSelect;
