@@ -314,7 +314,9 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
                     <span className="text-ink-4">—</span>
                   )}
                 </td>
-                <td className="px-3 py-3 text-ink-4">{formatRelative(row.updatedAt)}</td>
+                <td className="px-3 py-3 text-ink-4" suppressHydrationWarning>
+                  {formatRelative(row.updatedAt)}
+                </td>
               </tr>
             ))}
           </tbody>
