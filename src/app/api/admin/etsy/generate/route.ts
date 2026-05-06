@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { start } from "workflow/api";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
 import {
@@ -52,10 +53,11 @@ export async function POST(req: Request) {
   );
   await setCandidatesStatus(candidateIds, "generating");
 
-  // Fire and forget — workflow handles persistence end-to-end.
-  void chunkAndRun(pages, CONCURRENCY, (p) => processEtsyPreview(p.id, mock)).catch(
-    (e) => console.error("[etsy-outreach] batch failed", e),
-  );
+  // Enqueue workflows. start() resolves once the workflow is enqueued; the
+  // workflow runs in the background under WDK runtime.
+  void chunkAndRun(pages, CONCURRENCY, async (p) => {
+    await start(processEtsyPreview, [p.id, mock]);
+  }).catch((e) => console.error("[etsy-outreach] batch failed", e));
 
   return NextResponse.json({
     enqueued: pages.length,

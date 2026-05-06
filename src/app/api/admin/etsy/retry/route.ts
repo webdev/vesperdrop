@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { start } from "workflow/api";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
 import { getPreviewById, resetFailedSlots } from "@/lib/etsy-outreach/pages";
@@ -30,9 +31,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
   await resetFailedSlots(pageId);
-  void processEtsyPreview(pageId, mock).catch((e) =>
-    console.error("[etsy-outreach] retry failed", e),
-  );
+  await start(processEtsyPreview, [pageId, mock]);
 
   return NextResponse.json({ ok: true });
 }
