@@ -42,7 +42,7 @@ export function PreviewCta(props: CtaProps) {
     track("etsy_preview_signup_start", { ...common, method: "email" });
     await postEvent("cta_click", "email_submit");
     await postEvent("signup_start", "email");
-    const url = new URL("/sign-up", window.location.origin);
+    const url = new URL("/sign-in", window.location.origin);
     url.searchParams.set("ref", "etsy-preview");
     url.searchParams.set("token", props.token);
     url.searchParams.set("email", email);
