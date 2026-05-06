@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Container } from "@/components/ui/container";
+import { FaceSafeImage } from "@/components/ui/face-safe-image";
 import { getPreviewByToken } from "@/lib/etsy-outreach/pages";
 import { PreviewCta, PreviewViewTracker } from "./preview-cta";
 
@@ -197,11 +198,13 @@ export default async function EtsyPreviewPage({
                         Lifestyle hero
                       </span>
                       <div className="overflow-hidden rounded-[24px] bg-cream shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_44px_80px_-44px_rgba(40,30,20,0.45)] transition-transform duration-500 ease-out will-change-transform group-hover:-translate-y-1">
-                        <Image
+                        <FaceSafeImage
                           src={lifestyleUrl}
                           alt="Lifestyle hero"
                           width={900}
                           height={1200}
+                          focalPoint={page.lifestyleFocalPoint ?? undefined}
+                          faceBox={page.lifestyleFaceBox ?? undefined}
                           className="aspect-[3/4] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
                           unoptimized
                         />
@@ -216,11 +219,13 @@ export default async function EtsyPreviewPage({
                         Etsy ready
                       </span>
                       <div className="overflow-hidden rounded-[24px] bg-cream shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_22px_50px_-32px_rgba(40,30,20,0.3)] transition-transform duration-500 ease-out will-change-transform group-hover:-translate-y-1">
-                        <Image
+                        <FaceSafeImage
                           src={heroUrl}
                           alt="Etsy hero"
                           width={700}
                           height={700}
+                          focalPoint={page.heroFocalPoint ?? undefined}
+                          faceBox={page.heroFaceBox ?? undefined}
                           className="aspect-square w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
                           unoptimized
                         />
@@ -235,11 +240,13 @@ export default async function EtsyPreviewPage({
                         Texture detail
                       </span>
                       <div className="overflow-hidden rounded-[24px] bg-cream shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_22px_50px_-32px_rgba(40,30,20,0.3)] transition-transform duration-500 ease-out will-change-transform group-hover:-translate-y-1">
-                        <Image
+                        <FaceSafeImage
                           src={detailUrl}
                           alt="Texture detail"
                           width={700}
                           height={500}
+                          focalPoint={page.detailFocalPoint ?? undefined}
+                          faceBox={page.detailFaceBox ?? undefined}
                           className="aspect-[7/5] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
                           unoptimized
                         />

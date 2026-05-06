@@ -2,6 +2,7 @@ import "server-only";
 import { eq, desc, inArray, sql } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import type { EtsyCandidate, EtsyPreviewPage } from "@/lib/db/schema";
+import type { FocalPoint, FaceBox } from "@/lib/ai/sceneify";
 import { generatePreviewToken } from "./tokens";
 
 export type PreviewSlotKey = "hero" | "lifestyle" | "detail";
@@ -85,24 +86,50 @@ export async function setSlotRunning(
     .where(eq(schema.etsyPreviewPages.id, id));
 }
 
+export type SlotSuccess = {
+  url: string;
+  focalPoint?: FocalPoint | null;
+  faceBox?: FaceBox | null;
+};
+
 export async function setSlotResult(
   id: string,
   slot: PreviewSlotKey,
-  result: { url: string } | { error: string },
+  result: SlotSuccess | { error: string },
 ): Promise<void> {
   const isError = "error" in result;
+  const fp = !isError ? (result.focalPoint ?? null) : null;
+  const fb = !isError ? (result.faceBox ?? null) : null;
   const update =
     slot === "hero"
       ? isError
         ? { heroStatus: "failed" as const, heroError: result.error }
-        : { heroStatus: "succeeded" as const, heroUrl: result.url, heroError: null }
+        : {
+            heroStatus: "succeeded" as const,
+            heroUrl: result.url,
+            heroError: null,
+            heroFocalPoint: fp,
+            heroFaceBox: fb,
+          }
       : slot === "lifestyle"
         ? isError
           ? { lifestyleStatus: "failed" as const, lifestyleError: result.error }
-          : { lifestyleStatus: "succeeded" as const, lifestyleUrl: result.url, lifestyleError: null }
+          : {
+              lifestyleStatus: "succeeded" as const,
+              lifestyleUrl: result.url,
+              lifestyleError: null,
+              lifestyleFocalPoint: fp,
+              lifestyleFaceBox: fb,
+            }
         : isError
           ? { detailStatus: "failed" as const, detailError: result.error }
-          : { detailStatus: "succeeded" as const, detailUrl: result.url, detailError: null };
+          : {
+              detailStatus: "succeeded" as const,
+              detailUrl: result.url,
+              detailError: null,
+              detailFocalPoint: fp,
+              detailFaceBox: fb,
+            };
   await db
     .update(schema.etsyPreviewPages)
     .set({ ...update, updatedAt: sql`now()` })

@@ -97,7 +97,11 @@ async function generateOneSlot(
         callerRef: `etsy-preview:${pageId}:${slot}:retry`,
       });
     }
-    await setSlotResult(pageId, slot, { url: result.outputUrl });
+    await setSlotResult(pageId, slot, {
+      url: result.outputUrl,
+      focalPoint: result.focalPoint ?? null,
+      faceBox: result.faceBox ?? null,
+    });
   } catch (e) {
     await setSlotResult(pageId, slot, {
       error: e instanceof Error ? e.message : String(e),
