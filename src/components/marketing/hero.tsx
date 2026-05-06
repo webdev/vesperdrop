@@ -23,7 +23,7 @@ export function Hero() {
             </p>
             {/* Slight outdent on the H1 — masthead edge tension */}
             <h1 className="mt-4 font-serif text-[clamp(3rem,6vw,4.5rem)] leading-[0.96] tracking-[-0.02em] text-ink md:-ml-2">
-              From amateur photos to{" "}
+              From a single flat lay to{" "}
               <em className="not-italic font-serif text-terracotta-dark italic">
                 stunning
               </em>{" "}
@@ -31,7 +31,7 @@ export function Hero() {
             </h1>
             <p className="mt-5 max-w-md text-[15px] leading-[1.55] text-ink-3">
               Drop a single product photo. We generate studio-quality images
-              that sell — six looks in ninety seconds, zero shoot day.
+              that sell — six looks in ninety seconds. zero shoot day.
             </p>
             <div className="mt-7 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
               <Link
