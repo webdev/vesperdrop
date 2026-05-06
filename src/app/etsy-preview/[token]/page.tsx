@@ -95,7 +95,12 @@ export default async function EtsyPreviewPage({
           <div className="h-px w-full bg-line-soft" />
 
           {/* ─── Editorial transformation ─────────────────────── */}
-          <section className="py-16 md:py-24">
+          <section className="relative py-16 md:py-24">
+            {/* Faint staged backdrop — the transformation rests on its own surface */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-[-2vw] inset-y-6 -z-10 rounded-[40px] bg-[radial-gradient(ellipse_at_top,_oklch(0.96_0.013_75)_0%,_transparent_70%)]"
+            />
             <div className="mb-10 flex items-baseline justify-between gap-4">
               <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-4">
                 The transformation
@@ -146,19 +151,19 @@ export default async function EtsyPreviewPage({
                 </div>
 
                 {/* Editorial metadata — exclusivity */}
-                <ul className="mt-6 space-y-2 px-1 font-mono text-[9px] uppercase tracking-[0.2em] text-ink-4">
-                  <li className="flex items-center gap-2">
-                    <span className="h-px w-6 bg-line-soft" />
-                    <span>Generated privately</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="h-px w-6 bg-line-soft" />
-                    <span>Prepared for your listing</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="h-px w-6 bg-line-soft" />
-                    <span>AI campaign preview</span>
-                  </li>
+                <ul className="mt-6 space-y-2.5 px-1 font-mono text-[9px] uppercase tracking-[0.2em] text-ink-4">
+                  {[
+                    "Generated privately",
+                    "Prepared for your listing",
+                    "AI campaign preview",
+                    "Created today",
+                    "Ready for Etsy",
+                  ].map((line) => (
+                    <li key={line} className="flex items-center gap-2">
+                      <span className="h-px w-6 bg-line-soft" />
+                      <span>{line}</span>
+                    </li>
+                  ))}
                 </ul>
               </aside>
 
@@ -187,7 +192,7 @@ export default async function EtsyPreviewPage({
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-12 md:grid-rows-[auto_auto]">
                   {/* Lifestyle hero — dominant, with stronger shadow */}
                   {lifestyleUrl ? (
-                    <figure className="group relative motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-700 motion-safe:[animation-delay:120ms] md:col-span-7 md:row-span-2 md:scale-[1.04] md:origin-top-left">
+                    <figure className="group relative motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-700 motion-safe:[animation-delay:120ms] md:col-span-7 md:row-span-2 md:scale-[1.06] md:origin-top-left">
                       <span className="absolute -top-3 left-4 z-10 rounded-full border border-line-soft bg-paper/95 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-3 shadow-[0_8px_20px_-12px_rgba(40,30,20,0.25)]">
                         Lifestyle hero
                       </span>

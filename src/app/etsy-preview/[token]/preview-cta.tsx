@@ -44,31 +44,49 @@ export function PreviewCta(props: CtaProps) {
   }
 
   return (
-    <div className="mx-auto max-w-[600px] rounded-[36px] border border-line-soft bg-cream/70 p-9 text-center md:p-12 shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_50px_100px_-60px_rgba(40,30,20,0.25)]">
-      <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-4">
-        Start your own campaign
-      </p>
-      <h2 className="mt-4 font-serif text-[clamp(2rem,2.8vw,2.85rem)] leading-[1.04] tracking-[-0.022em] text-ink">
-        Ready to create your own stunning images?
-      </h2>
-      <p className="mx-auto mt-3 max-w-[40ch] text-[14px] leading-[1.55] text-ink-3">
-        Transform your products into premium Etsy-ready campaigns in
-        minutes.
-      </p>
-
+    <div className="relative mx-auto max-w-[600px] overflow-hidden rounded-[36px] border border-line-soft bg-cream/70 p-9 text-center md:p-12 shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_50px_100px_-60px_rgba(40,30,20,0.25)]">
+      {/* Ambient inner highlight — softly lit from above */}
       <div
-        className="mx-auto mt-7 max-w-[440px] text-left"
-        onFocusCapture={fireOnFirstInteraction}
-        onPointerDownCapture={fireOnFirstInteraction}
-      >
-        <AuthForm mode="sign-up" variant="split" next="/app" />
-      </div>
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-paper/70 to-transparent"
+      />
 
-      <ul className="mx-auto mt-7 grid max-w-[480px] grid-cols-1 gap-y-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-4 sm:grid-cols-3">
-        <li>No credit card required</li>
-        <li>Cancel anytime</li>
-        <li>First previews are free</li>
-      </ul>
+      <div className="relative">
+        <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-4">
+          Start your own campaign
+        </p>
+        <h2 className="mt-4 font-serif text-[clamp(2rem,2.8vw,2.85rem)] leading-[1.04] tracking-[-0.022em] text-ink">
+          Ready to create your own stunning images?
+        </h2>
+        <p className="mx-auto mt-3 max-w-[40ch] text-[14px] leading-[1.55] text-ink-3">
+          Transform your products into premium Etsy-ready campaigns in
+          minutes.
+        </p>
+
+        <div
+          className={[
+            "mx-auto mt-6 max-w-[440px] text-left",
+            // Submit button: hover glow + lift, transition smoothly.
+            "[&_button[type=submit]]:transition-all",
+            "[&_button[type=submit]]:duration-300",
+            "[&_button[type=submit]]:ease-out",
+            "[&_button[type=submit]]:hover:-translate-y-px",
+            "[&_button[type=submit]]:hover:shadow-[0_0_0_5px_oklch(0.7_0.12_45_/_0.08),0_18px_40px_-22px_oklch(0.45_0.16_45_/_0.45)]",
+            // Inputs: a touch more breathing room.
+            "[&_input]:transition-colors [&_input]:duration-200",
+          ].join(" ")}
+          onFocusCapture={fireOnFirstInteraction}
+          onPointerDownCapture={fireOnFirstInteraction}
+        >
+          <AuthForm mode="sign-up" variant="split" next="/app" />
+        </div>
+
+        <ul className="mx-auto mt-6 grid max-w-[480px] grid-cols-1 gap-y-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-4 sm:grid-cols-3">
+          <li>No credit card required</li>
+          <li>Cancel anytime</li>
+          <li>First previews are free</li>
+        </ul>
+      </div>
     </div>
   );
 }
