@@ -8,9 +8,10 @@ export const contentType = "image/png";
 export default async function OG({
   params,
 }: {
-  params: { token: string };
+  params: Promise<{ token: string }>;
 }) {
-  const page = await getPreviewByToken(params.token);
+  const { token } = await params;
+  const page = await getPreviewByToken(token);
   const url = page?.heroUrl ?? page?.lifestyleUrl ?? page?.detailUrl;
 
   return new ImageResponse(
