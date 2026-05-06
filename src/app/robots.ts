@@ -31,6 +31,8 @@ export default function robots(): MetadataRoute.Robots {
           "/sign-up",
           "/mfa-verify",
           "/unauthorized",
+          "/admin",
+          "/etsy-preview",
         ],
       },
     ],
