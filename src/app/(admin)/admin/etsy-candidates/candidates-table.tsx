@@ -10,8 +10,10 @@ export type CandidateRow = {
   id: string;
   title: string;
   shopName: string | null;
+  shopUrl: string | null;
   imageUrl: string | null;
   listingUrl: string;
+  location: string | null;
   status:
     | "pending"
     | "generating"
@@ -217,6 +219,7 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
               <th className="px-2 py-3 text-left">Image</th>
               <th className="px-3 py-3 text-left">Title</th>
               <th className="px-3 py-3 text-left">Shop</th>
+              <th className="px-3 py-3 text-left">Location</th>
               <th className="px-3 py-3 text-left">Status</th>
               <th className="px-3 py-3 text-left">Preview</th>
               <th className="px-3 py-3 text-left">Updated</th>
@@ -260,7 +263,27 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
                     {row.title}
                   </Link>
                 </td>
-                <td className="px-3 py-3 text-ink-3">{row.shopName ?? "—"}</td>
+                <td className="px-3 py-3 text-ink-3">
+                  {row.shopName ? (
+                    row.shopUrl ? (
+                      <Link
+                        href={row.shopUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-ink hover:underline"
+                      >
+                        {row.shopName}
+                      </Link>
+                    ) : (
+                      row.shopName
+                    )
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td className="max-w-[18ch] truncate px-3 py-3 text-ink-4">
+                  {row.location ?? "—"}
+                </td>
                 <td className="px-3 py-3">
                   <StatusPill status={row.status} />
                 </td>

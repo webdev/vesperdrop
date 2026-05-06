@@ -22,8 +22,10 @@ export default async function EtsyCandidatesPage() {
       id: c.id,
       title: c.title,
       shopName: c.shopName,
+      shopUrl: c.shopUrl,
       imageUrl: c.imageUrl,
       listingUrl: c.listingUrl,
+      location: c.category,
       status: c.status,
       updatedAt: c.updatedAt.toISOString(),
       preview: preview

@@ -61,6 +61,9 @@ export default async function EtsyPreviewPage({
   );
 
   const snap = page.listingSnapshot;
+  const greeting = snap.shopName
+    ? `Hi ${snap.shopName}, this is what`
+    : "Hi there, this is what";
   const generated = [page.heroUrl, page.lifestyleUrl, page.detailUrl].filter(
     (u): u is string => Boolean(u),
   );
@@ -89,7 +92,7 @@ export default async function EtsyPreviewPage({
 
           <section className="max-w-[58ch]">
             <h1 className="font-serif text-[clamp(2.4rem,4vw,3.6rem)] leading-[1.05] tracking-[-0.02em]">
-              Hi there, this is what{" "}
+              {greeting}{" "}
               <span className="text-terracotta">your product</span> could look
               like on Shopify.
             </h1>
@@ -126,8 +129,14 @@ export default async function EtsyPreviewPage({
               <p className="mt-2 line-clamp-2 text-[13px] text-ink">
                 {snap.title}
               </p>
-              {snap.shopName ? (
-                <p className="mt-1 text-[12px] text-ink-3">{snap.shopName}</p>
+              {(snap.shopName || snap.category) ? (
+                // shopUrl is not stored in listing_snapshot (denormalized at creation time);
+                // link to shop is not possible without a schema change + backfill.
+                <p className="mt-1 text-[12px] text-ink-3">
+                  {snap.shopName ?? ""}
+                  {snap.shopName && snap.category ? " · " : ""}
+                  {snap.category ?? ""}
+                </p>
               ) : null}
               <Link
                 href={snap.listingUrl}
