@@ -12,12 +12,12 @@ export const metadata: Metadata = {
     absolute: "Vesperdrop — lifestyle photography from a product shot",
   },
   description:
-    "Drop a product photo, pick a scene, get a 6-image lifestyle batch in 90 seconds. Built for Shopify and Amazon sellers. 1 free HD shot, no card.",
+    "Drop a product photo, pick a scene, get a 6-image lifestyle batch in 90 seconds. Built for Etsy, Shopify, and Amazon sellers. 1 free HD shot, no card.",
   alternates: { canonical: "/" },
   openGraph: {
     title: "Vesperdrop — lifestyle photography from a product shot",
     description:
-      "Drop a product photo, pick a scene, get a 6-image lifestyle batch in 90 seconds. Built for Shopify and Amazon sellers.",
+      "Drop a product photo, pick a scene, get a 6-image lifestyle batch in 90 seconds. Built for Etsy, Shopify, and Amazon sellers.",
     url: "/",
     type: "website",
   },

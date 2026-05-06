@@ -30,7 +30,7 @@ export default async function OG({
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
           <div style={{ fontSize: 32, opacity: 0.6 }}>Vesperdrop</div>
           <div style={{ fontSize: 64, lineHeight: 1.05, marginTop: 24 }}>
-            Your product on Shopify.
+            Your product on Etsy.
           </div>
         </div>
         {url ? (

@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Vesperdrop",
     short_name: "Vesperdrop",
     description:
-      "AI lifestyle photography for Shopify and Amazon sellers.",
+      "AI lifestyle photography for Etsy, Shopify, and Amazon sellers.",
     start_url: "/",
     display: "standalone",
     background_color: "#faf7f0",

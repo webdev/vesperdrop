@@ -17,7 +17,7 @@ const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 const SITE_URL = env.SITE_URL.replace(/\/$/, "");
 const SITE_NAME = "Vesperdrop";
 const SITE_DESCRIPTION =
-  "AI lifestyle photography for Shopify and Amazon sellers. Drop a product photo, get a library of lifestyle shots in 90 seconds.";
+  "AI lifestyle photography for Etsy, Shopify, and Amazon sellers. Drop a product photo, get a library of lifestyle shots in 90 seconds.";
 
 // Default OG/Twitter image — points at the edge route in app/opengraph-image.tsx.
 // Per-page metadata.openGraph blocks inherit this unless they explicitly set images.

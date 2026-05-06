@@ -1,7 +1,7 @@
 import { env } from "@/lib/env";
 
 const SITE_DESCRIPTION =
-  "AI lifestyle photography for Shopify and Amazon sellers. Drop a product photo, get a library of lifestyle shots in 90 seconds.";
+  "AI lifestyle photography for Etsy, Shopify, and Amazon sellers. Drop a product photo, get a library of lifestyle shots in 90 seconds.";
 
 function jsonLdScript(data: unknown) {
   return (
@@ -54,7 +54,7 @@ export function PricingProductJsonLd({ offers }: { offers: Offer[] }) {
     "@type": "Product",
     name: "Vesperdrop",
     description:
-      "AI lifestyle photography for Shopify and Amazon sellers. Turn rough product photos into conversion-optimized lifestyle batches.",
+      "AI lifestyle photography for Etsy, Shopify, and Amazon sellers. Turn rough product photos into conversion-optimized lifestyle batches.",
     brand: { "@type": "Brand", name: "Vesperdrop" },
     url: `${base}/pricing`,
     offers: offers.map((o) => ({
