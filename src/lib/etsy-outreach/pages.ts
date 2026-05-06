@@ -133,6 +133,37 @@ export async function finalizePreviewStatus(id: string): Promise<PreviewStatus> 
   return next;
 }
 
+export async function resetSlots(
+  id: string,
+  slots: PreviewSlotKey[],
+): Promise<void> {
+  if (slots.length === 0) return;
+  const update: Record<string, unknown> = {
+    status: "pending",
+    completedAt: null,
+    updatedAt: sql`now()`,
+  };
+  if (slots.includes("hero")) {
+    update.heroStatus = "pending";
+    update.heroUrl = null;
+    update.heroError = null;
+  }
+  if (slots.includes("lifestyle")) {
+    update.lifestyleStatus = "pending";
+    update.lifestyleUrl = null;
+    update.lifestyleError = null;
+  }
+  if (slots.includes("detail")) {
+    update.detailStatus = "pending";
+    update.detailUrl = null;
+    update.detailError = null;
+  }
+  await db
+    .update(schema.etsyPreviewPages)
+    .set(update)
+    .where(eq(schema.etsyPreviewPages.id, id));
+}
+
 export async function resetAllSlots(id: string): Promise<void> {
   await db
     .update(schema.etsyPreviewPages)

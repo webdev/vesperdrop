@@ -47,6 +47,7 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
   // so other rows stay enabled.
   const [busy, setBusy] = useState(false);
   const [regenSet, setRegenSet] = useState<Set<string>>(new Set());
+  const [slotMenuFor, setSlotMenuFor] = useState<string | null>(null);
 
   const allSelected = rows.length > 0 && selected.size === rows.length;
   const selectedIds = useMemo(() => Array.from(selected), [selected]);
@@ -185,16 +186,20 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
     });
   }
 
-  async function regenerate(row: CandidateRow) {
+  async function regenerate(
+    row: CandidateRow,
+    slots?: Array<"hero" | "lifestyle" | "detail">,
+  ) {
     if (!row.preview) return;
     const pageId = row.preview.id;
-    // For partial / failed previews, only retry the slots that failed
-    // (preserves any already-succeeded images). For completed previews,
-    // wipe and regenerate everything fresh.
-    const endpoint =
-      row.preview.status === "completed"
-        ? "/api/admin/etsy/regenerate"
-        : "/api/admin/etsy/retry";
+    // Three modes:
+    //   slots provided     → /regenerate with {slots}: rebuild only those
+    //   no slots, partial  → /retry: rebuild only failed slots
+    //   no slots, completed → /regenerate: rebuild everything fresh
+    const useRegen = slots !== undefined || row.preview.status === "completed";
+    const endpoint = useRegen
+      ? "/api/admin/etsy/regenerate"
+      : "/api/admin/etsy/retry";
     setRegenSet((prev) => {
       const next = new Set(prev);
       next.add(pageId);
@@ -205,7 +210,9 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
         method: "POST",
         credentials: "same-origin",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ pageId, mock }),
+        body: JSON.stringify(
+          slots ? { pageId, mock, slots } : { pageId, mock },
+        ),
       });
       if (!res.ok) {
         const body = await res.text();
@@ -418,19 +425,57 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
                       >
                         Open
                       </Link>
-                      <button
-                        type="button"
-                        onClick={() => regenerate(row)}
-                        disabled={
-                          row.preview ? regenSet.has(row.preview.id) : true
-                        }
-                        title="Regenerate all images for this row with fresh presets"
-                        className="rounded-full border border-line bg-paper px-3 py-1 text-[11px] text-ink-2 hover:bg-surface disabled:opacity-50"
-                      >
-                        {row.preview && regenSet.has(row.preview.id)
-                          ? "Regen…"
-                          : "Regen"}
-                      </button>
+                      <div className="relative inline-flex items-stretch overflow-hidden rounded-full border border-line bg-paper">
+                        <button
+                          type="button"
+                          onClick={() => regenerate(row)}
+                          disabled={
+                            row.preview ? regenSet.has(row.preview.id) : true
+                          }
+                          title="Regenerate based on row status (failed slots, or all if completed)"
+                          className="px-3 py-1 text-[11px] text-ink-2 hover:bg-surface disabled:opacity-50"
+                        >
+                          {row.preview && regenSet.has(row.preview.id)
+                            ? "Regen…"
+                            : "Regen"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSlotMenuFor(
+                              row.preview && slotMenuFor === row.preview.id
+                                ? null
+                                : row.preview?.id ?? null,
+                            )
+                          }
+                          disabled={
+                            row.preview ? regenSet.has(row.preview.id) : true
+                          }
+                          aria-label="Regen specific slot"
+                          className="border-l border-line px-2 py-1 text-[11px] text-ink-3 hover:bg-surface disabled:opacity-50"
+                        >
+                          ▾
+                        </button>
+                        {row.preview && slotMenuFor === row.preview.id ? (
+                          <div className="absolute right-0 top-full z-20 mt-1 flex flex-col rounded-xl border border-line-soft bg-paper p-1 shadow-[0_18px_40px_-22px_rgba(40,30,20,0.35)]">
+                            {(["hero", "lifestyle", "detail"] as const).map(
+                              (slot) => (
+                                <button
+                                  key={slot}
+                                  type="button"
+                                  onClick={() => {
+                                    setSlotMenuFor(null);
+                                    void regenerate(row, [slot]);
+                                  }}
+                                  className="rounded-md px-3 py-1.5 text-left text-[11px] capitalize text-ink-2 hover:bg-surface"
+                                >
+                                  Regen {slot}
+                                </button>
+                              ),
+                            )}
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                   ) : (
                     <span className="text-ink-4">—</span>

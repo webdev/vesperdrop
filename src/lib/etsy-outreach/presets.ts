@@ -13,8 +13,13 @@ export type PreviewSlotKey = "hero" | "lifestyle" | "detail";
  *   ETSY_PRESET_LIFESTYLE=outdoor
  *   ETSY_PRESET_DETAIL=cozy-indoor
  */
+// Both 'hero' and 'lifestyle' draw from lifestyle presets — sellers
+// respond more to on-scene model imagery than to clean studio shots,
+// so the AFTER collage is mostly people-in-context with one
+// closeup/texture detail. 'studio-clean' is kept in the hero pool as
+// a small minority for variety.
 const POOLS: Record<PreviewSlotKey, string[]> = {
-  hero: ["studio-clean", "studio-pop"],
+  hero: ["cozy-indoor", "outdoor", "golden-hour", "studio-clean"],
   lifestyle: ["cozy-indoor", "outdoor", "golden-hour"],
   detail: ["studio-clean", "cozy-indoor", "graffiti-alley"],
 };
