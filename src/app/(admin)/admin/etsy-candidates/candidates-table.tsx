@@ -486,6 +486,24 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
                             data-slot-menu
                             className="absolute right-0 bottom-full z-30 mb-1 flex flex-col rounded-xl border border-line-soft bg-paper p-1 shadow-[0_18px_40px_-22px_rgba(40,30,20,0.35)]"
                           >
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSlotMenuFor(null);
+                                void regenerate(row, [
+                                  "hero",
+                                  "lifestyle",
+                                  "detail",
+                                ]);
+                              }}
+                              className="whitespace-nowrap rounded-md px-3 py-1.5 text-left text-[11px] text-ink-2 hover:bg-surface"
+                            >
+                              Regen all
+                            </button>
+                            <span
+                              aria-hidden
+                              className="my-0.5 h-px bg-line-soft/70"
+                            />
                             {(["hero", "lifestyle", "detail"] as const).map(
                               (slot) => (
                                 <button
