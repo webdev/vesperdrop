@@ -129,11 +129,27 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
       await fetch("/api/admin/etsy/ingest", {
         method: "POST",
         credentials: "same-origin",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ replaceAll }),
       });
       window.location.reload();
     } finally {
       setBusy(false);
     }
+  }
+
+  function selectPending() {
+    setSelected(
+      new Set(rows.filter((r) => r.status === "pending").map((r) => r.id)),
+    );
+  }
+
+  function selectAll() {
+    setSelected(new Set(rows.map((r) => r.id)));
+  }
+
+  function clearSelection() {
+    setSelected(new Set());
   }
 
   async function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -172,13 +188,20 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
   async function regenerate(row: CandidateRow) {
     if (!row.preview) return;
     const pageId = row.preview.id;
+    // For partial / failed previews, only retry the slots that failed
+    // (preserves any already-succeeded images). For completed previews,
+    // wipe and regenerate everything fresh.
+    const endpoint =
+      row.preview.status === "completed"
+        ? "/api/admin/etsy/regenerate"
+        : "/api/admin/etsy/retry";
     setRegenSet((prev) => {
       const next = new Set(prev);
       next.add(pageId);
       return next;
     });
     try {
-      const res = await fetch("/api/admin/etsy/regenerate", {
+      const res = await fetch(endpoint, {
         method: "POST",
         credentials: "same-origin",
         headers: { "content-type": "application/json" },
@@ -204,11 +227,40 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
   return (
     <section className="rounded-2xl border border-line-soft bg-surface">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line-soft px-6 py-4">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-3">
             {selectedIds.length > 0
               ? `${selectedIds.length} selected`
               : `${rows.length} candidates`}
+          </span>
+          <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-4">
+            <button
+              type="button"
+              onClick={selectAll}
+              className="rounded px-1.5 py-0.5 hover:text-ink"
+            >
+              all
+            </button>
+            <span aria-hidden>·</span>
+            <button
+              type="button"
+              onClick={selectPending}
+              className="rounded px-1.5 py-0.5 hover:text-ink"
+            >
+              pending
+            </button>
+            {selectedIds.length > 0 ? (
+              <>
+                <span aria-hidden>·</span>
+                <button
+                  type="button"
+                  onClick={clearSelection}
+                  className="rounded px-1.5 py-0.5 hover:text-ink"
+                >
+                  clear
+                </button>
+              </>
+            ) : null}
           </span>
           <label className="flex items-center gap-2 text-[12px] text-ink-3">
             <input
