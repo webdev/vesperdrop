@@ -15,7 +15,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { token } = await params;
   return {
-    title: "Your products on Shopify · Vesperdrop",
+    title: "Your products on Etsy · Vesperdrop",
     robots: { index: false, follow: false },
     alternates: { canonical: `/etsy-preview/${token}` },
   };
@@ -84,7 +84,7 @@ export default async function EtsyPreviewPage({
             <h1 className="mt-10 max-w-[18ch] font-serif text-[clamp(2.6rem,5.4vw,4.5rem)] leading-[1.02] tracking-[-0.025em] text-ink">
               {greeting}{" "}
               <span className="text-terracotta">your product</span> could look
-              like on Shopify.
+              like on Etsy.
             </h1>
             <p className="mt-7 max-w-[52ch] text-[15px] leading-[1.55] text-ink-3">
               We created these examples privately, just for you, to help you
@@ -169,16 +169,16 @@ export default async function EtsyPreviewPage({
                     </figure>
                   ) : null}
 
-                  {/* Hero — Shopify-ready clean shot */}
+                  {/* Hero — Etsy-ready clean shot */}
                   {heroUrl ? (
                     <figure className="relative md:col-span-5 md:translate-y-6">
                       <span className="absolute -top-3 right-4 z-10 rounded-full border border-line-soft bg-paper/95 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-3 shadow-[0_8px_20px_-12px_rgba(40,30,20,0.25)]">
-                        Shopify ready
+                        Etsy ready
                       </span>
                       <div className="overflow-hidden rounded-[24px] bg-cream shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_22px_50px_-32px_rgba(40,30,20,0.3)]">
                         <Image
                           src={heroUrl}
-                          alt="Shopify hero"
+                          alt="Etsy hero"
                           width={700}
                           height={700}
                           className="aspect-square w-full object-cover"
@@ -224,7 +224,7 @@ export default async function EtsyPreviewPage({
           <section className="py-16 md:py-20">
             <div className="grid grid-cols-1 gap-y-10 sm:grid-cols-2 md:grid-cols-4 md:divide-x md:divide-line-soft">
               {[
-                ["01", "Shopify ready", "Sized and styled for product detail pages from day one."],
+                ["01", "Etsy ready", "Sized and styled for Etsy product pages from day one."],
                 ["02", "Lifestyle focused", "Imagery that helps customers picture themselves wearing it."],
                 ["03", "Higher conversions", "Editorial-grade visuals consistently outperform flat lays."],
                 ["04", "Save time & money", "No photoshoot. No models. Minutes instead of days."],
@@ -255,7 +255,7 @@ export default async function EtsyPreviewPage({
 
             {/* Trust row */}
             <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 font-mono text-[9px] uppercase tracking-[0.22em] text-ink-4">
-              <span>Built for modern Shopify brands</span>
+              <span>Built for modern Etsy brands</span>
               <span aria-hidden>·</span>
               <span>Used by independent sellers</span>
               <span aria-hidden>·</span>
