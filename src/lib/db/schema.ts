@@ -236,7 +236,7 @@ export const etsyPreviewPages = pgTable(
       .references(() => etsyCandidates.id, { onDelete: "cascade" }),
     token: text("token").notNull().unique(),
     status: text("status", {
-      enum: ["pending", "generating", "partial", "completed", "failed"],
+      enum: ["pending", "queued", "generating", "partial", "completed", "failed"],
     })
       .notNull()
       .default("pending"),

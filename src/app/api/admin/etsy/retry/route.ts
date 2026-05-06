@@ -3,7 +3,11 @@ import { z } from "zod";
 import { start } from "workflow/api";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
-import { getPreviewById, resetFailedSlots } from "@/lib/etsy-outreach/pages";
+import {
+  getPreviewById,
+  resetFailedSlots,
+  setPreviewQueued,
+} from "@/lib/etsy-outreach/pages";
 import { processEtsyPreview } from "@/lib/workflows/process-etsy-preview";
 
 const Body = z.object({
@@ -32,6 +36,7 @@ export async function POST(req: Request) {
   }
   await resetFailedSlots(pageId);
   await start(processEtsyPreview, [pageId, mock]);
+  await setPreviewQueued(pageId);
 
   return NextResponse.json({ ok: true });
 }

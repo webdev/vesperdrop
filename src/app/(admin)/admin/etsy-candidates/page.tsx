@@ -1,7 +1,7 @@
 import { listCandidates } from "@/lib/etsy-outreach/candidates";
 import { listPreviewsByCandidateIds } from "@/lib/etsy-outreach/pages";
 import { previewMetrics, topPreviewsByViews } from "@/lib/etsy-outreach/events";
-import { CandidatesTable } from "./candidates-table";
+import { CandidatesTable, type CandidateRow } from "./candidates-table";
 import { MetricsCards } from "./metrics-cards";
 import { TopPreviews } from "./top-previews";
 
@@ -18,6 +18,12 @@ export default async function EtsyCandidatesPage() {
 
   const rows = candidates.map((c) => {
     const preview = previewByCandidate.get(c.id);
+    // Prefer the preview row's status when it's still in flight so the
+    // admin sees 'Queued' between enqueue and the workflow's first step
+    // — otherwise show the candidate's own status (which has terminal
+    // states the preview row doesn't, like 'skipped' / 'to_review').
+    const displayStatus: CandidateRow["status"] =
+      preview?.status === "queued" ? "queued" : c.status;
     return {
       id: c.id,
       title: c.title,
@@ -26,7 +32,7 @@ export default async function EtsyCandidatesPage() {
       imageUrl: c.imageUrl,
       listingUrl: c.listingUrl,
       location: c.category,
-      status: c.status,
+      status: displayStatus,
       updatedAt: c.updatedAt.toISOString(),
       preview: preview
         ? {

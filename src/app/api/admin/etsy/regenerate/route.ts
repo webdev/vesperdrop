@@ -7,6 +7,7 @@ import {
   getPreviewById,
   resetAllSlots,
   resetSlots,
+  setPreviewQueued,
 } from "@/lib/etsy-outreach/pages";
 import { setCandidateStatus } from "@/lib/etsy-outreach/candidates";
 import { processEtsyPreview } from "@/lib/workflows/process-etsy-preview";
@@ -50,6 +51,7 @@ export async function POST(req: Request) {
   }
   await setCandidateStatus(page.candidateId, "generating");
   await start(processEtsyPreview, [pageId, mock]);
+  await setPreviewQueued(pageId);
 
   return NextResponse.json({ ok: true, slots: slots ?? "all" });
 }

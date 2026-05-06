@@ -18,6 +18,7 @@ export type CandidateRow = {
   location: string | null;
   status:
     | "pending"
+    | "queued"
     | "generating"
     | "completed"
     | "partial"

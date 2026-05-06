@@ -61,6 +61,39 @@ export async function listPreviewsByCandidateIds(
     .orderBy(desc(schema.etsyPreviewPages.createdAt));
 }
 
+export async function setPreviewQueued(id: string): Promise<void> {
+  await db
+    .update(schema.etsyPreviewPages)
+    .set({ status: "queued", updatedAt: sql`now()` })
+    .where(eq(schema.etsyPreviewPages.id, id));
+}
+
+/**
+ * Given a set of candidate ids, return the subset whose preview row is
+ * still queued or actively generating. Used by the generate route to
+ * skip candidates that already have an in-flight workflow so a
+ * re-click doesn't fan out duplicate workflows.
+ */
+export async function listInflightCandidateIds(
+  candidateIds: string[],
+): Promise<Set<string>> {
+  if (candidateIds.length === 0) return new Set();
+  const rows = await db
+    .select({
+      candidateId: schema.etsyPreviewPages.candidateId,
+      status: schema.etsyPreviewPages.status,
+    })
+    .from(schema.etsyPreviewPages)
+    .where(inArray(schema.etsyPreviewPages.candidateId, candidateIds));
+  const inflight = new Set<string>();
+  for (const r of rows) {
+    if (r.status === "queued" || r.status === "generating") {
+      inflight.add(r.candidateId);
+    }
+  }
+  return inflight;
+}
+
 export async function updatePreviewSourceBlob(
   id: string,
   sourceBlobUrl: string,

@@ -24,6 +24,18 @@ export type SceneifyModelId =
 
 export type SceneifyQuality = "low" | "medium" | "high" | "auto";
 
+/**
+ * Priority lane for the in-process FAL_GATE. 'user' jumps ahead of
+ * 'outreach' so end-user /try requests don't queue behind a 700-image
+ * admin batch.
+ */
+export type SceneifyPriority = "user" | "outreach";
+
+const PRIORITY_SCORE: Record<SceneifyPriority, number> = {
+  user: 10,
+  outreach: 0,
+};
+
 export type SceneifyGenerateInput = {
   sourceUrl: string;
   sourceFilename?: string;
@@ -35,6 +47,7 @@ export type SceneifyGenerateInput = {
   seed?: number;
   shotFraming?: string;
   callerRef?: string;
+  priority?: SceneifyPriority;
 };
 
 export type FocalPoint = {
@@ -82,6 +95,7 @@ export async function generateViaSceneify(
   input: SceneifyGenerateInput,
   init?: { signal?: AbortSignal },
 ): Promise<SceneifyGenerateResult> {
+  const priority = PRIORITY_SCORE[input.priority ?? "user"];
   return FAL_GATE.run(async () => {
     const token = await getVercelOidcToken();
     if (!token) {
@@ -113,7 +127,7 @@ export async function generateViaSceneify(
     }
 
     return (await res.json()) as SceneifyGenerateResult;
-  });
+  }, priority);
 }
 
 // ---------------------------------------------------------------------------

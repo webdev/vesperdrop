@@ -78,6 +78,7 @@ async function generateOneSlot(
         model: "gpt-image-2",
         quality: "medium",
         callerRef: `etsy-preview:${pageId}:${slot}`,
+        priority: "outreach",
       });
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
@@ -95,6 +96,7 @@ async function generateOneSlot(
         model: "nano-banana-2",
         quality: "medium",
         callerRef: `etsy-preview:${pageId}:${slot}:retry`,
+        priority: "outreach",
       });
     }
     await setSlotResult(pageId, slot, {
@@ -120,7 +122,12 @@ async function finalize(pageId: string): Promise<void> {
   "use step";
   const finalStatus = await finalizePreviewStatus(pageId);
   const page = await getPreviewById(pageId);
-  if (page) {
+  if (
+    page &&
+    (finalStatus === "completed" ||
+      finalStatus === "partial" ||
+      finalStatus === "failed")
+  ) {
     await setCandidateStatus(page.candidateId, finalStatus);
   }
 }
