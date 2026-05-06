@@ -120,6 +120,15 @@ export function PreviewViewTracker(props: CtaProps) {
       listing_url: props.listingUrl,
       source: "etsy_outreach",
     });
+    // Server-side counter + attribution cookie (deduped per session by
+    // the route handler).
+    fetch(`/api/public/etsy-preview/${props.token}/event`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ kind: "view" }),
+    }).catch(() => {
+      // best-effort; doesn't block the page
+    });
   }, [props.token, props.candidateId, props.sellerName, props.listingUrl]);
   return null;
 }

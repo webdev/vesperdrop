@@ -1,11 +1,9 @@
-import { cookies, headers } from "next/headers";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Container } from "@/components/ui/container";
 import { getPreviewByToken } from "@/lib/etsy-outreach/pages";
-import { recordEvent } from "@/lib/etsy-outreach/events";
 import { PreviewCta, PreviewViewTracker } from "./preview-cta";
 
 export const dynamic = "force-dynamic";
@@ -23,8 +21,6 @@ export async function generateMetadata({
   };
 }
 
-const VIEW_COOKIE_PREFIX = "vd_etsy_view_";
-
 export default async function EtsyPreviewPage({
   params,
 }: {
@@ -36,29 +32,10 @@ export default async function EtsyPreviewPage({
     notFound();
   }
 
-  const cookieStore = await cookies();
-  const cookieName = `${VIEW_COOKIE_PREFIX}${page.id.slice(0, 8)}`;
-  const alreadySeen = cookieStore.get(cookieName)?.value === "1";
-  const hdrs = await headers();
-  if (!alreadySeen) {
-    await recordEvent({
-      pageId: page.id,
-      kind: "view",
-      userAgent: hdrs.get("user-agent"),
-      ip: hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? hdrs.get("x-real-ip"),
-    });
-    cookieStore.set(cookieName, "1", {
-      httpOnly: true,
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24,
-    });
-  }
-
-  cookieStore.set(
-    "vd_etsy_ref",
-    JSON.stringify({ token, candidate_id: page.candidateId }),
-    { httpOnly: false, sameSite: "lax", maxAge: 60 * 60 * 24 * 30, path: "/" },
-  );
+  // Server Components can't write cookies in Next 15+. View counting,
+  // session-dedup, and the vd_etsy_ref attribution cookie are all set in
+  // the public events route handler when the client posts `view` on mount
+  // (PreviewViewTracker below).
 
   const snap = page.listingSnapshot;
   const greeting = snap.shopName
