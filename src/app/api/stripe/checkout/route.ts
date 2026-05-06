@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe/server";
@@ -44,6 +45,9 @@ export async function GET(req: Request) {
       .eq("id", user.id);
   }
 
+  const cookieStore = await cookies();
+  const etsyRef = cookieStore.get("vd_etsy_ref")?.value;
+
   const origin = new URL(req.url).origin;
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
@@ -52,7 +56,11 @@ export async function GET(req: Request) {
     success_url: `${origin}/account?upgraded=1`,
     cancel_url: `${origin}/pricing`,
     allow_promotion_codes: true,
-    metadata: { plan_slug: plan, user_id: user.id },
+    metadata: {
+      plan_slug: plan,
+      user_id: user.id,
+      ...(etsyRef ? { vd_etsy_ref: etsyRef } : {}),
+    },
   });
   return NextResponse.redirect(session.url!, { status: 303 });
 }

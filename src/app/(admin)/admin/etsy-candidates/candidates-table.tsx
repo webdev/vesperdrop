@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { track } from "@/lib/analytics";
@@ -41,6 +41,37 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
 
   const allSelected = rows.length > 0 && selected.size === rows.length;
   const selectedIds = useMemo(() => Array.from(selected), [selected]);
+
+  const fired = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const inflight = rows.filter(
+      (r) => r.preview && (r.status === "generating" || r.status === "pending"),
+    );
+    if (inflight.length === 0) return;
+    const interval = window.setInterval(async () => {
+      let anyTerminal = false;
+      for (const row of inflight) {
+        if (!row.preview || fired.current.has(row.preview.id)) continue;
+        const res = await fetch(`/api/admin/etsy/status?pageId=${row.preview.id}`);
+        if (!res.ok) continue;
+        const data = (await res.json()) as { status: string };
+        if (
+          data.status === "completed" ||
+          data.status === "partial" ||
+          data.status === "failed"
+        ) {
+          track("etsy_admin_generation_completed", {
+            page_id: row.preview.id,
+            status: data.status as "completed" | "partial" | "failed",
+          });
+          fired.current.add(row.preview.id);
+          anyTerminal = true;
+        }
+      }
+      if (anyTerminal) window.location.reload();
+    }, 5000);
+    return () => window.clearInterval(interval);
+  }, [rows]);
 
   function toggle(id: string) {
     setSelected((prev) => {

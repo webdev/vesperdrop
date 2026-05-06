@@ -8,6 +8,8 @@ import { refillCredits } from "@/lib/db/credits";
 import { PLAN_MONTHLY_CREDITS } from "@/lib/ai/models";
 import { env } from "@/lib/env";
 import { serverTrack } from "@/lib/analytics-server";
+import { recordEvent } from "@/lib/etsy-outreach/events";
+import { getPreviewByToken } from "@/lib/etsy-outreach/pages";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -223,6 +225,21 @@ async function dispatchStripeEvent(event: Stripe.Event): Promise<void> {
           event: "subscription_activated",
           properties: { plan },
         });
+      }
+
+      const etsyRef = obj.metadata?.vd_etsy_ref;
+      if (etsyRef) {
+        try {
+          const parsed = JSON.parse(etsyRef) as { token?: string };
+          if (parsed.token) {
+            const preview = await getPreviewByToken(parsed.token);
+            if (preview) {
+              await recordEvent({ pageId: preview.id, kind: "signup" });
+            }
+          }
+        } catch (e) {
+          console.warn("[etsy-outreach] bad vd_etsy_ref metadata", e);
+        }
       }
       return;
     }
