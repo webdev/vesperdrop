@@ -96,73 +96,108 @@ export default async function EtsyPreviewPage({
 
           {/* ─── Editorial transformation ─────────────────────── */}
           <section className="py-16 md:py-24">
-            <p className="mb-10 font-mono text-[10px] uppercase tracking-[0.22em] text-ink-4">
-              The transformation
-            </p>
+            <div className="mb-10 flex items-baseline justify-between gap-4">
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-4">
+                The transformation
+              </p>
+              <p className="hidden font-mono text-[9px] uppercase tracking-[0.22em] text-ink-4 sm:block">
+                Transformed with Vesperdrop
+              </p>
+            </div>
 
-            <div className="grid grid-cols-1 gap-x-10 gap-y-12 md:grid-cols-[260px_minmax(0,1fr)] md:items-start">
-              {/* Left — archival "before" card */}
-              <aside className="md:sticky md:top-12">
-                <div className="rounded-[28px] border border-line bg-cream/60 p-5 shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_18px_50px_-30px_rgba(40,30,20,0.18)]">
+            <div className="grid grid-cols-1 gap-x-10 gap-y-14 md:grid-cols-[260px_minmax(0,1fr)] md:items-start">
+              {/* Left — archival "before" card (intentionally raw) */}
+              <aside className="md:sticky md:top-12 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-700">
+                <div className="relative rounded-[28px] border border-[oklch(0.78_0.02_70)]/60 bg-cream/80 p-5 shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_22px_38px_-24px_rgba(60,45,25,0.28)]">
+                  <span className="absolute -top-2.5 left-5 rounded-full border border-line-soft bg-paper px-2 py-0.5 font-mono text-[8.5px] uppercase tracking-[0.2em] text-ink-3">
+                    Original Etsy listing
+                  </span>
                   {beforeUrl ? (
-                    <div className="overflow-hidden rounded-[18px]">
+                    <div className="overflow-hidden rounded-[18px] bg-[oklch(0.92_0.012_70)]">
                       <Image
                         src={beforeUrl}
                         alt={snap.title}
                         width={260}
                         height={325}
-                        className="aspect-[4/5] w-full object-cover"
+                        className="aspect-[4/5] w-full object-cover saturate-[0.85] contrast-[0.97]"
                         unoptimized
                       />
                     </div>
                   ) : null}
                   <p className="mt-5 font-mono text-[9px] uppercase tracking-[0.22em] text-ink-4">
-                    Etsy listing
+                    {snap.shopName ?? "Etsy seller"}
                   </p>
                   <p className="mt-2 line-clamp-3 font-serif text-[14px] leading-[1.4] text-ink">
                     {snap.title}
                   </p>
-                  {(snap.shopName || snap.category) ? (
+                  {snap.category ? (
                     <p className="mt-1.5 text-[11px] text-ink-3">
-                      {snap.shopName ?? ""}
-                      {snap.shopName && snap.category ? " · " : ""}
-                      {snap.category ?? ""}
+                      {snap.category}
                     </p>
                   ) : null}
                   <Link
                     href={snap.listingUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-4 inline-block text-[11px] text-ink-3 underline-offset-4 hover:text-ink hover:underline"
+                    className="mt-4 inline-block text-[11px] text-ink-3 underline-offset-4 transition-colors hover:text-ink hover:underline"
                   >
                     View original ↗
                   </Link>
                 </div>
-                <p className="mt-3 px-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-4">
-                  Before
-                </p>
+
+                {/* Editorial metadata — exclusivity */}
+                <ul className="mt-6 space-y-2 px-1 font-mono text-[9px] uppercase tracking-[0.2em] text-ink-4">
+                  <li className="flex items-center gap-2">
+                    <span className="h-px w-6 bg-line-soft" />
+                    <span>Generated privately</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="h-px w-6 bg-line-soft" />
+                    <span>Prepared for your listing</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="h-px w-6 bg-line-soft" />
+                    <span>AI campaign preview</span>
+                  </li>
+                </ul>
               </aside>
 
               {/* Right — asymmetric editorial collage */}
               <div>
-                <p className="mb-4 font-mono text-[9px] uppercase tracking-[0.22em] text-ink-4">
-                  After · Vesperdrop campaign
-                </p>
+                <div className="mb-5 flex items-center gap-3">
+                  <span
+                    aria-hidden
+                    className="hidden h-px flex-1 bg-line-soft md:block"
+                  />
+                  <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-ink-3">
+                    After · Vesperdrop campaign
+                  </p>
+                  <span
+                    aria-hidden
+                    className="font-mono text-[10px] text-ink-3"
+                  >
+                    →
+                  </span>
+                  <span
+                    aria-hidden
+                    className="hidden h-px flex-1 bg-line-soft md:block"
+                  />
+                </div>
 
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-12 md:grid-rows-[auto_auto]">
-                  {/* Lifestyle hero — large, dominant */}
+                  {/* Lifestyle hero — dominant, with stronger shadow */}
                   {lifestyleUrl ? (
-                    <figure className="relative md:col-span-7 md:row-span-2">
+                    <figure className="group relative motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-700 motion-safe:[animation-delay:120ms] md:col-span-7 md:row-span-2 md:scale-[1.04] md:origin-top-left">
                       <span className="absolute -top-3 left-4 z-10 rounded-full border border-line-soft bg-paper/95 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-3 shadow-[0_8px_20px_-12px_rgba(40,30,20,0.25)]">
                         Lifestyle hero
                       </span>
-                      <div className="overflow-hidden rounded-[24px] bg-cream shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_30px_60px_-40px_rgba(40,30,20,0.35)]">
+                      <div className="overflow-hidden rounded-[24px] bg-cream shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_44px_80px_-44px_rgba(40,30,20,0.45)] transition-transform duration-500 ease-out will-change-transform group-hover:-translate-y-1">
                         <Image
                           src={lifestyleUrl}
                           alt="Lifestyle hero"
                           width={900}
                           height={1200}
-                          className="aspect-[3/4] w-full object-cover"
+                          className="aspect-[3/4] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
                           unoptimized
                         />
                       </div>
@@ -171,17 +206,17 @@ export default async function EtsyPreviewPage({
 
                   {/* Hero — Etsy-ready clean shot */}
                   {heroUrl ? (
-                    <figure className="relative md:col-span-5 md:translate-y-6">
+                    <figure className="group relative motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-700 motion-safe:[animation-delay:240ms] md:col-span-5 md:translate-y-6">
                       <span className="absolute -top-3 right-4 z-10 rounded-full border border-line-soft bg-paper/95 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-3 shadow-[0_8px_20px_-12px_rgba(40,30,20,0.25)]">
                         Etsy ready
                       </span>
-                      <div className="overflow-hidden rounded-[24px] bg-cream shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_22px_50px_-32px_rgba(40,30,20,0.3)]">
+                      <div className="overflow-hidden rounded-[24px] bg-cream shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_22px_50px_-32px_rgba(40,30,20,0.3)] transition-transform duration-500 ease-out will-change-transform group-hover:-translate-y-1">
                         <Image
                           src={heroUrl}
                           alt="Etsy hero"
                           width={700}
                           height={700}
-                          className="aspect-square w-full object-cover"
+                          className="aspect-square w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
                           unoptimized
                         />
                       </div>
@@ -190,17 +225,17 @@ export default async function EtsyPreviewPage({
 
                   {/* Detail — texture / closeup */}
                   {detailUrl ? (
-                    <figure className="relative md:col-span-5 md:-translate-y-2">
+                    <figure className="group relative motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-700 motion-safe:[animation-delay:360ms] md:col-span-5 md:-translate-y-2">
                       <span className="absolute -top-3 right-4 z-10 rounded-full border border-line-soft bg-paper/95 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-3 shadow-[0_8px_20px_-12px_rgba(40,30,20,0.25)]">
                         Texture detail
                       </span>
-                      <div className="overflow-hidden rounded-[24px] bg-cream shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_22px_50px_-32px_rgba(40,30,20,0.3)]">
+                      <div className="overflow-hidden rounded-[24px] bg-cream shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_22px_50px_-32px_rgba(40,30,20,0.3)] transition-transform duration-500 ease-out will-change-transform group-hover:-translate-y-1">
                         <Image
                           src={detailUrl}
                           alt="Texture detail"
                           width={700}
                           height={500}
-                          className="aspect-[7/5] w-full object-cover"
+                          className="aspect-[7/5] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
                           unoptimized
                         />
                       </div>
@@ -209,10 +244,11 @@ export default async function EtsyPreviewPage({
                 </div>
 
                 {/* Quiet caption row */}
-                <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-2 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-4 md:grid-cols-3">
-                  <span>Conversion-focused imagery</span>
-                  <span>Mobile storefront ready</span>
-                  <span>Social campaign assets</span>
+                <div className="mt-12 grid grid-cols-2 gap-x-6 gap-y-2 font-mono text-[9px] uppercase tracking-[0.2em] text-ink-4 md:grid-cols-4">
+                  <span>Lifestyle hero</span>
+                  <span>Mobile-ready</span>
+                  <span>Editorial crop</span>
+                  <span>High conversion</span>
                 </div>
               </div>
             </div>
@@ -221,22 +257,25 @@ export default async function EtsyPreviewPage({
           <div className="h-px w-full bg-line-soft" />
 
           {/* ─── Benefits — editorial proof points ────────────── */}
-          <section className="py-16 md:py-20">
-            <div className="grid grid-cols-1 gap-y-10 sm:grid-cols-2 md:grid-cols-4 md:divide-x md:divide-line-soft">
+          <section className="py-20 md:py-28">
+            <div className="grid grid-cols-1 gap-y-12 sm:grid-cols-2 md:grid-cols-4 md:gap-y-0 md:divide-x md:divide-line-soft/60">
               {[
                 ["01", "Etsy ready", "Sized and styled for Etsy product pages from day one."],
                 ["02", "Lifestyle focused", "Imagery that helps customers picture themselves wearing it."],
                 ["03", "Higher conversions", "Editorial-grade visuals consistently outperform flat lays."],
                 ["04", "Save time & money", "No photoshoot. No models. Minutes instead of days."],
               ].map(([num, title, body]) => (
-                <div key={title} className="px-0 first:pl-0 md:px-8 md:first:pl-0">
-                  <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-ink-4">
+                <div
+                  key={title}
+                  className="px-0 first:pl-0 md:px-10 md:first:pl-0"
+                >
+                  <p className="font-mono text-[9px] uppercase tracking-[0.24em] text-ink-4">
                     {num}
                   </p>
-                  <p className="mt-3 font-serif text-[20px] leading-[1.15] tracking-[-0.01em] text-ink">
+                  <p className="mt-4 font-serif text-[22px] leading-[1.12] tracking-[-0.012em] text-ink">
                     {title}
                   </p>
-                  <p className="mt-2 max-w-[24ch] text-[13px] leading-[1.5] text-ink-3">
+                  <p className="mt-3 max-w-[20ch] text-[13px] leading-[1.55] text-ink-3">
                     {body}
                   </p>
                 </div>
@@ -253,8 +292,31 @@ export default async function EtsyPreviewPage({
               listingUrl={snap.listingUrl}
             />
 
+            {/* Social proof — understated avatar stack */}
+            <div className="mx-auto mt-10 flex max-w-[640px] flex-col items-center gap-3">
+              <div className="flex -space-x-2" aria-hidden>
+                {[
+                  "oklch(0.78 0.04 70)",
+                  "oklch(0.86 0.025 80)",
+                  "oklch(0.74 0.05 50)",
+                  "oklch(0.82 0.03 90)",
+                  "oklch(0.7 0.04 40)",
+                ].map((c, i) => (
+                  <span
+                    key={i}
+                    style={{ background: c }}
+                    className="h-7 w-7 rounded-full border-2 border-paper shadow-[0_2px_6px_-2px_rgba(40,30,20,0.25)]"
+                  />
+                ))}
+              </div>
+              <p className="text-center font-serif text-[13px] italic leading-[1.5] text-ink-3">
+                Join independent Etsy and Shopify sellers using Vesperdrop to
+                refine their storefronts.
+              </p>
+            </div>
+
             {/* Trust row */}
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 font-mono text-[9px] uppercase tracking-[0.22em] text-ink-4">
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-mono text-[9px] uppercase tracking-[0.22em] text-ink-4">
               <span>Built for modern Etsy brands</span>
               <span aria-hidden>·</span>
               <span>Used by independent sellers</span>
@@ -266,18 +328,18 @@ export default async function EtsyPreviewPage({
       </main>
 
       {/* ─── Footer ────────────────────────────────────────────── */}
-      <footer className="border-t border-line-soft py-10">
-        <Container
-          width="marketing"
-          className="flex flex-col items-center gap-2 text-center"
-        >
-          <p className="font-serif text-[14px] italic leading-[1.5] text-ink-3">
-            This preview was created privately for your listing using
-            Vesperdrop.
-          </p>
-          <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-ink-4">
-            Vesperdrop · Private campaign reveal
-          </p>
+      <footer className="py-12 md:py-16">
+        <Container width="marketing">
+          <div className="mx-auto h-px w-full max-w-[280px] bg-line-soft/70" />
+          <div className="mt-10 flex flex-col items-center gap-2 text-center">
+            <p className="font-serif text-[14px] italic leading-[1.55] text-ink-3">
+              This preview was created privately for your Etsy listing using
+              Vesperdrop.
+            </p>
+            <p className="font-mono text-[9px] uppercase tracking-[0.24em] text-ink-4">
+              Vesperdrop · Private campaign reveal
+            </p>
+          </div>
         </Container>
       </footer>
     </div>

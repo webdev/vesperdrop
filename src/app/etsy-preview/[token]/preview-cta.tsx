@@ -44,27 +44,27 @@ export function PreviewCta(props: CtaProps) {
   }
 
   return (
-    <div className="mx-auto max-w-[640px] rounded-[36px] border border-line-soft bg-cream/70 p-10 text-center md:p-14 shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_50px_100px_-60px_rgba(40,30,20,0.25)]">
+    <div className="mx-auto max-w-[600px] rounded-[36px] border border-line-soft bg-cream/70 p-9 text-center md:p-12 shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_50px_100px_-60px_rgba(40,30,20,0.25)]">
       <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-4">
         Start your own campaign
       </p>
-      <h2 className="mt-5 font-serif text-[clamp(1.85rem,2.6vw,2.6rem)] leading-[1.05] tracking-[-0.02em] text-ink">
+      <h2 className="mt-4 font-serif text-[clamp(2rem,2.8vw,2.85rem)] leading-[1.04] tracking-[-0.022em] text-ink">
         Ready to create your own stunning images?
       </h2>
-      <p className="mx-auto mt-4 max-w-[42ch] text-[14px] leading-[1.6] text-ink-3">
+      <p className="mx-auto mt-3 max-w-[40ch] text-[14px] leading-[1.55] text-ink-3">
         Transform your products into premium Etsy-ready campaigns in
         minutes.
       </p>
 
       <div
-        className="mx-auto mt-9 max-w-[460px] text-left"
+        className="mx-auto mt-7 max-w-[440px] text-left"
         onFocusCapture={fireOnFirstInteraction}
         onPointerDownCapture={fireOnFirstInteraction}
       >
         <AuthForm mode="sign-up" variant="split" next="/app" />
       </div>
 
-      <ul className="mx-auto mt-9 grid max-w-[520px] grid-cols-1 gap-y-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-4 sm:grid-cols-3">
+      <ul className="mx-auto mt-7 grid max-w-[480px] grid-cols-1 gap-y-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-4 sm:grid-cols-3">
         <li>No credit card required</li>
         <li>Cancel anytime</li>
         <li>First previews are free</li>
