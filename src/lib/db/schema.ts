@@ -308,9 +308,48 @@ export const etsyPreviewEvents = pgTable(
   ],
 );
 
+export const igPreviews = pgTable(
+  "ig_previews",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    slug: text("slug").notNull().unique(),
+    title: text("title"),
+    presetSlug: text("preset_slug").notNull(),
+    sourceImages: jsonb("source_images")
+      .notNull()
+      .$type<Array<{ url: string; name: string; mimeType: string }>>(),
+    presetSlugs: text("preset_slugs").array().notNull(),
+    expectedOutputCount: integer("expected_output_count").notNull(),
+    notes: text("notes"),
+    status: text("status", {
+      enum: ["pending", "queued", "generating", "completed", "partial", "failed"],
+    })
+      .notNull()
+      .default("pending"),
+    outputs: jsonb("outputs")
+      .notNull()
+      .$type<Array<{ url: string; sourceIndex: number; presetSlug: string }>>()
+      .default(sql`'[]'::jsonb`),
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("ig_previews_slug_key").on(t.slug),
+    index("ig_previews_created_idx").on(t.createdAt.desc()),
+    index("ig_previews_status_idx").on(t.status),
+  ],
+);
+
 export type EtsyCandidate = typeof etsyCandidates.$inferSelect;
 export type EtsyPreviewPage = typeof etsyPreviewPages.$inferSelect;
 export type EtsyPreviewEvent = typeof etsyPreviewEvents.$inferSelect;
+export type IgPreview = typeof igPreviews.$inferSelect;
 
 export type Profile = typeof profiles.$inferSelect;
 export type Run = typeof runs.$inferSelect;

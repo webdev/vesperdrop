@@ -46,7 +46,12 @@ export async function Nav({ width = "app" }: NavProps = {}) {
                 Styles
               </NavLink>
               <NavLink href="/account">Account</NavLink>
-              {isAdmin ? <NavLink href="/admin/etsy-candidates">Admin</NavLink> : null}
+              {isAdmin ? (
+                <>
+                  <NavLink href="/admin/etsy-candidates">Etsy</NavLink>
+                  <NavLink href="/admin/previews">Previews</NavLink>
+                </>
+              ) : null}
             </>
           ) : (
             <Link
