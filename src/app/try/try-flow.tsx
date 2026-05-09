@@ -76,51 +76,45 @@ export function TryFlow({
     (acc, s) => ({ ...acc, [s.slug]: s }),
     {},
   );
-  const initialIntent = useMemo<TryIntent | null>(() => {
-    if (typeof window === "undefined") return null;
-    if (!isAuthed) return null;
-    try {
-      const raw = window.sessionStorage.getItem(TRY_INTENT_KEY);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw) as TryIntent;
-      if (
-        parsed &&
-        typeof parsed.sourceUrl === "string" &&
-        Array.isArray(parsed.pickedScenes) &&
-        parsed.pickedScenes.length > 0
-      ) {
-        return parsed;
-      }
-    } catch {}
-    return null;
-  }, [isAuthed]);
-
-  const [photo, setPhoto] = useState<Photo | null>(() =>
-    initialIntent
-      ? {
-          url: initialIntent.sourceUrl,
-          name: initialIntent.photoName,
-          isObjectUrl: false,
-          file: null,
-        }
-      : null,
-  );
-  const [pickedScenes, setPickedScenes] = useState<string[]>(
-    () => initialIntent?.pickedScenes ?? [],
-  );
+  const [photo, setPhoto] = useState<Photo | null>(null);
+  const [pickedScenes, setPickedScenes] = useState<string[]>([]);
   const [developDone, setDevelopDone] = useState(false);
   const [preDevelopAuth, setPreDevelopAuth] = useState(false);
   const [preDevelopBusy, setPreDevelopBusy] = useState(false);
-  const hydratedSourceMimeRef = useRef<string | null>(
-    initialIntent?.photoMimeType ?? null,
-  );
+  // Hydration of post-login intent must happen post-mount so SSR and
+  // client first-paint match. Until `hydrated` flips, the URL-correction
+  // effect is suppressed so a freshly-returned `?step=develop` doesn't
+  // get bounced back to upload before sessionStorage is read.
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    if (!initialIntent) return;
+    if (!isAuthed) {
+      setHydrated(true);
+      return;
+    }
     try {
+      const raw = window.sessionStorage.getItem(TRY_INTENT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as TryIntent;
+        if (
+          parsed &&
+          typeof parsed.sourceUrl === "string" &&
+          Array.isArray(parsed.pickedScenes) &&
+          parsed.pickedScenes.length > 0
+        ) {
+          setPhoto({
+            url: parsed.sourceUrl,
+            name: parsed.photoName,
+            isObjectUrl: false,
+            file: null,
+          });
+          setPickedScenes(parsed.pickedScenes);
+        }
+      }
       window.sessionStorage.removeItem(TRY_INTENT_KEY);
     } catch {}
-  }, [initialIntent]);
+    setHydrated(true);
+  }, [isAuthed]);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -148,12 +142,16 @@ export function TryFlow({
     [router, searchParams],
   );
 
-  // Sync URL back if the URL step is unreachable given current state
+  // Sync URL back if the URL step is unreachable given current state.
+  // Wait for sessionStorage hydration to finish — otherwise a returning
+  // user lands on ?step=develop, gets redirected to upload, and *then*
+  // we restore their photo + scenes a tick too late.
   useEffect(() => {
+    if (!hydrated) return;
     if (urlStep !== effectiveStep) {
       goToStep(effectiveStep, "replace");
     }
-  }, [urlStep, effectiveStep, goToStep]);
+  }, [hydrated, urlStep, effectiveStep, goToStep]);
 
   const variant: DevelopGridVariant = useMemo(() => {
     const fx = searchParams.get("fx");
