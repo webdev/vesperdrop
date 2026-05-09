@@ -100,6 +100,13 @@ export async function POST(req: Request) {
     return jsonError("Too many previews. Wait a minute and try again.", 429);
   }
 
+  const supabase = await createSupabaseServerClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) {
+    return jsonError("Sign in required to generate.", 401);
+  }
+  const userEmail = userData.user.email ?? null;
+
   const form = await req.formData();
   const file = form.get("file");
   const sceneSlug = form.get("sceneSlug");
@@ -125,12 +132,7 @@ export async function POST(req: Request) {
   const mockEnabled = process.env.VERCEL_ENV !== "production";
   const cookieStore = await cookies();
   const wantsMock = mockEnabled && cookieStore.get("vd_mock_gen")?.value === "1";
-  let isAdmin = false;
-  if (wantsMock) {
-    const supabase = await createSupabaseServerClient();
-    const { data } = await supabase.auth.getUser();
-    isAdmin = isAdminEmail(data.user?.email ?? null);
-  }
+  const isAdmin = wantsMock ? isAdminEmail(userEmail) : false;
   if (wantsMock && isAdmin) {
     return new Response(buildMockStream(slug), {
       headers: {

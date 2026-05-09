@@ -52,12 +52,14 @@ export function AuthModal({
   intent = "default",
   defaultTab = "sign-up",
   onAuthSuccess,
+  next = "/app/library",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   intent?: Intent;
   defaultTab?: "sign-up" | "sign-in";
   onAuthSuccess: () => void | Promise<void>;
+  next?: string;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -92,12 +94,12 @@ export function AuthModal({
             </TabsList>
             <TabsContent value="sign-up">
               <Suspense>
-                <AuthForm mode="sign-up" onSuccess={onAuthSuccess} next="/app/library" />
+                <AuthForm mode="sign-up" onSuccess={onAuthSuccess} next={next} />
               </Suspense>
             </TabsContent>
             <TabsContent value="sign-in">
               <Suspense>
-                <AuthForm mode="sign-in" onSuccess={onAuthSuccess} next="/app/library" />
+                <AuthForm mode="sign-in" onSuccess={onAuthSuccess} next={next} />
               </Suspense>
             </TabsContent>
           </Tabs>

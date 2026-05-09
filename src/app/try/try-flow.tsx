@@ -35,6 +35,14 @@ import { AuthModal } from "./auth-modal";
 
 const LOCKED_TILE_SLUG = "__locked__";
 const PENDING_BATCH_KEY = "vd_pending_batch";
+const TRY_INTENT_KEY = "vd_try_intent";
+
+type TryIntent = {
+  sourceUrl: string;
+  photoName: string;
+  photoMimeType: string;
+  pickedScenes: string[];
+};
 
 type AuthIntent = "default" | "download" | "unlock";
 type AuthModalState = { open: boolean; intent: AuthIntent };
@@ -68,9 +76,51 @@ export function TryFlow({
     (acc, s) => ({ ...acc, [s.slug]: s }),
     {},
   );
-  const [photo, setPhoto] = useState<Photo | null>(null);
-  const [pickedScenes, setPickedScenes] = useState<string[]>([]);
+  const initialIntent = useMemo<TryIntent | null>(() => {
+    if (typeof window === "undefined") return null;
+    if (!isAuthed) return null;
+    try {
+      const raw = window.sessionStorage.getItem(TRY_INTENT_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as TryIntent;
+      if (
+        parsed &&
+        typeof parsed.sourceUrl === "string" &&
+        Array.isArray(parsed.pickedScenes) &&
+        parsed.pickedScenes.length > 0
+      ) {
+        return parsed;
+      }
+    } catch {}
+    return null;
+  }, [isAuthed]);
+
+  const [photo, setPhoto] = useState<Photo | null>(() =>
+    initialIntent
+      ? {
+          url: initialIntent.sourceUrl,
+          name: initialIntent.photoName,
+          isObjectUrl: false,
+          file: null,
+        }
+      : null,
+  );
+  const [pickedScenes, setPickedScenes] = useState<string[]>(
+    () => initialIntent?.pickedScenes ?? [],
+  );
   const [developDone, setDevelopDone] = useState(false);
+  const [preDevelopAuth, setPreDevelopAuth] = useState(false);
+  const [preDevelopBusy, setPreDevelopBusy] = useState(false);
+  const hydratedSourceMimeRef = useRef<string | null>(
+    initialIntent?.photoMimeType ?? null,
+  );
+
+  useEffect(() => {
+    if (!initialIntent) return;
+    try {
+      window.sessionStorage.removeItem(TRY_INTENT_KEY);
+    } catch {}
+  }, [initialIntent]);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -178,12 +228,80 @@ export function TryFlow({
           <ScenesStep
             scenes={scenes}
             picked={pickedScenes}
+            busy={preDevelopBusy}
             onToggle={togglePickedScene}
             onBack={() => goToStep("upload", "replace")}
-            onContinue={() => {
+            onContinue={async () => {
+              if (isAuthed) {
+                setDevelopDone(false);
+                goToStep("develop");
+                track("try_develop_started", { scene_count: pickedScenes.length });
+                return;
+              }
+              if (!photo) return;
+              track("try_signup_clicked", { intent: "default" });
+              try {
+                setPreDevelopBusy(true);
+                let sourceUrl: string | null = null;
+                let mimeType = "image/jpeg";
+                let name = photo.name;
+                if (photo.file) {
+                  const fd = new FormData();
+                  fd.append("file", photo.file);
+                  const res = await fetch("/api/try/source-upload", {
+                    method: "POST",
+                    body: fd,
+                  });
+                  if (!res.ok) {
+                    setPreDevelopBusy(false);
+                    return;
+                  }
+                  const data = (await res.json()) as {
+                    sourceUrl: string;
+                    name: string;
+                    mimeType: string;
+                  };
+                  sourceUrl = data.sourceUrl;
+                  mimeType = data.mimeType;
+                  name = data.name;
+                } else if (/^https?:/.test(photo.url)) {
+                  sourceUrl = photo.url;
+                }
+                if (!sourceUrl) {
+                  setPreDevelopBusy(false);
+                  return;
+                }
+                const intent: TryIntent = {
+                  sourceUrl,
+                  photoName: name,
+                  photoMimeType: mimeType,
+                  pickedScenes,
+                };
+                try {
+                  window.sessionStorage.setItem(
+                    TRY_INTENT_KEY,
+                    JSON.stringify(intent),
+                  );
+                } catch {}
+                setPreDevelopAuth(true);
+              } finally {
+                setPreDevelopBusy(false);
+              }
+            }}
+          />
+        ) : null}
+
+        {!isAuthed ? (
+          <AuthModal
+            open={preDevelopAuth}
+            onOpenChange={(open) => setPreDevelopAuth(open)}
+            intent="default"
+            defaultTab="sign-up"
+            next="/try?step=develop"
+            onAuthSuccess={async () => {
+              setPreDevelopAuth(false);
               setDevelopDone(false);
               goToStep("develop");
-              track("try_develop_started", { scene_count: pickedScenes.length });
             }}
           />
         ) : null}
@@ -340,12 +458,14 @@ function Dropzone({
 function ScenesStep({
   scenes,
   picked,
+  busy = false,
   onToggle,
   onBack,
   onContinue,
 }: {
   scenes: Scene[];
   picked: string[];
+  busy?: boolean;
   onToggle: (id: string) => void;
   onBack: () => void;
   onContinue: () => void;
@@ -448,11 +568,11 @@ function ScenesStep({
         <button
           type="button"
           data-testid="generate-button"
-          disabled={picked.length === 0}
+          disabled={picked.length === 0 || busy}
           onClick={onContinue}
           className="inline-flex items-center rounded-full bg-terracotta px-6 py-3 font-mono text-[12px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Develop my batch →
+          {busy ? "Loading…" : "Develop my batch →"}
         </button>
       </div>
     </div>
@@ -497,8 +617,34 @@ function DevelopStep({
     "saving",
   );
   const [savedRunId, setSavedRunId] = useState<string | null>(null);
-  const [serverSourceUrl, setServerSourceUrl] = useState<string | null>(null);
+  const [serverSourceUrl, setServerSourceUrl] = useState<string | null>(
+    photo && !photo.file && /^https?:/.test(photo.url) ? photo.url : null,
+  );
+  const [hydratedFile, setHydratedFile] = useState<File | null>(null);
   const claimRanRef = useRef(false);
+
+  useEffect(() => {
+    if (!photo) return;
+    if (photo.file) return;
+    if (!/^https?:/.test(photo.url)) return;
+    if (hydratedFile) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(photo.url);
+        if (!res.ok) return;
+        const blob = await res.blob();
+        const mime = blob.type || "image/jpeg";
+        const file = new File([blob], photo.name || "source.jpg", { type: mime });
+        if (!cancelled) setHydratedFile(file);
+      } catch {}
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [photo, hydratedFile]);
+
+  const effectiveFile: File | null = photo?.file ?? hydratedFile;
 
   const allSettled =
     generationResults.length > 0 &&
@@ -683,9 +829,9 @@ function DevelopStep({
         </div>
 
         <div>
-          {generationResults.every((r) => r.status === "pending") && photo?.file && sceneById[picked[0]] ? (
+          {generationResults.every((r) => r.status === "pending") && photo && effectiveFile && sceneById[picked[0]] ? (
             <ProgressScreen
-              file={photo.file}
+              file={effectiveFile}
               sceneSlugs={picked}
               userPhotoUrl={photo.url}
               primaryPreset={{
