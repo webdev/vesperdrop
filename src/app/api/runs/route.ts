@@ -23,17 +23,22 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const allowed = await tryTakeToken(
-    user.id,
-    "runs",
-    env.RUNS_PER_MINUTE_PER_USER,
-    env.RUNS_PER_MINUTE_PER_USER,
-  );
-  if (!allowed) {
-    return NextResponse.json(
-      { error: "Rate limit exceeded. Try again in a minute." },
-      { status: 429 },
+  // Admin allowlist bypasses rate limits and credit gates entirely (see lib/admin.ts).
+  const isAdmin = isAdminEmail(user.email ?? null);
+
+  if (!isAdmin) {
+    const allowed = await tryTakeToken(
+      user.id,
+      "runs",
+      env.RUNS_PER_MINUTE_PER_USER,
+      env.RUNS_PER_MINUTE_PER_USER,
     );
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded. Try again in a minute." },
+        { status: 429 },
+      );
+    }
   }
 
   const form = await req.formData();
@@ -74,7 +79,7 @@ export async function POST(req: Request) {
   const mockMode = wantsMock && isAdminEmail(user.email ?? null);
 
   // Free plan with 0 credits can't generate (except they get 1 free credit on signup)
-  if (isFreePlan && !mockMode) {
+  if (isFreePlan && !mockMode && !isAdmin) {
     const creditsAvailable = profile?.credits_balance ?? 0;
     if (creditsAvailable < total) {
       serverTrack({
@@ -89,8 +94,8 @@ export async function POST(req: Request) {
     }
   }
 
-  // Deduct credits (only for free plan; paid plans are unlimited by credits)
-  if (isFreePlan && !mockMode) {
+  // Deduct credits (only for free plan; paid plans are unlimited by credits; admins bypass)
+  if (isFreePlan && !mockMode && !isAdmin) {
     const ok = await tryDeductCredits(user.id, total);
     if (!ok) {
       serverTrack({

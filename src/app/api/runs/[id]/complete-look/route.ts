@@ -13,6 +13,7 @@ import {
 } from "@/lib/db/packs";
 import { completeLookViaSceneify } from "@/lib/ai/sceneify";
 import { isPackPlatform, packCreditCost, LISTING_PACK_META } from "@/lib/ai/listing-packs";
+import { isAdminEmail } from "@/lib/admin";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -29,6 +30,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  // Admin allowlist bypasses credit deduction entirely (see lib/admin.ts).
+  const isAdmin = isAdminEmail(user.email ?? null);
 
   const json = await req.json().catch(() => null);
   const parsed = Body.safeParse(json);
@@ -104,16 +108,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   const cost = packCreditCost(platform);
-  const ok = await tryDeductCredits(user.id, cost);
-  if (!ok) {
-    return NextResponse.json(
-      {
-        error: "insufficient credits",
-        required: cost,
-        platform,
-      },
-      { status: 402 },
-    );
+  if (!isAdmin) {
+    const ok = await tryDeductCredits(user.id, cost);
+    if (!ok) {
+      return NextResponse.json(
+        {
+          error: "insufficient credits",
+          required: cost,
+          platform,
+        },
+        { status: 402 },
+      );
+    }
   }
 
   let sceneifyResult;
@@ -125,7 +131,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     });
   } catch (err) {
     // Refund the credits we just debited — Sceneify never accepted the work.
-    await addCredits(user.id, cost);
+    // Admins skipped the deduction, so nothing to refund.
+    if (!isAdmin) await addCredits(user.id, cost);
     const message = err instanceof Error ? err.message : String(err);
     console.error("complete-look POST: sceneify call failed", message);
     return NextResponse.json(
