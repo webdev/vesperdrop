@@ -288,10 +288,10 @@ function CinematicHero({
           className="pointer-events-none absolute inset-x-6 -bottom-5 h-10 -z-10 bg-[radial-gradient(ellipse_at_center,rgba(40,30,20,0.07)_0%,transparent_70%)] blur-2xl"
         />
         <div className="grid grid-cols-12 gap-3 md:gap-5">
-          <div className="relative z-10 col-span-12 md:col-span-7">
+          <div className="relative col-span-12 md:col-span-7">
             <HeroImage image={hero} priority size="primary" />
           </div>
-          <div className="relative col-span-12 md:col-span-5 md:-ml-12 md:translate-y-10">
+          <div className="relative z-10 col-span-12 md:col-span-5 md:-ml-12 md:translate-y-10">
             <HeroImage
               image={supporting}
               priority={false}
