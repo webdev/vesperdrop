@@ -33,6 +33,7 @@ export default function robots(): MetadataRoute.Robots {
           "/unauthorized",
           "/admin",
           "/etsy-preview",
+          "/p/",
         ],
       },
     ],

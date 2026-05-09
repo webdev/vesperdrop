@@ -77,6 +77,33 @@ export type AnalyticsEvent =
         method: "email" | "google";
       };
     }
+  | {
+      name: "preview_page_view";
+      props: {
+        preview_token: string;
+        preview_id: string;
+        source_type: "etsy_preview" | "ig_leadgen";
+      };
+    }
+  | {
+      name: "preview_cta_click";
+      props: {
+        preview_token: string;
+        preview_id: string;
+        source_type: "etsy_preview" | "ig_leadgen";
+        cta_label: "start_trial" | "google";
+        destination: string;
+      };
+    }
+  | {
+      name: "preview_signup_start";
+      props: {
+        preview_token: string;
+        preview_id: string;
+        source_type: "etsy_preview" | "ig_leadgen";
+        signup_method: "email" | "google";
+      };
+    }
   | { name: "etsy_admin_generation_submitted"; props: { count: number; mock: boolean } }
   | { name: "etsy_admin_generation_completed"; props: { page_id: string; status: "completed" | "partial" | "failed" } }
   | { name: "etsy_admin_copy_preview_link"; props: { page_id: string; preview_token: string } };

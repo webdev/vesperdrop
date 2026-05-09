@@ -25,7 +25,7 @@ export function TopPreviews({ items }: { items: Item[] }) {
               className="flex items-center justify-between gap-3 py-3"
             >
               <Link
-                href={`/etsy-preview/${item.token}`}
+                href={`/p/${item.token}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="line-clamp-1 max-w-[28ch] text-[13px] text-ink hover:underline"

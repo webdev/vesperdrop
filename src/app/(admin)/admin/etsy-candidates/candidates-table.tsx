@@ -31,6 +31,9 @@ export type CandidateRow = {
     id: string;
     token: string;
     status: string;
+    viewCount: number;
+    ctaClickCount: number;
+    signupCount: number;
     slots: {
       hero: { url: string | null; status: string };
       lifestyle: { url: string | null; status: string };
@@ -102,8 +105,8 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
     if (!row.preview) return [];
     const url =
       typeof window !== "undefined"
-        ? `${window.location.origin}/etsy-preview/${row.preview.token}`
-        : `/etsy-preview/${row.preview.token}`;
+        ? `${window.location.origin}/p/${row.preview.token}`
+        : `/p/${row.preview.token}`;
     const shop = row.shopName ?? "there";
     const title = row.title;
     return [
@@ -358,7 +361,7 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
 
   async function copyLink(row: CandidateRow) {
     if (!row.preview) return;
-    const url = `${window.location.origin}/etsy-preview/${row.preview.token}`;
+    const url = `${window.location.origin}/p/${row.preview.token}`;
     await navigator.clipboard.writeText(url);
     track("etsy_admin_copy_preview_link", {
       page_id: row.preview.id,
@@ -531,6 +534,7 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
               <th className="px-3 py-3 text-left">Location</th>
               <th className="px-3 py-3 text-left">Status</th>
               <th className="px-3 py-3 text-left">Preview</th>
+              <th className="px-3 py-3 text-left">Visits</th>
               <th className="px-3 py-3 text-left">Outreach</th>
               <th className="px-3 py-3 text-left">Updated</th>
             </tr>
@@ -608,7 +612,7 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
                         Copy
                       </button>
                       <Link
-                        href={`/etsy-preview/${row.preview.token}`}
+                        href={`/p/${row.preview.token}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="rounded-full bg-ink px-3 py-1 text-[11px] text-cream hover:bg-ink-2"
@@ -661,6 +665,32 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
                         Msg ▾
                       </button>
                     </div>
+                  ) : (
+                    <span className="text-ink-4">—</span>
+                  )}
+                </td>
+                <td className="px-3 py-3">
+                  {row.preview ? (
+                    row.preview.viewCount > 0 ? (
+                      <span className="inline-flex items-baseline gap-1.5 text-[12px] text-ink">
+                        <span className="font-medium text-ink">
+                          {row.preview.viewCount}
+                        </span>
+                        <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-ink-3">
+                          {row.preview.viewCount === 1 ? "visit" : "visits"}
+                        </span>
+                        {row.preview.ctaClickCount > 0 ? (
+                          <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-ink-4">
+                            · {row.preview.ctaClickCount} click
+                            {row.preview.ctaClickCount === 1 ? "" : "s"}
+                          </span>
+                        ) : null}
+                      </span>
+                    ) : (
+                      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-4">
+                        No visits
+                      </span>
+                    )
                   ) : (
                     <span className="text-ink-4">—</span>
                   )}

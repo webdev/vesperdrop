@@ -11,6 +11,15 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "i.etsystatic.com" },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: "/etsy-preview/:token",
+        destination: "/p/:token",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default withWorkflow(nextConfig);

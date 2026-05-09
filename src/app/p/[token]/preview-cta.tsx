@@ -1,114 +1,202 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { AuthForm } from "@/components/app/auth-form";
-import { track } from "@/lib/analytics";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { track, identify } from "@/lib/analytics";
+import type { PreviewPageData } from "@/lib/preview-pages/loader";
 
-type CtaProps = {
-  token: string;
-  candidateId: string;
-  sellerName: string | null;
-  listingUrl: string;
-};
+type Props = { data: PreviewPageData };
 
-export function PreviewCta(props: CtaProps) {
-  const fired = useRef(false);
+function postEvent(token: string, body: Record<string, unknown>) {
+  return fetch(`/api/public/preview-events/${token}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  }).catch(() => {});
+}
+
+function nextWithAttribution(data: PreviewPageData) {
+  const params = new URLSearchParams({
+    source: data.sourceType,
+    preview_token: data.token,
+  });
+  return `/app?${params.toString()}`;
+}
+
+export function PreviewCta({ data }: Props) {
+  const supabase = createSupabaseBrowserClient();
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  const ctaFired = useRef(false);
 
   const common = {
-    preview_token: props.token,
-    candidate_id: props.candidateId,
-    seller_name: props.sellerName,
-    listing_url: props.listingUrl,
-    source: "etsy_outreach" as const,
+    preview_token: data.token,
+    preview_id: data.id,
+    source_type: data.sourceType,
   };
 
-  // Fire CTA-click + signup_start exactly once per page load on the first
-  // interaction with the auth form (focus, click, or keypress). AuthForm
-  // itself fires user_signed_up on completion. We also POST the server
-  // events so the admin counters bump.
-  function fireOnFirstInteraction() {
-    if (fired.current) return;
-    fired.current = true;
-    track("etsy_preview_cta_click", { ...common, label: "start_trial" });
-    track("etsy_preview_signup_start", { ...common, method: "email" });
-    void fetch(`/api/public/etsy-preview/${props.token}/event`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ kind: "cta_click", label: "start_trial" }),
-    }).catch(() => {});
-    void fetch(`/api/public/etsy-preview/${props.token}/event`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ kind: "signup_start", label: "start_trial" }),
-    }).catch(() => {});
+  function fireCtaOnce(label: "start_trial" | "google", destination: string) {
+    if (ctaFired.current) return;
+    ctaFired.current = true;
+    track("preview_cta_click", { ...common, cta_label: label, destination });
+    void postEvent(data.token, { kind: "cta_click", label });
+  }
+
+  async function handleGoogle() {
+    fireCtaOnce("google", "oauth:google");
+    track("preview_signup_start", { ...common, signup_method: "google" });
+    void postEvent(data.token, { kind: "signup_start", label: "google" });
+    const next = nextWithAttribution(data);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(next)}`,
+      },
+    });
+    if (error) setError(error.message);
+  }
+
+  function handleEmailSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    fireCtaOnce("start_trial", "/sign-up");
+    track("preview_signup_start", { ...common, signup_method: "email" });
+    void postEvent(data.token, { kind: "signup_start", label: "email" });
+    setError(null);
+    start(async () => {
+      const { data: signUpData, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      if (error) {
+        setError(error.message);
+        return;
+      }
+      if (signUpData.user) {
+        identify(signUpData.user.id, { email });
+        track("user_signed_up", { method: "email" });
+      }
+      router.push(nextWithAttribution(data));
+      router.refresh();
+    });
   }
 
   return (
-    <div className="relative mx-auto max-w-[600px] overflow-hidden rounded-[36px] border border-line-soft bg-cream/70 p-9 text-center md:p-12 shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_50px_100px_-60px_rgba(40,30,20,0.25)]">
-      {/* Ambient inner highlight — softly lit from above */}
+    <div className="relative mx-auto max-w-[1080px] overflow-hidden rounded-[36px] border border-line-soft/80 bg-cream/70 p-8 md:p-14 ring-1 ring-paper/60 shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_36px_70px_-30px_rgba(40,30,20,0.4)]">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-paper/70 to-transparent"
       />
 
-      <div className="relative">
-        <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-4">
-          Start your own campaign
-        </p>
-        <h2 className="mt-4 font-serif text-[clamp(2rem,2.8vw,2.85rem)] leading-[1.04] tracking-[-0.022em] text-ink">
-          Ready to create your own stunning images?
-        </h2>
-        <p className="mx-auto mt-3 max-w-[40ch] text-[14px] leading-[1.55] text-ink-3">
-          Transform your products into premium Etsy-ready campaigns in
-          minutes.
-        </p>
-
-        <div
-          className={[
-            "mx-auto mt-6 max-w-[440px] text-left",
-            // Submit button: hover glow + lift, transition smoothly.
-            "[&_button[type=submit]]:transition-all",
-            "[&_button[type=submit]]:duration-300",
-            "[&_button[type=submit]]:ease-out",
-            "[&_button[type=submit]]:hover:-translate-y-px",
-            "[&_button[type=submit]]:hover:shadow-[0_0_0_5px_oklch(0.7_0.12_45_/_0.08),0_18px_40px_-22px_oklch(0.45_0.16_45_/_0.45)]",
-            // Inputs: a touch more breathing room.
-            "[&_input]:transition-colors [&_input]:duration-200",
-          ].join(" ")}
-          onFocusCapture={fireOnFirstInteraction}
-          onPointerDownCapture={fireOnFirstInteraction}
-        >
-          <AuthForm mode="sign-up" variant="split" next="/app" />
+      <div className="relative grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-16">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-4">
+            Start your own campaign
+          </p>
+          <h2 className="mt-4 font-serif text-[clamp(2rem,2.8vw,2.85rem)] leading-[1.04] tracking-[-0.022em] text-ink">
+            Ready to create your own stunning images?
+          </h2>
+          <p className="mt-3 max-w-[40ch] text-[14.5px] leading-[1.6] text-ink-3">
+            Transform your products into premium product campaigns in minutes.
+            Start your free trial today and see what Vesperdrop can do for your
+            store.
+          </p>
         </div>
 
-        <ul className="mx-auto mt-6 grid max-w-[480px] grid-cols-1 gap-y-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-4 sm:grid-cols-3">
-          <li>No credit card required</li>
-          <li>Cancel anytime</li>
-          <li>First previews are free</li>
-        </ul>
+        <div className="w-full">
+          <form onSubmit={handleEmailSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="preview-email">Email address</Label>
+              <Input
+                id="preview-email"
+                type="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onFocus={() => fireCtaOnce("start_trial", "/sign-up")}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="preview-password">Password</Label>
+              <Input
+                id="preview-password"
+                type="password"
+                autoComplete="new-password"
+                placeholder="At least 8 characters"
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            {error ? (
+              <p className="text-[13px] text-terracotta">{error}</p>
+            ) : null}
+            <Button
+              type="submit"
+              size="lg"
+              disabled={pending}
+              className="w-full rounded-full"
+            >
+              {pending ? "…" : "Start your free trial"}
+            </Button>
+          </form>
+
+          <div className="my-5 flex items-center gap-3">
+            <span className="h-px flex-1 bg-line-soft" />
+            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-4">
+              or
+            </span>
+            <span className="h-px flex-1 bg-line-soft" />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleGoogle}
+            className="flex w-full items-center justify-center gap-3 rounded-full border border-line bg-paper px-4 py-2.5 text-[13.5px] font-medium text-ink transition-colors hover:bg-surface"
+          >
+            <GoogleIcon />
+            Continue with Google
+          </button>
+
+          <ul className="mt-5 grid grid-cols-1 gap-y-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-4 sm:grid-cols-3">
+            <li>7-day free trial</li>
+            <li>Cancel anytime</li>
+            <li>No credit card required</li>
+          </ul>
+        </div>
       </div>
     </div>
   );
 }
 
-export function PreviewViewTracker(props: CtaProps) {
+export function PreviewViewTracker({ data }: Props) {
   useEffect(() => {
-    track("etsy_preview_view", {
-      preview_token: props.token,
-      candidate_id: props.candidateId,
-      seller_name: props.sellerName,
-      listing_url: props.listingUrl,
-      source: "etsy_outreach",
+    track("preview_page_view", {
+      preview_token: data.token,
+      preview_id: data.id,
+      source_type: data.sourceType,
     });
-    // Server-side counter + attribution cookie (deduped per session by
-    // the route handler).
-    fetch(`/api/public/etsy-preview/${props.token}/event`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ kind: "view" }),
-    }).catch(() => {
-      // best-effort; doesn't block the page
-    });
-  }, [props.token, props.candidateId, props.sellerName, props.listingUrl]);
+    void postEvent(data.token, { kind: "view" });
+  }, [data.token, data.id, data.sourceType]);
   return null;
+}
+
+function GoogleIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true" className="shrink-0">
+      <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615Z" />
+      <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z" />
+      <path fill="#FBBC05" d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332Z" />
+      <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58Z" />
+    </svg>
+  );
 }

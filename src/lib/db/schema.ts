@@ -328,8 +328,21 @@ export const igPreviews = pgTable(
       .default("pending"),
     outputs: jsonb("outputs")
       .notNull()
-      .$type<Array<{ url: string; sourceIndex: number; presetSlug: string }>>()
+      .$type<
+        Array<{
+          url: string;
+          sourceIndex: number;
+          presetSlug: string;
+          slotType?: "lifestyle_hero" | "storefront" | "detail";
+          focalPoint?: FocalPoint | null;
+          faceBox?: FaceBox | null;
+        }>
+      >()
       .default(sql`'[]'::jsonb`),
+    viewCount: integer("view_count").notNull().default(0),
+    ctaClickCount: integer("cta_click_count").notNull().default(0),
+    signupClickCount: integer("signup_click_count").notNull().default(0),
+    signupCount: integer("signup_count").notNull().default(0),
     createdBy: text("created_by").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -346,10 +359,34 @@ export const igPreviews = pgTable(
   ],
 );
 
+export const igPreviewEvents = pgTable(
+  "ig_preview_events",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    previewId: uuid("preview_id")
+      .notNull()
+      .references(() => igPreviews.id, { onDelete: "cascade" }),
+    kind: text("kind", {
+      enum: ["view", "cta_click", "signup_start", "signup"],
+    }).notNull(),
+    label: text("label"),
+    userAgent: text("user_agent"),
+    ipHash: text("ip_hash"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [
+    index("ig_preview_events_preview_idx").on(t.previewId),
+    index("ig_preview_events_created_idx").on(t.createdAt.desc()),
+  ],
+);
+
 export type EtsyCandidate = typeof etsyCandidates.$inferSelect;
 export type EtsyPreviewPage = typeof etsyPreviewPages.$inferSelect;
 export type EtsyPreviewEvent = typeof etsyPreviewEvents.$inferSelect;
 export type IgPreview = typeof igPreviews.$inferSelect;
+export type IgPreviewEvent = typeof igPreviewEvents.$inferSelect;
 
 export type Profile = typeof profiles.$inferSelect;
 export type Run = typeof runs.$inferSelect;

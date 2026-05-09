@@ -1,11 +1,15 @@
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Container } from "@/components/ui/container";
 import { FaceSafeImage } from "@/components/ui/face-safe-image";
-import { getPreviewByToken } from "@/lib/etsy-outreach/pages";
+import {
+  getPreviewPageByToken,
+  type PreviewGeneratedImage,
+  type PreviewPageData,
+} from "@/lib/preview-pages/loader";
 import { PreviewCta, PreviewViewTracker } from "./preview-cta";
+import { CampaignGallery } from "./preview-gallery";
 
 export const dynamic = "force-dynamic";
 
@@ -16,9 +20,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { token } = await params;
   return {
-    title: "Your products on Etsy · Vesperdrop",
+    title: "Your products online · Vesperdrop",
     robots: { index: false, follow: false },
-    alternates: { canonical: `/etsy-preview/${token}` },
+    alternates: { canonical: `/p/${token}` },
   };
 }
 
@@ -28,30 +32,48 @@ export default async function EtsyPreviewPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const page = await getPreviewByToken(token);
-  if (!page || (page.status !== "completed" && page.status !== "partial")) {
+  const data = await getPreviewPageByToken(token);
+  if (!data) notFound();
+
+  if (
+    data.sourceType === "etsy_preview" &&
+    data.status !== "completed" &&
+    data.status !== "partial"
+  ) {
     notFound();
   }
 
-  // Server Components can't write cookies in Next 15+. View counting,
-  // session-dedup, and the vd_etsy_ref attribution cookie are all set in
-  // the public events route handler when the client posts `view` on mount
-  // (PreviewViewTracker below).
+  const allGenerated = data.generatedImages.filter(
+    (g) => typeof g.url === "string" && g.url.length > 0,
+  );
 
-  const snap = page.listingSnapshot;
-  const greeting = snap.shopName
-    ? `Hi ${snap.shopName}, this is what`
+  const { hero, supporting } = pickHeroPair(allGenerated);
+  const heroUrls = new Set<string>();
+  if (hero) heroUrls.add(hero.url);
+  if (supporting) heroUrls.add(supporting.url);
+
+  const greeting = data.sellerName
+    ? `Hi ${data.sellerName}, this is what`
     : "Hi there, this is what";
 
-  // Three slot URLs in fixed roles. We label them in the collage.
-  const heroUrl = page.heroUrl;
-  const lifestyleUrl = page.lifestyleUrl;
-  const detailUrl = page.detailUrl;
-  const beforeUrl = snap.imageUrl ?? page.sourceBlobUrl ?? null;
+  const collagePending =
+    data.status === "pending" ||
+    data.status === "queued" ||
+    data.status === "generating";
+
+  const sourceCount = data.originalImages.length;
+  const isMulti = sourceCount > 1;
+  const subjectWord = isMulti ? "your products" : "your product";
+
+  const groupedBySource = new Map<number, PreviewGeneratedImage[]>();
+  for (const g of allGenerated) {
+    const list = groupedBySource.get(g.sourceIndex) ?? [];
+    list.push(g);
+    groupedBySource.set(g.sourceIndex, list);
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-paper text-ink">
-      {/* ─── Header ──────────────────────────────────────────────── */}
       <header className="border-b border-line-soft py-4">
         <Container width="marketing" className="flex items-center justify-between">
           <Link href="/" className="font-serif text-[20px] tracking-tight">
@@ -65,247 +87,72 @@ export default async function EtsyPreviewPage({
 
       <main className="flex-1">
         <Container width="marketing">
-          <PreviewViewTracker
-            token={token}
-            candidateId={page.candidateId}
-            sellerName={snap.shopName}
-            listingUrl={snap.listingUrl}
-          />
+          <PreviewViewTracker data={data} />
 
-          {/* ─── Hero — compact, leaves room for the transformation above the fold ─── */}
-          <section className="pt-8 pb-6 md:pt-12 md:pb-8">
-            <div className="max-w-[20ch]">
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-4">
-                Private preview
-              </p>
-              <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-3">
-                Created for your Etsy listing
-              </p>
-            </div>
-            <h1 className="mt-5 max-w-[18ch] font-serif text-[clamp(2.2rem,4.6vw,3.6rem)] leading-[1.02] tracking-[-0.025em] text-ink">
-              {greeting}{" "}
-              <span className="text-terracotta">your product</span> could look
-              like on Etsy.
-            </h1>
-            <p className="mt-4 max-w-[52ch] text-[14.5px] leading-[1.5] text-ink-3">
-              We created these examples privately, just for you, to help you
-              see what your listings could look like as a premium brand.
-            </p>
-          </section>
-
-          <div className="h-px w-full bg-line-soft" />
-
-          {/* ─── Editorial transformation ─────────────────────── */}
-          <section className="relative pt-6 pb-14 md:pt-8 md:pb-20">
-            {/* Faint staged backdrop — the transformation rests on its own surface */}
+          <section className="relative pt-5 pb-6 md:pt-8 md:pb-9">
             <div
               aria-hidden
               className="pointer-events-none absolute inset-x-[-2vw] inset-y-2 -z-10 rounded-[40px] bg-[radial-gradient(ellipse_at_top,_oklch(0.96_0.013_75)_0%,_transparent_70%)]"
             />
-            <div className="mb-5 flex items-baseline justify-between gap-4 md:mb-7">
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-4">
-                The transformation
-              </p>
-              <p className="hidden font-mono text-[9px] uppercase tracking-[0.22em] text-ink-3 sm:block">
-                Generated from your real Etsy listing
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 gap-x-10 gap-y-10 md:grid-cols-[240px_minmax(0,1fr)] md:items-start md:gap-x-12">
-              {/* Left — archival "before" card (intentionally raw) */}
-              <aside className="md:sticky md:top-12 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-700">
-                <div className="relative rounded-[28px] border border-[oklch(0.78_0.02_70)]/60 bg-cream/80 p-5 shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_22px_38px_-24px_rgba(60,45,25,0.28)]">
-                  <span className="absolute -top-2.5 left-5 rounded-full border border-line-soft bg-paper px-2 py-0.5 font-mono text-[8.5px] uppercase tracking-[0.2em] text-ink-3">
-                    Original Etsy listing
-                  </span>
-                  {beforeUrl ? (
-                    <div className="overflow-hidden rounded-[18px] bg-[oklch(0.92_0.012_70)]">
-                      <Image
-                        src={beforeUrl}
-                        alt={snap.title}
-                        width={260}
-                        height={325}
-                        className="aspect-[4/5] w-full object-cover saturate-[0.85] contrast-[0.97]"
-                        unoptimized
-                      />
-                    </div>
-                  ) : null}
-                  <p className="mt-5 font-mono text-[9px] uppercase tracking-[0.22em] text-ink-4">
-                    {snap.shopName ?? "Etsy seller"}
-                  </p>
-                  <p className="mt-2 line-clamp-3 font-serif text-[14px] leading-[1.4] text-ink">
-                    {snap.title}
-                  </p>
-                  {snap.category ? (
-                    <p className="mt-1.5 text-[11px] text-ink-3">
-                      {snap.category}
-                    </p>
-                  ) : null}
-                  <Link
-                    href={snap.listingUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 inline-block text-[11px] text-ink-3 underline-offset-4 transition-colors hover:text-ink hover:underline"
-                  >
-                    View original ↗
-                  </Link>
-                </div>
-
-                {/* Editorial metadata — exclusivity */}
-                <ul className="mt-6 space-y-2.5 px-1 font-mono text-[9px] uppercase tracking-[0.2em] text-ink-4">
-                  {[
-                    "Generated privately",
-                    "Prepared for your listing",
-                    "AI campaign preview",
-                    "Created today",
-                    "Ready for Etsy",
-                  ].map((line) => (
-                    <li key={line} className="flex items-center gap-2">
-                      <span className="h-px w-6 bg-line-soft" />
-                      <span>{line}</span>
-                    </li>
-                  ))}
-                </ul>
-              </aside>
-
-              {/* Right — asymmetric editorial collage */}
+            <div className="grid grid-cols-1 gap-x-8 gap-y-7 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.55fr)] md:items-center md:gap-x-12">
               <div>
-                <div className="mb-5 flex items-center gap-3">
-                  <span
-                    aria-hidden
-                    className="hidden h-px flex-1 bg-line-soft md:block"
-                  />
-                  <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-ink-3">
-                    After · Vesperdrop campaign
-                  </p>
-                  <span
-                    aria-hidden
-                    className="font-mono text-[10px] text-ink-3"
-                  >
-                    →
-                  </span>
-                  <span
-                    aria-hidden
-                    className="hidden h-px flex-1 bg-line-soft md:block"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 gap-5 md:grid-cols-12 md:grid-rows-[auto_auto]">
-                  {/* Lifestyle hero — dominant, with stronger shadow */}
-                  {lifestyleUrl ? (
-                    <figure className="group relative motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-700 motion-safe:[animation-delay:120ms] md:col-span-7 md:row-span-2 md:scale-[1.08] md:origin-top-left">
-                      <span className="absolute -top-3 left-4 z-10 rounded-full border border-line-soft bg-paper/95 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-3 shadow-[0_8px_20px_-12px_rgba(40,30,20,0.25)]">
-                        Lifestyle hero
-                      </span>
-                      <div className="overflow-hidden rounded-[24px] bg-cream shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_44px_80px_-44px_rgba(40,30,20,0.45)] transition-transform duration-500 ease-out will-change-transform group-hover:-translate-y-1">
-                        <FaceSafeImage
-                          src={lifestyleUrl}
-                          alt="Lifestyle hero"
-                          width={900}
-                          height={1200}
-                          focalPoint={page.lifestyleFocalPoint ?? undefined}
-                          faceBox={page.lifestyleFaceBox ?? undefined}
-                          className="aspect-[3/4] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
-                          unoptimized
-                        />
-                      </div>
-                    </figure>
-                  ) : null}
-
-                  {/* Hero — Etsy-ready clean shot */}
-                  {heroUrl ? (
-                    <figure className="group relative motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-700 motion-safe:[animation-delay:240ms] md:col-span-5 md:translate-y-6">
-                      <span className="absolute -top-3 right-4 z-10 rounded-full border border-line-soft bg-paper/95 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-3 shadow-[0_8px_20px_-12px_rgba(40,30,20,0.25)]">
-                        Etsy ready
-                      </span>
-                      <div className="overflow-hidden rounded-[24px] bg-cream shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_22px_50px_-32px_rgba(40,30,20,0.3)] transition-transform duration-500 ease-out will-change-transform group-hover:-translate-y-1">
-                        <FaceSafeImage
-                          src={heroUrl}
-                          alt="Etsy hero"
-                          width={700}
-                          height={700}
-                          focalPoint={page.heroFocalPoint ?? undefined}
-                          faceBox={page.heroFaceBox ?? undefined}
-                          className="aspect-square w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
-                          unoptimized
-                        />
-                      </div>
-                    </figure>
-                  ) : null}
-
-                  {/* Detail — texture / closeup */}
-                  {detailUrl ? (
-                    <figure className="group relative motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:duration-700 motion-safe:[animation-delay:360ms] md:col-span-5 md:-translate-y-2">
-                      <span className="absolute -top-3 right-4 z-10 rounded-full border border-line-soft bg-paper/95 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-3 shadow-[0_8px_20px_-12px_rgba(40,30,20,0.25)]">
-                        Texture detail
-                      </span>
-                      <div className="overflow-hidden rounded-[24px] bg-cream shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_22px_50px_-32px_rgba(40,30,20,0.3)] transition-transform duration-500 ease-out will-change-transform group-hover:-translate-y-1">
-                        <FaceSafeImage
-                          src={detailUrl}
-                          alt="Texture detail"
-                          width={700}
-                          height={500}
-                          focalPoint={page.detailFocalPoint ?? undefined}
-                          faceBox={page.detailFaceBox ?? undefined}
-                          className="aspect-[7/5] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
-                          unoptimized
-                        />
-                      </div>
-                    </figure>
-                  ) : null}
-                </div>
-
-                {/* Quiet caption row */}
-                <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-2 font-mono text-[9px] uppercase tracking-[0.2em] text-ink-4 md:grid-cols-4">
-                  <span>Lifestyle hero</span>
-                  <span>Mobile-ready</span>
-                  <span>Editorial crop</span>
-                  <span>High conversion</span>
-                </div>
+                <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.22em] text-ink-4">
+                  Private preview
+                </p>
+                <h1 className="max-w-[16ch] font-serif text-[clamp(2.4rem,5vw,4rem)] leading-[1.0] tracking-[-0.03em] text-ink">
+                  {greeting}{" "}
+                  <span className="text-terracotta">{subjectWord}</span> could
+                  look like online.
+                </h1>
+                <p className="mt-4 max-w-[48ch] text-[14.5px] leading-[1.55] text-ink-3">
+                  We prepared these concepts privately to show how your
+                  products could feel as a premium brand.
+                </p>
               </div>
+              <CinematicHero
+                hero={hero}
+                supporting={supporting}
+                pending={collagePending}
+                status={data.status}
+              />
             </div>
           </section>
 
-          <div className="h-px w-full bg-line-soft" />
+          <div className="flex flex-col items-center gap-3 py-10 md:py-14">
+            <span className="block h-px w-full max-w-[100px] bg-line-soft" />
+            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-4">
+              Campaign preview
+            </p>
+          </div>
 
-          {/* ─── Benefits — lightweight credibility strip ─────── */}
-          <section className="py-10 md:py-14">
-            <div className="grid grid-cols-1 gap-y-7 sm:grid-cols-2 md:grid-cols-4 md:gap-y-0 md:divide-x md:divide-line-soft/60">
-              {[
-                ["01", "Etsy ready", "Sized for product pages from day one."],
-                ["02", "Lifestyle focused", "Helps customers picture themselves wearing it."],
-                ["03", "Higher conversions", "Editorial visuals outperform flat lays."],
-                ["04", "Save time & money", "No photoshoot. Minutes instead of days."],
-              ].map(([num, title, body]) => (
-                <div
-                  key={title}
-                  className="px-0 first:pl-0 md:px-8 md:first:pl-0"
-                >
-                  <p className="font-mono text-[9px] uppercase tracking-[0.24em] text-ink-4">
-                    {num}
-                  </p>
-                  <p className="mt-2.5 font-serif text-[19px] leading-[1.12] tracking-[-0.012em] text-ink">
-                    {title}
-                  </p>
-                  <p className="mt-1.5 max-w-[22ch] text-[12.5px] leading-[1.5] text-ink-3">
-                    {body}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </section>
+          <CampaignGallery
+            originals={data.originalImages}
+            generatedBySource={groupedBySource}
+            excludeUrls={heroUrls}
+            isMulti={isMulti}
+          />
 
-          {/* ─── CTA — premium reveal card ────────────────────── */}
-          <section className="pb-20 md:pb-28">
-            <PreviewCta
-              token={token}
-              candidateId={page.candidateId}
-              sellerName={snap.shopName}
-              listingUrl={snap.listingUrl}
+          <SectionDivider />
+
+          <HowWeGeneratedSection />
+
+          <SectionDivider eyebrow="What you get" />
+
+          <BenefitsRow />
+
+          <SectionDivider eyebrow="Make it yours" />
+
+          <section className="relative pt-2 pb-10 md:pt-4 md:pb-16">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-[-2vw] inset-y-2 -z-10 rounded-[40px] bg-[radial-gradient(ellipse_at_top,_oklch(0.96_0.013_75)_0%,_transparent_70%)]"
             />
+            <PreviewCta data={data} />
 
-            {/* Social proof — understated avatar stack */}
-            <div className="mx-auto mt-10 flex max-w-[640px] flex-col items-center gap-3">
+            <div className="mx-auto mt-7 flex max-w-[640px] flex-col items-center gap-3">
+              <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-ink-4">
+                Used by independent brands
+              </p>
               <div className="flex -space-x-2" aria-hidden>
                 {[
                   "oklch(0.78 0.04 70)",
@@ -322,38 +169,324 @@ export default async function EtsyPreviewPage({
                 ))}
               </div>
               <p className="text-center font-serif text-[13px] italic leading-[1.5] text-ink-3">
-                Join independent Etsy and Shopify sellers using Vesperdrop to
-                refine their storefronts.
+                Join independent sellers using Vesperdrop to refine their
+                storefronts.
               </p>
             </div>
 
-            {/* Trust row */}
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-mono text-[9px] uppercase tracking-[0.22em] text-ink-4">
-              <span>Built for modern Etsy brands</span>
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-mono text-[9px] uppercase tracking-[0.22em] text-ink-4">
+              <span>7-day free trial</span>
               <span aria-hidden>·</span>
-              <span>Used by independent sellers</span>
+              <span>Cancel anytime</span>
               <span aria-hidden>·</span>
-              <span>No photoshoot required</span>
+              <span>No credit card required</span>
             </div>
           </section>
+
+          <AboutThisPreviewSection />
         </Container>
       </main>
 
-      {/* ─── Footer ────────────────────────────────────────────── */}
-      <footer className="py-12 md:py-16">
+      <footer className="py-7 md:py-10">
         <Container width="marketing">
           <div className="mx-auto h-px w-full max-w-[280px] bg-line-soft/70" />
-          <div className="mt-10 flex flex-col items-center gap-2 text-center">
+          <div className="mt-6 flex flex-col items-center gap-1.5 text-center">
             <p className="font-serif text-[14px] italic leading-[1.55] text-ink-3">
-              This preview was created privately for your Etsy listing using
+              This preview was created privately for your product using
               Vesperdrop.
             </p>
             <p className="font-mono text-[9px] uppercase tracking-[0.24em] text-ink-4">
-              Vesperdrop · Private campaign reveal
+              Vesperdrop · Private campaign preview
             </p>
           </div>
         </Container>
       </footer>
     </div>
+  );
+}
+
+function pickHeroPair(images: PreviewGeneratedImage[]): {
+  hero: PreviewGeneratedImage | null;
+  supporting: PreviewGeneratedImage | null;
+} {
+  if (images.length === 0) return { hero: null, supporting: null };
+  const score = (img: PreviewGeneratedImage): number => {
+    const label = (img.label ?? "").toLowerCase();
+    if (label === "lifestyle hero") return 4;
+    if (label === "full shot") return 3;
+    if (label.startsWith("lifestyle")) return 2;
+    return 1;
+  };
+  const ranked = [...images]
+    .map((img, i) => ({ img, i, s: score(img) }))
+    .sort((a, b) => b.s - a.s || a.i - b.i);
+  const hero = ranked[0]?.img ?? null;
+  const supporting =
+    ranked.find((r) => r.img !== hero && r.img.url !== hero?.url)?.img ?? null;
+  return { hero, supporting };
+}
+
+function CinematicHero({
+  hero,
+  supporting,
+  pending,
+  status,
+}: {
+  hero: PreviewGeneratedImage | null;
+  supporting: PreviewGeneratedImage | null;
+  pending: boolean;
+  status: PreviewPageData["status"];
+}) {
+  if (!hero) {
+    if (status === "failed") return null;
+    if (!pending) return null;
+    return (
+      <div>
+        <div className="mb-3 flex items-center gap-3">
+          <span aria-hidden className="hidden h-px flex-1 bg-line-soft md:block" />
+          <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-ink-3">
+            After · Vesperdrop campaign
+          </p>
+          <span aria-hidden className="hidden h-px flex-1 bg-line-soft md:block" />
+        </div>
+        <div className="rounded-[24px] border border-line-soft bg-cream/40 px-6 py-12 text-center">
+          <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-ink-4">
+            Generating
+          </p>
+          <p className="mt-3 font-serif text-[16px] italic leading-[1.45] text-ink-3">
+            Your campaign is being prepared — refresh in a moment.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!supporting) {
+    return (
+      <div className="md:max-w-none">
+        <div className="relative">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-6 -bottom-5 h-10 -z-10 bg-[radial-gradient(ellipse_at_center,rgba(40,30,20,0.07)_0%,transparent_70%)] blur-2xl"
+          />
+          <HeroImage image={hero} priority size="primary" />
+        </div>
+        {hero.label ? (
+          <p className="mt-3 hidden font-mono text-[9px] uppercase tracking-[0.22em] text-ink-4 md:block">
+            01 — {hero.label}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="relative">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-6 -bottom-5 h-10 -z-10 bg-[radial-gradient(ellipse_at_center,rgba(40,30,20,0.07)_0%,transparent_70%)] blur-2xl"
+        />
+        <div className="grid grid-cols-12 gap-3 md:gap-5">
+          <div className="relative z-10 col-span-12 md:col-span-7">
+            <HeroImage image={hero} priority size="primary" />
+          </div>
+          <div className="relative col-span-12 md:col-span-5 md:-ml-12 md:translate-y-10">
+            <HeroImage
+              image={supporting}
+              priority={false}
+              size="supporting"
+              withEdge
+            />
+          </div>
+        </div>
+      </div>
+      {hero.label ? (
+        <p className="mt-3 hidden font-mono text-[9px] uppercase tracking-[0.22em] text-ink-4 md:block">
+          01 — {hero.label}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function HeroImage({
+  image,
+  priority,
+  size,
+  withEdge = false,
+}: {
+  image: PreviewGeneratedImage;
+  priority: boolean;
+  size: "primary" | "supporting";
+  withEdge?: boolean;
+}) {
+  const aspect =
+    image.aspect === "portrait"
+      ? "aspect-[4/5]"
+      : image.aspect === "landscape"
+        ? "aspect-[7/5]"
+        : size === "primary"
+          ? "aspect-[4/5]"
+          : "aspect-square";
+  const radius = size === "primary" ? "rounded-[34px]" : "rounded-[28px]";
+  const shadow =
+    size === "primary"
+      ? "shadow-[0_30px_70px_-30px_rgba(40,30,20,0.45)]"
+      : "shadow-[0_18px_40px_-24px_rgba(40,30,20,0.3)]";
+  const edge = withEdge ? "ring-1 ring-paper/80" : "";
+  return (
+    <figure className="relative motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-4 motion-safe:duration-700 motion-safe:hover:-translate-y-1 motion-safe:hover:scale-[1.005] transition-transform duration-700 ease-out">
+      <div
+        className={`relative overflow-hidden ${radius} border border-[oklch(0.78_0.02_70)]/60 bg-cream ${shadow} ${edge}`}
+      >
+        <FaceSafeImage
+          src={image.url}
+          alt={image.label ?? "Generated image"}
+          width={size === "primary" ? 1400 : 900}
+          height={size === "primary" ? 1750 : 900}
+          focalPoint={image.focalPoint ?? undefined}
+          faceBox={image.faceBox ?? undefined}
+          className={`${aspect} w-full object-cover`}
+          priority={priority}
+          unoptimized
+        />
+        {image.label ? (
+          <span className="absolute left-4 top-4 rounded-full border border-line-soft bg-paper/95 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-3 shadow-[0_8px_20px_-12px_rgba(40,30,20,0.25)] backdrop-blur-[1px]">
+            {image.label.toUpperCase()}
+          </span>
+        ) : null}
+      </div>
+    </figure>
+  );
+}
+
+function HowWeGeneratedSection() {
+  const steps = [
+    {
+      n: "01",
+      title: "Your reference images",
+      body: "Each uploaded image becomes its own product preview.",
+    },
+    {
+      n: "02",
+      title: "AI-powered generation",
+      body: "Our AI creates premium, lifestyle images that look like a real photoshoot.",
+    },
+    {
+      n: "03",
+      title: "Ready-to-use assets",
+      body: "You get high-converting images perfect for storefronts, marketplaces, and social campaigns.",
+    },
+  ];
+  return (
+    <section className="py-6 md:py-8">
+      <div className="mb-4 md:mb-5">
+        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-4">
+          Behind the scenes
+        </p>
+        <h2 className="mt-2 max-w-[24ch] font-serif text-[clamp(1.6rem,2.4vw,2.1rem)] leading-[1.08] tracking-[-0.018em] text-ink">
+          How we generated these images.
+        </h2>
+      </div>
+      <div className="grid grid-cols-1 gap-y-6 sm:grid-cols-3 sm:items-start sm:gap-x-2">
+        {steps.map((s, i) => (
+          <div
+            key={s.n}
+            className={`flex items-start gap-3 sm:flex-col sm:items-stretch ${i === 1 ? "md:translate-y-2" : i === 2 ? "md:translate-y-1" : ""}`}
+          >
+            <div className="flex items-center gap-2 sm:gap-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-4">
+                {s.n}
+              </p>
+              {i < steps.length - 1 ? (
+                <span aria-hidden className="hidden h-px flex-1 bg-line-soft sm:block" />
+              ) : null}
+            </div>
+            <div>
+              <p className="mt-2 font-serif text-[18px] leading-[1.15] tracking-[-0.012em] text-ink">
+                {s.title}
+              </p>
+              <p className="mt-1.5 max-w-[28ch] text-[12.5px] leading-[1.5] text-ink-3">
+                {s.body}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function BenefitsRow() {
+  return (
+    <section className="py-4 md:py-6">
+      <div className="grid grid-cols-1 gap-y-7 sm:grid-cols-2 md:grid-cols-4 md:gap-y-0 md:divide-x md:divide-line-soft/60">
+        {[
+          ["01", "Storefront ready", "Optimized for product pages, storefronts, and campaigns."],
+          ["02", "Lifestyle focused", "Imagery that helps customers picture themselves using it."],
+          ["03", "Higher conversions", "Editorial-grade visuals consistently outperform flat lays."],
+          ["04", "Save time & money", "No photoshoot. No models. Minutes instead of days."],
+        ].map(([num, title, body]) => (
+          <div
+            key={title}
+            className="px-0 first:pl-0 md:px-8 md:first:pl-0"
+          >
+            <span aria-hidden className="block h-px w-8 bg-line-soft md:hidden" />
+            <p className="mt-3 font-mono text-[9px] uppercase tracking-[0.24em] text-ink-4 md:mt-0">
+              {num}
+            </p>
+            <p className="mt-2 font-serif text-[19px] leading-[1.12] tracking-[-0.012em] text-ink">
+              {title}
+            </p>
+            <p className="mt-1.5 max-w-[22ch] text-[12.5px] leading-[1.5] text-ink-3">
+              {body}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function AboutThisPreviewSection() {
+  return (
+    <section className="pb-14 md:pb-18">
+      <div className="mx-auto max-w-[680px] text-center">
+        <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-ink-4">
+          About this preview
+        </p>
+        <p className="mt-4 text-[13.5px] leading-[1.6] text-ink-3">
+          This page was created privately for you and is not listed publicly.
+          Only people with this link can see it. Generated images are samples
+          intended to demonstrate what Vesperdrop can produce for your store.
+        </p>
+        <span className="mt-5 inline-flex items-center gap-2 rounded-full border border-line-soft bg-cream/60 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-3">
+          <LockGlyph /> Unique unlisted link
+        </span>
+      </div>
+    </section>
+  );
+}
+
+function SectionDivider({ eyebrow }: { eyebrow?: string }) {
+  return (
+    <div className="flex flex-col items-center gap-3 py-4 md:py-5">
+      <span className="block h-px w-full max-w-[160px] bg-line-soft/70" />
+      {eyebrow ? (
+        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-4">
+          {eyebrow}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function LockGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" aria-hidden>
+      <rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M8 11V8a4 4 0 1 1 8 0v3" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
   );
 }

@@ -26,6 +26,18 @@ export default async function AdminPreviewsPage() {
     status: r.status,
     createdAt: r.createdAt.toISOString(),
     firstSourceUrl: r.sourceImages[0]?.url ?? null,
+    sources: r.sourceImages.map((s) => ({ url: s.url, name: s.name })),
+    outputs: r.outputs.map((o) => ({
+      url: o.url,
+      presetTitle: presetTitleBySlug.get(o.presetSlug) ?? o.presetSlug,
+      sourceIndex: o.sourceIndex,
+      slotType: o.slotType,
+    })),
+    expectedOutputCount: r.expectedOutputCount,
+    viewCount: r.viewCount,
+    ctaClickCount: r.ctaClickCount,
+    signupClickCount: r.signupClickCount,
+    signupCount: r.signupCount,
   }));
 
   return (

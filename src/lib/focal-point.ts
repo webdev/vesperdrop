@@ -15,7 +15,10 @@ export type FaceBoxLike = {
 } | null | undefined;
 
 export function focalToObjectPosition(focal: FocalPointLike): string {
-  if (!focal) return "50% 50%";
+  // Without focal data we bias the crop toward the upper third — heads and
+  // primary subjects in product/portrait photography sit there, so a default
+  // of 50% 30% is far less likely to clip a head than dead-center.
+  if (!focal) return "50% 30%";
   const x = clamp01(focal.x) * 100;
   const y = clamp01(focal.y) * 100;
   return `${x.toFixed(2)}% ${y.toFixed(2)}%`;

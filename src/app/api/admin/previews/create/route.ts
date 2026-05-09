@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { start } from "workflow/api";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
 import { createIgPreview } from "@/lib/ig-previews/pages";
-import { pickRandomPresets, planGeneration } from "@/lib/ig-previews/presets";
-import { sceneify } from "@/lib/sceneify/client";
+import { planGeneration } from "@/lib/ig-previews/presets";
+import { processIgPreview } from "@/lib/workflows/process-ig-preview";
 
 export const runtime = "nodejs";
 
@@ -19,9 +20,10 @@ const Body = z.object({
     )
     .min(1)
     .max(12),
-  presetSlugs: z.array(z.string().min(1)).min(1).max(20),
+  presetSlugs: z.array(z.string().min(1)).max(20).optional(),
   notes: z.string().max(2000).nullable().optional(),
   title: z.string().max(120).nullable().optional(),
+  mock: z.boolean().optional(),
 });
 
 export async function POST(req: Request) {
@@ -46,26 +48,14 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
-  const { sourceImages, presetSlugs: chosenSlugs, notes, title } = parsed.data;
-
-  const allPresets = await sceneify().listPublicPresets();
-  const allowed = new Set(allPresets.map((p) => p.slug));
-  const dedup = Array.from(new Set(chosenSlugs));
-  const unknown = dedup.filter((s) => !allowed.has(s));
-  if (unknown.length > 0) {
-    return NextResponse.json(
-      { error: `unknown preset: ${unknown.join(", ")}` },
-      { status: 400 },
-    );
-  }
+  const { sourceImages, presetSlugs, notes, title, mock } = parsed.data;
 
   const plan = planGeneration(sourceImages.length);
-  const outputSlugs = pickRandomPresets(dedup, plan.totalCount);
 
   const preview = await createIgPreview({
-    presetSlug: dedup[0],
+    presetSlug: presetSlugs?.[0] ?? "auto",
     sourceImages,
-    presetSlugs: outputSlugs,
+    presetSlugs: [],
     expectedOutputCount: plan.totalCount,
     notes: notes ?? null,
     title: title ?? null,
@@ -74,11 +64,16 @@ export async function POST(req: Request) {
 
   const url = `https://www.vesperdrop.com/p/${preview.slug}`;
 
+  void start(processIgPreview, [preview.id, Boolean(mock)]).catch((e) =>
+    console.error("[ig-preview] enqueue failed", e),
+  );
+
   return NextResponse.json({
     id: preview.id,
     slug: preview.slug,
     url,
     expectedOutputCount: preview.expectedOutputCount,
     presetSlugs: preview.presetSlugs,
+    mock: Boolean(mock),
   });
 }

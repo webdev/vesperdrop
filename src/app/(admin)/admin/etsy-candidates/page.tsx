@@ -40,6 +40,9 @@ export default async function EtsyCandidatesPage() {
             id: preview.id,
             token: preview.token,
             status: preview.status,
+            viewCount: preview.viewCount,
+            ctaClickCount: preview.ctaClickCount,
+            signupCount: preview.signupCount,
             slots: {
               hero: {
                 url: preview.heroUrl,

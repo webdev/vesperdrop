@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { getPreviewByToken } from "@/lib/etsy-outreach/pages";
+import { getPreviewPageByToken } from "@/lib/preview-pages/loader";
 
 export const runtime = "nodejs";
 export const size = { width: 1200, height: 630 };
@@ -11,8 +11,8 @@ export default async function OG({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const page = await getPreviewByToken(token);
-  const url = page?.heroUrl ?? page?.lifestyleUrl ?? page?.detailUrl;
+  const data = await getPreviewPageByToken(token);
+  const url = data?.generatedImages[0]?.url;
 
   return new ImageResponse(
     (
@@ -30,7 +30,7 @@ export default async function OG({
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
           <div style={{ fontSize: 32, opacity: 0.6 }}>Vesperdrop</div>
           <div style={{ fontSize: 64, lineHeight: 1.05, marginTop: 24 }}>
-            Your product on Etsy.
+            Your product, online.
           </div>
         </div>
         {url ? (
