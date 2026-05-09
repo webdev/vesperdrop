@@ -7,17 +7,11 @@ import { cn } from "@/lib/utils";
 type Item = {
   label: string;
   href: string;
-  active?: boolean;
 };
 
 const ITEMS: Item[] = [
-  { label: "Etsy candidates", href: "/admin/etsy-candidates", active: true },
-  { label: "Previews", href: "/admin/previews", active: true },
-  { label: "Generations", href: "#" },
-  { label: "Library", href: "#" },
-  { label: "Batches", href: "#" },
-  { label: "Discover", href: "#" },
-  { label: "Settings", href: "#" },
+  { label: "Etsy", href: "/admin/etsy-candidates" },
+  { label: "Previews", href: "/admin/previews" },
 ];
 
 export function AdminSidebar() {
@@ -29,23 +23,6 @@ export function AdminSidebar() {
       </p>
       <nav aria-label="Admin sections" className="flex flex-col gap-1">
         {ITEMS.map((item) => {
-          if (!item.active) {
-            return (
-              <span
-                key={item.label}
-                aria-disabled="true"
-                className={cn(
-                  "flex items-center justify-between rounded-md px-3 py-2 text-[14px] text-ink-4",
-                  "cursor-default select-none",
-                )}
-              >
-                <span>{item.label}</span>
-                <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-ink-4">
-                  Soon
-                </span>
-              </span>
-            );
-          }
           const isCurrent = pathname?.startsWith(item.href);
           return (
             <Link
