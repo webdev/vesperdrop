@@ -22,6 +22,7 @@ const ServerOnlyEnv = z.object({
   STRIPE_PRO_PRICE_ID: z.string().min(1),
   STRIPE_STUDIO_PRICE_ID: z.string().min(1),
   STRIPE_AGENCY_PRICE_ID: z.string().min(1),
+  STRIPE_PRICE_UNLOCK: z.string().min(1),
   PLAN_FREE_MONTHLY_GENERATIONS: z.coerce.number().int().nonnegative(),
   PLAN_FREE_WATERMARK: bool,
   PLAN_PRO_PRICE_USD: z.coerce.number().nonnegative(),

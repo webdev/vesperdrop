@@ -10,6 +10,7 @@ import { env } from "@/lib/env";
 import { serverTrack } from "@/lib/analytics-server";
 import { recordEvent } from "@/lib/etsy-outreach/events";
 import { getPreviewByToken } from "@/lib/etsy-outreach/pages";
+import { markBatchPaid } from "@/lib/db/unlock-batches";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -193,6 +194,27 @@ async function dispatchStripeEvent(event: Stripe.Event): Promise<void> {
     // ------------------------------------------------------------------
     case "checkout.session.completed": {
       const obj = event.data.object as Stripe.Checkout.Session;
+
+      // One-time $9.99 unlock funnel — routed by metadata.unlock_batch_token.
+      // We check this BEFORE the subscription branch so that an unauth visitor
+      // who pays for an unlock never trips through the subscription path
+      // (they have no Supabase profile / Stripe customer record yet).
+      const unlockToken =
+        obj.metadata?.unlock_batch_token ?? obj.client_reference_id ?? null;
+      if (unlockToken && obj.mode === "payment") {
+        const paymentIntent =
+          typeof obj.payment_intent === "string"
+            ? obj.payment_intent
+            : obj.payment_intent?.id ?? null;
+        await markBatchPaid({
+          token: unlockToken,
+          paymentIntent,
+          customerEmail:
+            obj.customer_details?.email ?? obj.customer_email ?? null,
+        });
+        return;
+      }
+
       const customerId =
         typeof obj.customer === "string" ? obj.customer : obj.customer?.id;
       if (!customerId) return;

@@ -47,6 +47,11 @@ vi.mock("@/lib/db/credits", () => ({
   refillCredits: (...a: unknown[]) => rpcRefill(...a),
 }));
 
+const markBatchPaidMock = vi.fn();
+vi.mock("@/lib/db/unlock-batches", () => ({
+  markBatchPaid: (...a: unknown[]) => markBatchPaidMock(...a),
+}));
+
 // Drizzle transaction stub — passes the same tx interface back into the callback
 // so the per-event advisory lock can run without a real Postgres connection.
 type FakeTx = { execute: (sql: unknown) => Promise<unknown[]> };
@@ -102,6 +107,7 @@ beforeEach(() => {
   updateEvent.mockReset().mockResolvedValue({ error: null });
   updateProfile.mockReset().mockResolvedValue({ error: null });
   rpcRefill.mockReset().mockResolvedValue({ error: null });
+  markBatchPaidMock.mockReset().mockResolvedValue(undefined);
   selectProfile.mockReset().mockResolvedValue({ data: { id: "user-uuid" }, error: null });
   subscriptionRetrieve.mockReset().mockResolvedValue({
     id: "sub_Y",
@@ -129,6 +135,30 @@ describe("handleStripeEvent", () => {
       data: { object: { customer: "cus_X", subscription: "sub_Y" } },
     } as never);
     expect(updateProfile).toHaveBeenCalledWith(expect.objectContaining({ plan: "pro" }));
+    // Subscription path must NOT trigger the unlock branch.
+    expect(markBatchPaidMock).not.toHaveBeenCalled();
+  });
+
+  it("routes unlock_batch_token to markBatchPaid (one-time unlock)", async () => {
+    await handleStripeEvent({
+      id: "evt_unlock_1",
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          mode: "payment",
+          metadata: { unlock_batch_token: "tok_abc" },
+          payment_intent: "pi_123",
+          customer_details: { email: "buyer@example.com" },
+        },
+      },
+    } as never);
+    expect(markBatchPaidMock).toHaveBeenCalledWith({
+      token: "tok_abc",
+      paymentIntent: "pi_123",
+      customerEmail: "buyer@example.com",
+    });
+    // Subscription branch must not run for unlock payments.
+    expect(updateProfile).not.toHaveBeenCalled();
   });
 
   it("is idempotent when a previous delivery already completed", async () => {
