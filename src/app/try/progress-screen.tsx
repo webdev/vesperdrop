@@ -28,6 +28,8 @@ type Props = {
       errorCode?: string;
     }>,
   ) => void;
+  onDownloadClick?: (slug: string) => void;
+  onUnlockClick?: () => void;
 };
 
 export function ProgressScreen({
@@ -41,6 +43,8 @@ export function ProgressScreen({
   initialResults,
   onSourceUrl,
   onSettled,
+  onDownloadClick,
+  onUnlockClick,
 }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const stableSlugs = useMemo(() => sceneSlugs, []); // contract: stable for lifetime
@@ -126,7 +130,10 @@ export function ProgressScreen({
   }, [view.streams, stableSlugs, onSettled, batchId]);
 
   // Augment the results with live-stream context so each tile renders the
-  // rotating, slot-filled caption from streaming events.
+  // rotating, slot-filled caption from streaming events. Funnel flags
+  // (isFreePreview, isBonus, softLocked) are carried through from the
+  // initial result snapshot so they survive the streaming → done
+  // transition without being overwritten.
   const liveResults: TileResult[] = stableSlugs.map((slug) => {
     const base = initialResults.find((r) => r.sceneSlug === slug) ?? {
       sceneSlug: slug,
@@ -155,7 +162,13 @@ export function ProgressScreen({
 
   return (
     <>
-      <DevelopGrid results={liveResults} variant={variant} sourceUrl={userPhotoUrl} />
+      <DevelopGrid
+        results={liveResults}
+        variant={variant}
+        sourceUrl={userPhotoUrl}
+        onDownloadClick={onDownloadClick}
+        onUnlockClick={onUnlockClick}
+      />
       {stableSlugs.map((slug) => (
         <StreamTelemetry
           key={`tel-${slug}`}

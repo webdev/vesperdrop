@@ -38,7 +38,7 @@ export function SignUpBar({
             </em>
             .
           </h2>
-          <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.12em] text-terracotta">
+          <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-terracotta">
             These shots vanish when you close this tab
           </p>
         </div>

@@ -51,6 +51,13 @@ export type TileResult = {
   streamPhaseId?: PhaseId | null;
   streamAttributes?: ExtractedAttributes | null;
   presetMeta?: PresetMeta;
+  // Funnel flags. The unauth flow renders one free preview tile + two
+  // soft-locked tiles (one of which is a "bonus shot" without a scene
+  // count in the header). All three slots still go through generation
+  // server-side; the lock is purely visual until the user pays $9.99.
+  isFreePreview?: boolean;
+  isBonus?: boolean;
+  softLocked?: boolean;
 };
 
 export type DevelopGridVariant = "darkroom" | "grain";
@@ -61,12 +68,14 @@ export function DevelopGrid({
   sourceUrl,
   onDownloadClick,
   onLockedClick,
+  onUnlockClick,
 }: {
   results: TileResult[];
   variant?: DevelopGridVariant;
   sourceUrl?: string;
   onDownloadClick?: (slug: string) => void;
   onLockedClick?: () => void;
+  onUnlockClick?: () => void;
 }) {
   if (results.length === 0) {
     return (
@@ -79,7 +88,7 @@ export function DevelopGrid({
   return (
     <>
       <style>{GLOBAL_KEYFRAMES}</style>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
         {results.map((r, i) =>
           r.status === "locked" ? (
             <LockedTile
@@ -98,6 +107,7 @@ export function DevelopGrid({
               variant={variant}
               sourceUrl={sourceUrl}
               onDownloadClick={onDownloadClick}
+              onUnlockClick={onUnlockClick}
             />
           ),
         )}
@@ -113,6 +123,7 @@ function Tile({
   variant,
   sourceUrl,
   onDownloadClick,
+  onUnlockClick,
 }: {
   tile: TileResult;
   index: number;
@@ -120,10 +131,20 @@ function Tile({
   variant: DevelopGridVariant;
   sourceUrl?: string;
   onDownloadClick?: (slug: string) => void;
+  onUnlockClick?: () => void;
 }) {
   const isDone = tile.status === "succeeded";
   const isFailed = tile.status === "failed";
   const liveMode = tile.streamPhaseId != null && tile.presetMeta != null;
+  // Treat soft-locked tiles uniformly whether the underlying generation
+  // succeeded (we still render the image, just blurred) or hit the unauth
+  // credit limit (we use the source photo as a stand-in). In both cases
+  // the visual is the same: blur + dark overlay + lock + $9.99 strip.
+  const isLockedView =
+    tile.softLocked === true &&
+    (isDone ||
+      (isFailed && tile.errorCode === "credit_limit_reached"));
+  const isFreeDone = isDone && tile.isFreePreview === true;
 
   const seed = useMemo(() => hashSeed(tile.sceneSlug + ":" + index), [tile.sceneSlug, index]);
   const [startedAt] = useState(() => performance.now() - (seed % 800));
@@ -176,13 +197,30 @@ function Tile({
   const progress = Math.min(0.99, elapsed / ESTIMATED_TOTAL_MS);
   const overrun = elapsed > ESTIMATED_TOTAL_MS;
 
-  const filter = isDone ? "blur(0px) grayscale(0)" : "blur(20px) grayscale(1)";
+  // Soft-locked tiles keep a heavy blur + saturation drop after the
+  // image lands; the dark overlay sits on top and a "UNLOCK FOR $9.99"
+  // strip is the only call to action. Clicking anywhere on the tile
+  // fires onUnlockClick.
+  const filter = isLockedView
+    ? "blur(18px) saturate(0.9)"
+    : isDone
+      ? "blur(0px) grayscale(0)"
+      : "blur(20px) grayscale(1)";
   const staggerMs = (seed % 7) * 140;
   const cornerSeed = seed % 4;
 
-  const handleDownloadClick = () => {
-    if (!isDone || !onDownloadClick) return;
-    onDownloadClick(tile.sceneSlug);
+  const tileClickable =
+    (isDone && !tile.softLocked && !!onDownloadClick) ||
+    (isLockedView && !!onUnlockClick);
+
+  const handleTileClick = () => {
+    if (isLockedView && onUnlockClick) {
+      onUnlockClick();
+      return;
+    }
+    if (isDone && !tile.softLocked && onDownloadClick) {
+      onDownloadClick(tile.sceneSlug);
+    }
   };
 
   return (
@@ -195,18 +233,24 @@ function Tile({
     >
     <div
       className="relative aspect-[4/5] overflow-hidden border border-zinc-200 bg-zinc-900"
-      style={{ cursor: isDone && onDownloadClick ? "pointer" : "default" }}
-      onClick={handleDownloadClick}
+      style={{ cursor: tileClickable ? "pointer" : "default" }}
+      onClick={handleTileClick}
       onKeyDown={(e) => {
-        if (!isDone || !onDownloadClick) return;
+        if (!tileClickable) return;
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          handleDownloadClick();
+          handleTileClick();
         }
       }}
-      role={isDone && onDownloadClick ? "button" : undefined}
-      tabIndex={isDone && onDownloadClick ? 0 : undefined}
-      aria-label={isDone ? `Download ${tile.sceneName} HD` : undefined}
+      role={tileClickable ? "button" : undefined}
+      tabIndex={tileClickable ? 0 : undefined}
+      aria-label={
+        isLockedView
+          ? `Unlock ${tile.isBonus ? "bonus shot" : tile.sceneName} for $9.99`
+          : isDone
+            ? `Download ${tile.sceneName} HD`
+            : undefined
+      }
     >
       {tile.outputUrl ? (
         <img
@@ -218,6 +262,24 @@ function Tile({
             opacity: isDone ? 1 : 0,
             filter,
             transition: `filter ${TILE_REVEAL_MS}ms cubic-bezier(0.2,0.8,0.2,1), opacity 280ms ease-out`,
+            zIndex: 30,
+          }}
+        />
+      ) : isLockedView && sourceUrl ? (
+        // No generated image yet (credit-limit failure case), but the
+        // tile is in the locked-paywall view — use the source photo as
+        // a heavily-blurred stand-in so the visual still reads as
+        // "premium preview behind a paywall".
+        <img
+          src={sourceUrl}
+          alt=""
+          aria-hidden
+          draggable={false}
+          className="absolute inset-0 h-full w-full object-contain"
+          style={{
+            opacity: 0.85,
+            filter,
+            transform: "scale(1.05)",
             zIndex: 30,
           }}
         />
@@ -247,27 +309,94 @@ function Tile({
         )
       ) : null}
 
-      {isFailed ? (
+      {isFailed && !isLockedView ? (
         <div className="pointer-events-none absolute inset-0 bg-zinc-900" style={{ zIndex: 20 }} />
       ) : null}
 
       <div
-        className="absolute top-2 left-2 bg-black/55 px-2 py-1 font-mono text-[9px] tracking-[0.16em] text-white uppercase backdrop-blur-sm"
+        className="absolute top-0 right-0 left-0 bg-black px-3 py-2 font-mono text-[10px] tracking-[0.18em] text-white uppercase"
         style={{ zIndex: 40 }}
       >
-        {tile.sceneName} · {String(index + 1).padStart(2, "0")} /{" "}
-        {String(total).padStart(2, "0")}
+        {tile.isBonus
+          ? "Bonus shot"
+          : `${tile.sceneName} · ${String(index + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}`}
       </div>
 
-      {isDone && onDownloadClick ? (
+      {isLockedView ? (
+        <>
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(120% 90% at 50% 50%, rgba(27,25,21,0.25) 0%, rgba(27,25,21,0.7) 80%)",
+              zIndex: 35,
+            }}
+          />
+          <div
+            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 px-4"
+            style={{ zIndex: 41 }}
+          >
+            <div className="flex h-[52px] w-[52px] -translate-y-3 items-center justify-center rounded-full bg-black">
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-white"
+                aria-hidden
+              >
+                <rect x="4" y="11" width="16" height="10" rx="1.5" />
+                <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+              </svg>
+            </div>
+            <span
+              className="inline-flex w-[60%] items-center justify-center rounded-sm bg-terracotta px-4 py-2.5 font-mono text-[10px] tracking-[0.16em] text-white uppercase"
+              data-testid="tile-unlock-cta"
+            >
+              Unlock for $9.99
+            </span>
+          </div>
+        </>
+      ) : null}
+
+      {isFreeDone ? (
+        <div
+          className="absolute right-0 bottom-0 left-0 flex items-center gap-2 bg-paper px-3 py-2"
+          style={{ zIndex: 41 }}
+          data-testid="tile-free-preview-strip"
+        >
+          <span
+            aria-hidden
+            className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-terracotta text-cream"
+          >
+            <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2.5 6.5l2.5 2.5 4.5-5" />
+            </svg>
+          </span>
+          <div className="leading-tight">
+            <div className="font-mono text-[10px] tracking-[0.16em] text-ink uppercase">
+              Free preview unlocked
+            </div>
+            <div className="font-mono text-[9px] tracking-[0.12em] text-zinc-500">
+              Low-res with watermark
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isDone && !tile.softLocked && onDownloadClick ? (
         <>
           <div
             className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent opacity-0 transition-opacity duration-300 md:group-hover:opacity-100"
             style={{ zIndex: 35 }}
           />
           <div
-            className="pointer-events-none absolute right-2 bottom-2 inline-flex items-center gap-1.5 bg-orange-500 px-2.5 py-1.5 font-mono text-[10px] font-medium tracking-[0.16em] text-white uppercase shadow-md transition-all duration-300 md:translate-y-1 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100"
-            style={{ zIndex: 41 }}
+            className="pointer-events-none absolute right-2 bottom-12 inline-flex items-center gap-1.5 bg-terracotta px-2.5 py-1.5 font-mono text-[10px] font-medium tracking-[0.16em] text-white uppercase shadow-md transition-all duration-300 md:translate-y-1 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100"
+            style={{ zIndex: 42 }}
           >
             <span aria-hidden>↓</span>
             <span>Download HD</span>
@@ -277,7 +406,7 @@ function Tile({
 
     </div>
 
-    {!isDone ? (
+    {!isDone && !isLockedView && !isFreeDone ? (
       <div className="min-h-[18px] font-mono text-[10px]">
         {isFailed ? (
           tile.errorCode === "credit_limit_reached" ? (

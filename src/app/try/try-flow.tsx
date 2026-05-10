@@ -32,8 +32,8 @@ import { ProgressScreen } from "./progress-screen";
 import { SignUpBar } from "./sign-up-bar";
 import { SavedBar } from "./saved-bar";
 import { AuthModal } from "./auth-modal";
+import { OfferCard } from "./offer-card";
 
-const LOCKED_TILE_SLUG = "__locked__";
 const PENDING_BATCH_KEY = "vd_pending_batch";
 const TRY_INTENT_KEY = "vd_try_intent";
 
@@ -59,7 +59,12 @@ type PendingBatch = {
 
 const SAMPLE_SRC = "/marketing/before-after/cami_before.png";
 const SAMPLE_NAME = "CAM-BRN-S_SAMPLE.JPG";
+// Authed users can pick up to 5 scenes per batch. Unauth visitors are
+// capped at 2 picks; the develop step then auto-adds a 3rd "BONUS SHOT"
+// tile from the remaining catalog so the funnel always shows 1 free
+// preview + 2 locked tiles behind the $9.99 unlock CTA.
 const MAX_TRY_SCENES = 5;
+const MAX_TRY_SCENES_UNAUTH = 2;
 
 type Photo = { url: string; name: string; isObjectUrl: boolean; file: File | null };
 
@@ -239,15 +244,20 @@ export function TryFlow({
     goToStep("upload", "replace");
   }, [photo, goToStep]);
 
-  const togglePickedScene = useCallback((id: string) => {
-    setPickedScenes((p) => {
-      if (p.includes(id)) return p.filter((x) => x !== id);
-      if (p.length >= MAX_TRY_SCENES) return p;
-      const next = [...p, id];
-      track("try_scene_picked", { slug: id, total_picked: next.length });
-      return next;
-    });
-  }, []);
+  const sceneCap = isAuthed ? MAX_TRY_SCENES : MAX_TRY_SCENES_UNAUTH;
+
+  const togglePickedScene = useCallback(
+    (id: string) => {
+      setPickedScenes((p) => {
+        if (p.includes(id)) return p.filter((x) => x !== id);
+        if (p.length >= sceneCap) return p;
+        const next = [...p, id];
+        track("try_scene_picked", { slug: id, total_picked: next.length });
+        return next;
+      });
+    },
+    [sceneCap],
+  );
 
   return (
     <div className="flex min-h-screen flex-col bg-paper text-ink">
@@ -270,6 +280,7 @@ export function TryFlow({
           <ScenesStep
             scenes={scenes}
             picked={pickedScenes}
+            sceneCap={sceneCap}
             onToggle={togglePickedScene}
             onBack={() => goToStep("upload", "replace")}
             onContinue={() => {
@@ -292,6 +303,7 @@ export function TryFlow({
             photo={photo}
             picked={pickedScenes}
             sceneById={sceneById}
+            scenes={scenes}
             developDone={developDone}
             variant={variant}
             isAuthed={isAuthed}
@@ -439,6 +451,7 @@ function Dropzone({
 function ScenesStep({
   scenes,
   picked,
+  sceneCap,
   busy = false,
   onToggle,
   onBack,
@@ -446,6 +459,7 @@ function ScenesStep({
 }: {
   scenes: Scene[];
   picked: string[];
+  sceneCap: number;
   busy?: boolean;
   onToggle: (id: string) => void;
   onBack: () => void;
@@ -487,7 +501,7 @@ function ScenesStep({
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
         {scenes.map((s) => {
           const on = picked.includes(s.slug);
-          const atCap = !on && picked.length >= MAX_TRY_SCENES;
+          const atCap = !on && picked.length >= sceneCap;
           return (
             <button
               key={s.slug}
@@ -544,7 +558,7 @@ function ScenesStep({
 
       <div className="mt-10 flex items-center justify-between border-t border-line-soft pt-6">
         <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-          {picked.length} of {MAX_TRY_SCENES} scene{picked.length === 1 ? "" : "s"} picked
+          {picked.length} of {sceneCap} scene{picked.length === 1 ? "" : "s"} picked
         </p>
         <button
           type="button"
@@ -564,6 +578,7 @@ function DevelopStep({
   photo,
   picked,
   sceneById,
+  scenes,
   developDone,
   variant,
   isAuthed,
@@ -573,6 +588,7 @@ function DevelopStep({
   photo: Photo | null;
   picked: string[];
   sceneById: Record<string, Scene>;
+  scenes: Scene[];
   developDone: boolean;
   variant: DevelopGridVariant;
   isAuthed: boolean;
@@ -581,25 +597,57 @@ function DevelopStep({
 }) {
   const router = useRouter();
 
+  // Unauth gets a deterministic 3rd "BONUS SHOT" tile pulled from the
+  // catalog so the develop view always shows 1 free + 2 locked tiles.
+  // Pick the first scene by sort order whose slug isn't in `picked` —
+  // this is stable across renders given the immutable `scenes` array.
+  // Frozen on first render alongside `creditLimitedSlugs` so the slug
+  // contract for useProgressBatch stays stable.
+  const bonusSlug = useMemo<string | null>(() => {
+    if (isAuthed) return null;
+    const taken = new Set(picked);
+    for (const s of scenes) {
+      if (!taken.has(s.slug)) return s.slug;
+    }
+    return null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Effective generation slugs: unauth = picked + bonusSlug, authed = picked.
+  // Frozen for the same stability reason as bonusSlug.
+  const effectivePicked = useMemo<string[]>(
+    () =>
+      isAuthed
+        ? picked
+        : bonusSlug
+          ? [...picked, bonusSlug]
+          : picked,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
   // Unauth visitors get one free preview. Pre-mark every pick after the
   // first as credit-limited so only one /api/try/generate request fires
-  // for the batch — the others render a sign-up nudge directly. Authed
+  // for the batch — the others render a paywall overlay directly. Authed
   // users keep the full N-pick fan-out.
   const creditLimitedSlugs = useMemo<ReadonlySet<string>>(
-    () => (isAuthed ? new Set<string>() : new Set(picked.slice(1))),
-    // We intentionally freeze this set on first render — it must stay
-    // stable for the lifetime of useProgressBatch (same contract as
-    // sceneSlugs). The wizard tears down DevelopStep on reset, so
-    // changing pick lists creates a fresh component anyway.
+    () =>
+      isAuthed
+        ? new Set<string>()
+        : new Set(effectivePicked.slice(1)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 
   const [generationResults, setGenerationResults] = useState<TileResult[]>(() =>
-    picked.map((slug) => {
+    effectivePicked.map((slug, i) => {
+      const isBonus = !isAuthed && bonusSlug !== null && slug === bonusSlug;
       const base = {
         sceneSlug: slug,
         sceneName: sceneById[slug]?.name ?? slug,
+        isFreePreview: !isAuthed && i === 0,
+        isBonus,
+        softLocked: !isAuthed && i > 0,
       };
       if (creditLimitedSlugs.has(slug)) {
         return {
@@ -729,15 +777,7 @@ function DevelopStep({
     })();
   }, [isAuthed, developDone, photo, generationResults, serverSourceUrl]);
 
-  const displayResults: TileResult[] = useMemo(() => {
-    if (!anySucceeded || isAuthed) return generationResults;
-    const lockedTile: TileResult = {
-      sceneSlug: LOCKED_TILE_SLUG,
-      sceneName: "BONUS",
-      status: "locked",
-    };
-    return [...generationResults, lockedTile];
-  }, [generationResults, anySucceeded, isAuthed]);
+  const displayResults: TileResult[] = generationResults;
 
   const openAuthModal = useCallback((intent: AuthIntent) => {
     setAuthModal({ open: true, intent });
@@ -778,6 +818,15 @@ function DevelopStep({
     openAuthModal("unlock");
   }, [openAuthModal]);
 
+  // Unlock CTA — fired by locked tile clicks AND the offer card.
+  // Stub: opens AuthModal until /api/stripe/unlock-checkout (Agent B's
+  // scope) lands. The integrator will swap this for the real call.
+  const handleUnlockClick = useCallback(() => {
+    track("try_unlock_clicked");
+    track("try_signup_clicked", { intent: "unlock" });
+    openAuthModal("unlock");
+  }, [openAuthModal]);
+
   const handleBarSignUpClick = useCallback(() => {
     openAuthModal("default");
   }, [openAuthModal]);
@@ -804,8 +853,14 @@ function DevelopStep({
         </div>
       </div>
 
-      <div className="mb-10 grid grid-cols-1 items-start gap-8 md:grid-cols-[260px_1fr] md:gap-12">
-        <div>
+      <div
+        className={`mb-10 grid grid-cols-1 items-start gap-8 ${
+          isAuthed
+            ? "md:grid-cols-[260px_1fr] md:gap-12"
+            : "md:grid-cols-[220px_minmax(0,1fr)_300px] md:gap-8"
+        }`}
+      >
+        <div className={isAuthed ? undefined : "order-2 md:order-1"}>
           <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-4">
             Your product
           </p>
@@ -840,22 +895,22 @@ function DevelopStep({
           </div>
         </div>
 
-        <div>
-          {generationResults.some((r) => r.status === "pending") && photo && effectiveFile && sceneById[picked[0]] ? (
+        <div className={isAuthed ? undefined : "order-1 md:order-2"}>
+          {generationResults.some((r) => r.status === "pending") && photo && effectiveFile && sceneById[effectivePicked[0]] ? (
             <ProgressScreen
               file={effectiveFile}
-              sceneSlugs={picked}
+              sceneSlugs={effectivePicked}
               creditLimitedSlugs={creditLimitedSlugs}
               userPhotoUrl={photo.url}
               primaryPreset={{
-                slug: sceneById[picked[0]].slug,
-                name: sceneById[picked[0]].name,
-                mood: sceneById[picked[0]].mood,
-                palette: sceneById[picked[0]].palette,
-                category: sceneById[picked[0]].category,
+                slug: sceneById[effectivePicked[0]].slug,
+                name: sceneById[effectivePicked[0]].name,
+                mood: sceneById[effectivePicked[0]].mood,
+                palette: sceneById[effectivePicked[0]].palette,
+                category: sceneById[effectivePicked[0]].category,
               }}
               presetMetaBySlug={Object.fromEntries(
-                picked.map((slug) => [
+                effectivePicked.map((slug) => [
                   slug,
                   {
                     slug: sceneById[slug]?.slug ?? slug,
@@ -869,6 +924,8 @@ function DevelopStep({
               variant={variant}
               initialResults={generationResults}
               onSourceUrl={(url) => setServerSourceUrl(url)}
+              onDownloadClick={handleDownloadClick}
+              onUnlockClick={isAuthed ? undefined : handleUnlockClick}
               onSettled={(out) => {
                 setGenerationResults((prev) =>
                   prev.map((r) => {
@@ -903,9 +960,18 @@ function DevelopStep({
               sourceUrl={photo?.url}
               onDownloadClick={handleDownloadClick}
               onLockedClick={handleLockedClick}
+              onUnlockClick={isAuthed ? undefined : handleUnlockClick}
             />
           )}
+
+          {!isAuthed ? <UnlockArrowAnnotation /> : null}
         </div>
+
+        {!isAuthed ? (
+          <div className="order-3 md:sticky md:top-24 md:self-start">
+            <OfferCard onUnlock={handleUnlockClick} />
+          </div>
+        ) : null}
       </div>
 
       {developDone ? (
@@ -927,4 +993,39 @@ function DevelopStep({
     </div>
   );
 }
+
+// Decorative flourish placed below cards 2 & 3, pointing up at the
+// locked tiles. The arrow is a tiny inline SVG curve in terracotta;
+// the copy is italic serif. It sits inside the cards-column flow so
+// it inherits the same horizontal bounds as the locked tiles above.
+function UnlockArrowAnnotation() {
+  return (
+    <div className="mt-4 hidden items-end justify-end pr-[12%] sm:flex">
+      <div className="relative max-w-[260px] text-right">
+        <p className="font-serif text-[14px] italic leading-[1.35] text-zinc-600">
+          Unlock the remaining 2 images
+          <br />
+          for high-res downloads.
+        </p>
+        <svg
+          aria-hidden
+          width="80"
+          height="44"
+          viewBox="0 0 80 44"
+          className="absolute -top-8 -right-2"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ color: "var(--terracotta, #c2451c)" }}
+        >
+          <path d="M2 40 C 18 32, 32 22, 50 12 C 58 8, 66 6, 74 4" />
+          <path d="M68 2 L 74 4 L 72 10" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 

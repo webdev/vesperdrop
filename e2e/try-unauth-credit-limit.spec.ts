@@ -1,15 +1,16 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 
-// Unauth visitors get exactly one free preview. Picking N scenes still
-// fires N concurrent /api/try/generate calls — the first acquires the
-// IP's only rate-limit slot and succeeds, the rest 429 with code
-// "credit_limit_reached" and the tile renders a sign-up nudge instead
-// of the generic "RESHOOT NEEDED" copy.
+// Unauth visitors are capped at 2 scene picks. The develop step then
+// auto-adds a 3rd "BONUS SHOT" tile from the catalog so the funnel
+// always shows 1 free preview + 2 locked tiles behind the $9.99 unlock
+// CTA. Only the first slot fires a real /api/try/generate request —
+// the other two are pre-marked credit_limit_reached client-side and
+// render the locked-paywall overlay (heavy blur + lock + UNLOCK FOR
+// $9.99 strip) without burning the IP's hourly rate-limit slot.
 //
-// This test pins that contract so accidental relaxations of the limit
-// (e.g. dropping back to 3/hour, or the rate-limit bypass that briefly
-// existed for E2E_SCENEIFY_MOCK) fail loudly.
+// This test pins both contracts: the 2-pick cap, and the
+// credit_limit_reached error code on the locked tiles.
 
 // RFC 5737 documentation block — safe to spoof via x-forwarded-for so
 // each test has a fresh in-memory rate-limit bucket on the dev server.
@@ -25,7 +26,7 @@ test.describe("/try unauth credit limit", () => {
     await context.setExtraHTTPHeaders({ "x-forwarded-for": uniqueTestIp() });
   });
 
-  test("3 picks → 1 succeeds, 2 fail with credit_limit_reached", async ({
+  test("2 picks → 3 tiles (1 free + bonus + locked), 1 succeeds, 2 credit_limit_reached", async ({
     page,
   }) => {
     await page.goto("/try", { waitUntil: "networkidle" });
@@ -37,11 +38,11 @@ test.describe("/try unauth credit limit", () => {
 
     const sceneCards = page.locator('[data-testid="scene-card"]');
     await sceneCards.first().waitFor({ state: "visible", timeout: 20_000 });
-    // Pick three different scenes — any three will do; the rate-limit
-    // contract is independent of which scenes you pick.
+    // Unauth cap is 2: a 3rd click is rejected by ScenesStep before the
+    // pick lands. Pick exactly 2; the bonus slot is auto-added in the
+    // develop step from the remaining catalog.
     await sceneCards.nth(0).click();
     await sceneCards.nth(1).click();
-    await sceneCards.nth(2).click();
 
     await page.locator('[data-testid="generate-button"]').click();
     await expect(page).toHaveURL(/\/try\?.*step=develop/, { timeout: 10_000 });
@@ -52,6 +53,7 @@ test.describe("/try unauth credit limit", () => {
     // mix of statuses — there is no single "all-done" event the UI
     // exposes when one succeeds and others 429.
     const tiles = page.locator('[data-testid="develop-tile"]');
+    // 2 picks + 1 auto-added bonus tile = 3 tiles total.
     await expect(tiles).toHaveCount(3, { timeout: 60_000 });
 
     await expect
@@ -83,11 +85,12 @@ test.describe("/try unauth credit limit", () => {
     // a different error code, and we want this contract pinned.
     await expect(creditLimited).toHaveCount(2);
 
-    // The user-visible copy on the credit-limited tiles should be the
-    // sign-up nudge, not the generic "RESHOOT NEEDED" string.
-    await expect(
-      page.getByTestId("tile-credit-limit").first(),
-    ).toBeVisible();
+    // The free-preview cream caption strip is on the succeeded tile,
+    // and the locked tiles render an "UNLOCK FOR $9.99" CTA (one each).
+    // The "RESHOOT NEEDED" copy must NOT appear — credit-limited tiles
+    // are surfaced as paywall overlays, not generic errors.
+    await expect(page.getByTestId("tile-free-preview-strip")).toBeVisible();
+    await expect(page.getByTestId("tile-unlock-cta")).toHaveCount(2);
     await expect(page.getByText(/RESHOOT NEEDED/i)).toHaveCount(0);
   });
 });
