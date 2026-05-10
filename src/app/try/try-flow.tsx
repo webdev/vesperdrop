@@ -31,6 +31,8 @@ import {
 import { ProgressScreen } from "./progress-screen";
 import { SavedBar } from "./saved-bar";
 import { AuthModal } from "./auth-modal";
+import { OtpAuthFlow } from "@/components/app/otp-auth-flow";
+import { motion } from "framer-motion";
 
 const PENDING_BATCH_KEY = "vd_pending_batch";
 const TRY_INTENT_KEY = "vd_try_intent";
@@ -620,6 +622,14 @@ function DevelopStep({
   const [hydratedFile, setHydratedFile] = useState<File | null>(null);
   const claimRanRef = useRef(false);
 
+  // Unauth claim state. The batch is persisted as soon as all 3
+  // generations succeed (so we have a stable token to attach on OTP
+  // verify); `claimed` flips to true after attach-batch resolves and
+  // gates the visual unlock on the free preview tile.
+  const [batchToken, setBatchToken] = useState<string | null>(null);
+  const [claimed, setClaimed] = useState(false);
+  const finalizeRanRef = useRef(false);
+
   useEffect(() => {
     if (!photo) return;
     if (photo.file) return;
@@ -721,6 +731,47 @@ function DevelopStep({
     })();
   }, [isAuthed, developDone, photo, generationResults, serverSourceUrl]);
 
+  // Unauth: as soon as every generation lands, persist the batch and
+  // mint a token. We do this BEFORE the user enters their email so the
+  // OTP claim path has a token to attach on success — no race between
+  // "verifyOtp resolved" and "finalize-batch resolved".
+  useEffect(() => {
+    if (isAuthed) return;
+    if (finalizeRanRef.current) return;
+    if (batchToken) return;
+    const succeeded = generationResults.filter(
+      (r) => r.status === "succeeded" && r.outputUrl,
+    );
+    if (succeeded.length === 0) return;
+    if (succeeded.length !== generationResults.length) return;
+    finalizeRanRef.current = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/try/finalize-batch", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            generations: succeeded.map((r) => ({
+              sceneSlug: r.sceneSlug,
+              sceneName: r.sceneName,
+              outputUrl: r.outputUrl as string,
+              ...(r.rawUrl ? { rawUrl: r.rawUrl } : {}),
+              isFreePreview: Boolean(r.isFreePreview),
+            })),
+          }),
+        });
+        if (!res.ok) {
+          finalizeRanRef.current = false;
+          return;
+        }
+        const data = (await res.json()) as { token?: string };
+        if (data.token) setBatchToken(data.token);
+      } catch {
+        finalizeRanRef.current = false;
+      }
+    })();
+  }, [isAuthed, generationResults, batchToken]);
+
   const displayResults: TileResult[] = generationResults;
 
   const openAuthModal = useCallback((intent: AuthIntent) => {
@@ -737,10 +788,16 @@ function DevelopStep({
     a.remove();
   }, []);
 
+  // Once the user has claimed (OTP verified + batch attached) we know
+  // there's an active client session even though `isAuthed` (from SSR)
+  // is still false. Treat that as effectively authed for click-level
+  // download intent so the free-preview tile downloads inline instead
+  // of opening the now-deprecated AuthModal.
+  const effectivelyAuthed = isAuthed || claimed;
   const handleDownloadClick = useCallback(
     (slug: string) => {
       track("try_tile_download_clicked", { slug });
-      if (isAuthed) {
+      if (effectivelyAuthed) {
         const tile = generationResults.find((r) => r.sceneSlug === slug);
         if (tile?.outputUrl) {
           triggerDirectDownload(
@@ -753,7 +810,7 @@ function DevelopStep({
       track("try_signup_clicked", { intent: "download", slug });
       openAuthModal("download");
     },
-    [isAuthed, generationResults, triggerDirectDownload, openAuthModal],
+    [effectivelyAuthed, generationResults, triggerDirectDownload, openAuthModal],
   );
 
   const handleLockedClick = useCallback(() => {
@@ -767,52 +824,37 @@ function DevelopStep({
   // Until the batch finishes generating we open AuthModal as a soft fallback
   // so the click feels responsive instead of dead.
   const [unlockSubmitting, setUnlockSubmitting] = useState(false);
-  const handleUnlockClick = useCallback(async () => {
+  const handleUnlockClick = useCallback(() => {
     track("try_unlock_clicked");
     if (unlockSubmitting) return;
-    const succeeded = generationResults.filter(
-      (r) => r.status === "succeeded" && r.outputUrl,
-    );
-    if (succeeded.length < picked.length) {
-      // Still generating — fall back to the auth modal so the click isn't
-      // a dead-end. The user can retry the unlock once the batch finishes.
-      track("try_signup_clicked", { intent: "unlock" });
-      openAuthModal("unlock");
+    if (!batchToken) {
+      // The auto-finalize effect hasn't landed yet — silently no-op.
+      // The CTA only shows when batchToken is set, so this is defense
+      // in depth.
       return;
     }
     setUnlockSubmitting(true);
-    try {
-      const res = await fetch("/api/try/finalize-batch", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          generations: succeeded.map((r) => ({
-            sceneSlug: r.sceneSlug,
-            sceneName: r.sceneName,
-            outputUrl: r.outputUrl as string,
-            ...(r.rawUrl ? { rawUrl: r.rawUrl } : {}),
-            isFreePreview: Boolean(r.isFreePreview),
-          })),
-        }),
-      });
-      if (!res.ok) {
-        setUnlockSubmitting(false);
-        track("try_signup_clicked", { intent: "unlock" });
-        openAuthModal("unlock");
-        return;
-      }
-      const data = (await res.json()) as { token?: string };
-      if (!data.token) {
-        setUnlockSubmitting(false);
-        openAuthModal("unlock");
-        return;
-      }
-      window.location.href = `/api/stripe/unlock-checkout?batchToken=${data.token}`;
-    } catch {
-      setUnlockSubmitting(false);
-      openAuthModal("unlock");
+    window.location.href = `/api/stripe/unlock-checkout?batchToken=${batchToken}`;
+  }, [unlockSubmitting, batchToken]);
+
+  // Called by OtpAuthFlow once verifyOtp resolves with a session. We
+  // attach the anonymous batch to the now-authenticated user so the
+  // post-payment unlock page (and library) can find it by user_id.
+  // Errors from attach-batch are swallowed — the visual unlock should
+  // still proceed; the batch lookup falls back to token-based access.
+  const handleClaimSuccess = useCallback(async () => {
+    track("try_studio_claimed");
+    if (batchToken) {
+      try {
+        await fetch("/api/try/attach-batch", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ token: batchToken }),
+        });
+      } catch {}
     }
-  }, [unlockSubmitting, generationResults, picked, openAuthModal]);
+    setClaimed(true);
+  }, [batchToken]);
 
   const handleAuthSuccess = useCallback(async () => {
     setAuthModal((s) => ({ ...s, open: false }));
@@ -863,6 +905,9 @@ function DevelopStep({
           handleDownloadClick={handleDownloadClick}
           handleUnlockClick={handleUnlockClick}
           unlockSubmitting={unlockSubmitting}
+          claimed={claimed}
+          batchReady={batchToken !== null}
+          onClaimSuccess={handleClaimSuccess}
         />
       )}
 
@@ -899,6 +944,9 @@ function UnauthEditorialStage({
   handleDownloadClick,
   handleUnlockClick,
   unlockSubmitting,
+  claimed,
+  batchReady,
+  onClaimSuccess,
 }: {
   photo: Photo | null;
   picked: string[];
@@ -911,8 +959,21 @@ function UnauthEditorialStage({
   handleDownloadClick: (slug: string) => void;
   handleUnlockClick: () => void;
   unlockSubmitting: boolean;
+  claimed: boolean;
+  batchReady: boolean;
+  onClaimSuccess: (args: { email: string; userId: string }) => void | Promise<void>;
 }) {
   const anyPending = generationResults.some((r) => r.status === "pending");
+  const allSucceeded =
+    !anyPending &&
+    generationResults.length > 0 &&
+    generationResults.every((r) => r.status === "succeeded");
+  // The claim section only appears once the batch is persisted (so we
+  // have a token to attach on OTP success). Before that, even if the
+  // images are visible, the user shouldn't see the email entry — it
+  // would otherwise authenticate without an attached batch.
+  const showClaim = allSucceeded && batchReady && !claimed;
+  const showUpgrade = allSucceeded && claimed;
   return (
     <>
       {/* Full-bleed stage: extends past the page container to the viewport
@@ -951,6 +1012,7 @@ function UnauthEditorialStage({
               onDownloadClick={handleDownloadClick}
               onUnlockClick={handleUnlockClick}
               editorial
+              freePreviewUnlocked={claimed}
               onSettled={(out) => {
                 setGenerationResults((prev) =>
                   prev.map((r) => {
@@ -986,15 +1048,29 @@ function UnauthEditorialStage({
               onDownloadClick={handleDownloadClick}
               onUnlockClick={handleUnlockClick}
               editorial
+              freePreviewUnlocked={claimed}
             />
           )}
         </div>
       </div>
 
-      <InlineUnlockCta
-        onUnlock={handleUnlockClick}
-        disabled={unlockSubmitting}
-      />
+      {/* Inline claim / upgrade rail. Animates between states so the
+          page never reloads and the imagery stays anchored above. */}
+      <motion.div
+        layout
+        transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
+        className="mt-12 flex flex-col items-center md:mt-16"
+      >
+        {showClaim ? (
+          <OtpAuthFlow surface="try_inline_claim" onSuccess={onClaimSuccess} />
+        ) : null}
+        {showUpgrade ? (
+          <InlineUnlockCta
+            onUnlock={handleUnlockClick}
+            disabled={unlockSubmitting}
+          />
+        ) : null}
+      </motion.div>
     </>
   );
 }
@@ -1165,7 +1241,7 @@ function InlineUnlockCta({
           <rect x="4" y="11" width="16" height="10" rx="1.5" />
           <path d="M8 11V7a4 4 0 0 1 8 0v4" />
         </svg>
-        Unlock full-resolution set —{" "}
+        Complete the studio set —{" "}
         <span className="font-serif font-medium text-terracotta-dark">
           $9.99
         </span>
@@ -1177,7 +1253,7 @@ function InlineUnlockCta({
         </span>
       </button>
       <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-4">
-        2 high-resolution images · Commercial use · No watermark · Instant download
+        2 additional HD images · no watermark · commercial use · instant download
       </p>
     </div>
   );

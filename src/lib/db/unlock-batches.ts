@@ -1,6 +1,6 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "./index";
 import { unlockBatches, type UnlockBatch, type UnlockBatchGeneration } from "./schema";
 
@@ -42,6 +42,24 @@ export async function attachStripeSessionToBatch(
     .update(unlockBatches)
     .set({ stripeSessionId: sessionId })
     .where(eq(unlockBatches.token, token));
+}
+
+/**
+ * Attach an anonymous batch to a now-authenticated user. Idempotent and
+ * race-safe: only updates when user_id is currently null AND token
+ * matches, so a second OTP verification (or a tab-double-fire) won't
+ * silently transfer the batch to a different user.
+ */
+export async function attachBatchToUser(
+  token: string,
+  userId: string,
+): Promise<boolean> {
+  const updated = await db
+    .update(unlockBatches)
+    .set({ userId })
+    .where(and(eq(unlockBatches.token, token), isNull(unlockBatches.userId)))
+    .returning({ token: unlockBatches.token });
+  return updated.length > 0;
 }
 
 export async function markBatchPaid(args: {

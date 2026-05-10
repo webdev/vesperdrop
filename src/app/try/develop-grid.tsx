@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 
 const TILE_REVEAL_MS = 1100;
 const STATUS_PHASES = ["EXPOSING", "DEVELOPING", "FIXING", "WASHING"] as const;
@@ -73,6 +74,7 @@ export function DevelopGrid({
   // past the content column. We return a fragment of tile wrappers
   // with sm:order-N classes that the parent grid uses for placement.
   editorial = false,
+  freePreviewUnlocked = false,
 }: {
   results: TileResult[];
   variant?: DevelopGridVariant;
@@ -81,6 +83,7 @@ export function DevelopGrid({
   onLockedClick?: () => void;
   onUnlockClick?: () => void;
   editorial?: boolean;
+  freePreviewUnlocked?: boolean;
 }) {
   if (results.length === 0) {
     return (
@@ -112,6 +115,7 @@ export function DevelopGrid({
               onDownloadClick={onDownloadClick}
               onUnlockClick={onUnlockClick}
               editorial
+              freePreviewUnlocked={freePreviewUnlocked}
             />
           </div>
         ))}
@@ -159,6 +163,7 @@ function Tile({
   onDownloadClick,
   onUnlockClick,
   editorial = false,
+  freePreviewUnlocked = false,
 }: {
   tile: TileResult;
   index: number;
@@ -168,6 +173,7 @@ function Tile({
   onDownloadClick?: (slug: string) => void;
   onUnlockClick?: () => void;
   editorial?: boolean;
+  freePreviewUnlocked?: boolean;
 }) {
   const isDone = tile.status === "succeeded";
   const isFailed = tile.status === "failed";
@@ -388,61 +394,109 @@ function Tile({
 
       {editorial && isDone ? (
         <>
-          {/* Diagonal repeating VESPERDROP watermark — gates the image
-              visually while preserving full fidelity. SVG pattern is
-              uniquely id'd per tile so multiple instances don't collide. */}
-          <svg
-            className="pointer-events-none absolute inset-0 h-full w-full"
-            style={{ zIndex: 38, mixBlendMode: "overlay" }}
-            aria-hidden
-          >
-            <defs>
-              <pattern
-                id={`vd-wm-${tile.sceneSlug}-${index}`}
-                patternUnits="userSpaceOnUse"
-                width="280"
-                height="96"
-                patternTransform="rotate(-26)"
+          {/* Diagonal repeating VESPERDROP watermark + Preview label.
+              When the free preview unlocks, both fade out and a small
+              HD download badge fades in. The image itself never blurs
+              in editorial mode, so the unlock animation reads as the
+              watermark *dissolving away* from the underlying photo. */}
+          <AnimatePresence initial={false}>
+            {!(tile.isFreePreview && freePreviewUnlocked) ? (
+              <motion.svg
+                key="watermark"
+                className="pointer-events-none absolute inset-0 h-full w-full"
+                style={{ zIndex: 38, mixBlendMode: "overlay" }}
+                aria-hidden
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.7, ease: [0.2, 0.8, 0.2, 1] }}
               >
-                <text
-                  x="0"
-                  y="56"
-                  fill="white"
-                  fillOpacity="0.55"
-                  fontFamily="ui-monospace, 'SFMono-Regular', monospace"
-                  fontSize="24"
-                  letterSpacing="10"
+                <defs>
+                  <pattern
+                    id={`vd-wm-${tile.sceneSlug}-${index}`}
+                    patternUnits="userSpaceOnUse"
+                    width="280"
+                    height="96"
+                    patternTransform="rotate(-26)"
+                  >
+                    <text
+                      x="0"
+                      y="56"
+                      fill="white"
+                      fillOpacity="0.55"
+                      fontFamily="ui-monospace, 'SFMono-Regular', monospace"
+                      fontSize="24"
+                      letterSpacing="10"
+                    >
+                      VESPERDROP
+                    </text>
+                  </pattern>
+                </defs>
+                <rect
+                  width="100%"
+                  height="100%"
+                  fill={`url(#vd-wm-${tile.sceneSlug}-${index})`}
+                />
+              </motion.svg>
+            ) : null}
+
+            {!(tile.isFreePreview && freePreviewUnlocked) ? (
+              <motion.div
+                key="preview-label"
+                className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-white"
+                style={{ zIndex: 41, textShadow: "0 1px 2px rgba(0,0,0,0.55)" }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.45, ease: [0.2, 0.8, 0.2, 1] }}
+              >
+                <svg
+                  width="11"
+                  height="11"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
                 >
-                  VESPERDROP
-                </text>
-              </pattern>
-            </defs>
-            <rect
-              width="100%"
-              height="100%"
-              fill={`url(#vd-wm-${tile.sceneSlug}-${index})`}
-            />
-          </svg>
-          <div
-            className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-white"
-            style={{ zIndex: 41, textShadow: "0 1px 2px rgba(0,0,0,0.55)" }}
-          >
-            <svg
-              width="11"
-              height="11"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden
-            >
-              <rect x="4" y="11" width="16" height="10" rx="1.5" />
-              <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-            </svg>
-            Preview
-          </div>
+                  <rect x="4" y="11" width="16" height="10" rx="1.5" />
+                  <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                </svg>
+                Preview
+              </motion.div>
+            ) : null}
+
+            {tile.isFreePreview && freePreviewUnlocked ? (
+              <motion.div
+                key="hd-badge"
+                className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-white"
+                style={{ zIndex: 41, textShadow: "0 1px 2px rgba(0,0,0,0.55)" }}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.6, delay: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+              >
+                <svg
+                  width="11"
+                  height="11"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  <path d="M12 3v12" />
+                  <path d="M6 9l6 6 6-6" />
+                  <path d="M5 21h14" />
+                </svg>
+                Download HD
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
         </>
       ) : null}
 

@@ -27,6 +27,10 @@ export type AnalyticsEvent =
   | { name: "try_tile_download_clicked"; props: { slug: string } }
   | { name: "try_locked_tile_clicked"; props?: never }
   | { name: "try_unlock_clicked"; props?: never }
+  | { name: "auth_otp_send_requested"; props: { surface: string } }
+  | { name: "auth_otp_verified"; props: { surface: string } }
+  | { name: "auth_otp_resend"; props: { surface: string } }
+  | { name: "try_studio_claimed"; props?: never }
   | { name: "pricing_plan_clicked"; props: { plan: string; billing: "monthly" | "yearly" } }
   | { name: "pricing_pack_clicked"; props: { credits: number } }
   | { name: "checkout_success"; props: { source: "subscription" | "pack" } }
