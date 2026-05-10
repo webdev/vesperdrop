@@ -20,12 +20,12 @@ type Props = {
    */
   onSuccess?: (args: { email: string; userId: string }) => void | Promise<void>;
   /**
-   * Optional copy overrides. Defaults match the /try cinematic reveal:
-   *   eyebrow: "Claim your studio"
-   *   description: "Save this batch and unlock your first HD image."
+   * Optional copy overrides. Defaults match the /try cinematic reveal.
+   * Pass `null` to suppress the header entirely (useful when embedded
+   * in a page that already provides its own h1).
    */
-  eyebrow?: string;
-  description?: string;
+  eyebrow?: string | null;
+  description?: React.ReactNode | null;
   /**
    * Track which surface fired the flow so analytics can compare conversion
    * across /try inline, AuthModal, sign-in page, etc.
@@ -113,7 +113,9 @@ export function OtpAuthFlow({
             transition={STATE_TRANSITION}
             className="flex w-full max-w-md flex-col items-center gap-4"
           >
-            <Header eyebrow={eyebrow} description={description} />
+            {eyebrow !== null ? (
+              <Header eyebrow={eyebrow} description={description} />
+            ) : null}
             <EmailForm
               busy={state.kind === "sending"}
               onSubmit={sendOtp}
@@ -169,8 +171,8 @@ function Header({
   eyebrow,
   description,
 }: {
-  eyebrow: string;
-  description: React.ReactNode;
+  eyebrow: string | null;
+  description: React.ReactNode | null;
 }) {
   return (
     <div className="flex flex-col items-center gap-2">

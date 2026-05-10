@@ -1,12 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { track, identify } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
+import { OtpAuthFlow } from "@/components/app/otp-auth-flow";
 import type { PreviewPageData } from "@/lib/preview-pages/loader";
 
 type Props = { data: PreviewPageData };
@@ -30,10 +28,6 @@ function nextWithAttribution(data: PreviewPageData) {
 export function PreviewCta({ data }: Props) {
   const supabase = createSupabaseBrowserClient();
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [pending, start] = useTransition();
   const ctaFired = useRef(false);
 
   const common = {
@@ -54,37 +48,20 @@ export function PreviewCta({ data }: Props) {
     track("preview_signup_start", { ...common, signup_method: "google" });
     void postEvent(data.token, { kind: "signup_start", label: "google" });
     const next = nextWithAttribution(data);
-    const { error } = await supabase.auth.signInWithOAuth({
+    await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(next)}`,
       },
     });
-    if (error) setError(error.message);
   }
 
-  function handleEmailSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    fireCtaOnce("start_trial", "/sign-up");
+  async function handleOtpSuccess() {
     track("preview_signup_start", { ...common, signup_method: "email" });
     void postEvent(data.token, { kind: "signup_start", label: "email" });
-    setError(null);
-    start(async () => {
-      const { data: signUpData, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-      if (error) {
-        setError(error.message);
-        return;
-      }
-      if (signUpData.user) {
-        identify(signUpData.user.id, { email });
-        track("user_signed_up", { method: "email" });
-      }
-      router.push(nextWithAttribution(data));
-      router.refresh();
-    });
+    track("user_signed_up", { method: "email" });
+    router.push(nextWithAttribution(data));
+    router.refresh();
   }
 
   return (
@@ -110,45 +87,14 @@ export function PreviewCta({ data }: Props) {
         </div>
 
         <div className="w-full">
-          <form onSubmit={handleEmailSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="preview-email">Email address</Label>
-              <Input
-                id="preview-email"
-                type="email"
-                autoComplete="email"
-                placeholder="you@example.com"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onFocus={() => fireCtaOnce("start_trial", "/sign-up")}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="preview-password">Password</Label>
-              <Input
-                id="preview-password"
-                type="password"
-                autoComplete="new-password"
-                placeholder="At least 8 characters"
-                required
-                minLength={8}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            {error ? (
-              <p className="text-[13px] text-terracotta">{error}</p>
-            ) : null}
-            <Button
-              type="submit"
-              size="lg"
-              disabled={pending}
-              className="w-full rounded-full"
-            >
-              {pending ? "…" : "Start your free trial"}
-            </Button>
-          </form>
+          <div onFocus={() => fireCtaOnce("start_trial", "/sign-up")}>
+            <OtpAuthFlow
+              surface="preview_cta"
+              onSuccess={handleOtpSuccess}
+              eyebrow={null}
+              description={null}
+            />
+          </div>
 
           <div className="my-5 flex items-center gap-3">
             <span className="h-px flex-1 bg-line-soft" />
