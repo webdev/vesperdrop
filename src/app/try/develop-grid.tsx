@@ -441,31 +441,49 @@ function Tile({
             ) : null}
 
             {!(tile.isFreePreview && freePreviewUnlocked) ? (
-              <motion.div
-                key="preview-label"
-                className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-white"
-                style={{ zIndex: 41, textShadow: "0 1px 2px rgba(0,0,0,0.55)" }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.45, ease: [0.2, 0.8, 0.2, 1] }}
-              >
-                <svg
-                  width="11"
-                  height="11"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden
+              tile.isFreePreview ? (
+                <motion.div
+                  key="hero-pill"
+                  className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-ink/85 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-cream"
+                  style={{ zIndex: 41 }}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.45, ease: [0.2, 0.8, 0.2, 1] }}
                 >
-                  <rect x="4" y="11" width="16" height="10" rx="1.5" />
-                  <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-                </svg>
-                Preview
-              </motion.div>
+                  <span
+                    aria-hidden
+                    className="inline-block h-1.5 w-1.5 rounded-full bg-terracotta"
+                  />
+                  Hero shot
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="preview-label"
+                  className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-white"
+                  style={{ zIndex: 41, textShadow: "0 1px 2px rgba(0,0,0,0.55)" }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.45, ease: [0.2, 0.8, 0.2, 1] }}
+                >
+                  <svg
+                    width="11"
+                    height="11"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
+                    <rect x="4" y="11" width="16" height="10" rx="1.5" />
+                    <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                  </svg>
+                  Preview
+                </motion.div>
+              )
             ) : null}
 
             {tile.isFreePreview && freePreviewUnlocked ? (

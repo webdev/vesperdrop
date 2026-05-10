@@ -31,6 +31,14 @@ type Props = {
    * across /try inline, AuthModal, sign-in page, etc.
    */
   surface: string;
+  /**
+   * Layout variant. "vertical" (default) centers the form and shows
+   * an inline submit button below the input — used by AuthModal,
+   * /sign-in, /sign-up, preview-cta. "horizontal" places the input
+   * and the Send code pill side-by-side — used by the /try inline
+   * claim section where the headline lives in a parent column.
+   */
+  layout?: "vertical" | "horizontal";
 };
 
 // Subtle but tactile motion. Springs feel right for the "claim" reveal;
@@ -45,6 +53,7 @@ export function OtpAuthFlow({
   eyebrow = "Claim your studio",
   description = "Save this batch and unlock your first HD image.",
   surface,
+  layout = "vertical",
 }: Props) {
   const supabase = createSupabaseBrowserClient();
   const [state, setState] = useState<FlowState>({ kind: "email" });
@@ -120,6 +129,7 @@ export function OtpAuthFlow({
               busy={state.kind === "sending"}
               onSubmit={sendOtp}
               error={error}
+              layout={layout}
             />
           </motion.div>
         )}
@@ -188,12 +198,68 @@ function EmailForm({
   busy,
   onSubmit,
   error,
+  layout = "vertical",
 }: {
   busy: boolean;
   onSubmit: (email: string) => void;
   error: string | null;
+  layout?: "vertical" | "horizontal";
 }) {
   const [email, setEmail] = useState("");
+
+  if (layout === "horizontal") {
+    // Inline pill-shaped input + filled terracotta CTA on the same
+    // row. Used by the /try claim section where the heading + subcopy
+    // live in the parent column — the form itself is just controls.
+    return (
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (busy) return;
+          onSubmit(email.trim());
+        }}
+        className="flex w-full flex-col gap-2"
+      >
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-stretch">
+          <input
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            required
+            autoFocus
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={busy}
+            className="flex-1 rounded-full border border-line bg-surface px-5 py-3.5 text-[15px] text-ink placeholder:text-ink-4 focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/20 disabled:opacity-60"
+            data-testid="otp-email-input"
+          />
+          <button
+            type="submit"
+            disabled={busy || email.length === 0}
+            data-testid="otp-email-submit"
+            className="group inline-flex items-center justify-center gap-2 rounded-full bg-terracotta px-7 py-3.5 font-mono text-[12px] uppercase tracking-[0.16em] text-cream transition-colors hover:bg-terracotta-dark disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {busy ? "Sending…" : "Send code"}
+            <span
+              aria-hidden
+              className="transition-transform group-hover:translate-x-0.5"
+            >
+              →
+            </span>
+          </button>
+        </div>
+        {error ? (
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-orange-500">
+            {error}
+          </p>
+        ) : null}
+      </form>
+    );
+  }
+
+  // Vertical (default): underline-style input centered, ghost button
+  // below. Used by AuthModal, /sign-in, /sign-up, preview-cta.
   return (
     <form
       onSubmit={(e) => {
