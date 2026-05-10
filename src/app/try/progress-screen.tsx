@@ -9,6 +9,10 @@ import { DevelopGrid, type DevelopGridVariant, type TileResult } from "./develop
 type Props = {
   file: File;
   sceneSlugs: string[];
+  // Subset of sceneSlugs that should resolve to a credit-limit error
+  // without hitting the server. The unauth funnel passes picked.slice(1)
+  // here so only the first scene fires a real generation.
+  creditLimitedSlugs?: ReadonlySet<string>;
   userPhotoUrl: string;
   primaryPreset: PresetMeta;
   presetMetaBySlug: Record<string, PresetMeta>;
@@ -16,13 +20,20 @@ type Props = {
   initialResults: TileResult[];
   onSourceUrl?: (url: string) => void;
   onSettled: (
-    results: Array<{ slug: string; outputUrl?: string; rawUrl?: string; error?: string }>,
+    results: Array<{
+      slug: string;
+      outputUrl?: string;
+      rawUrl?: string;
+      error?: string;
+      errorCode?: string;
+    }>,
   ) => void;
 };
 
 export function ProgressScreen({
   file,
   sceneSlugs,
+  creditLimitedSlugs,
   userPhotoUrl,
   primaryPreset,
   presetMetaBySlug,
@@ -33,7 +44,19 @@ export function ProgressScreen({
 }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const stableSlugs = useMemo(() => sceneSlugs, []); // contract: stable for lifetime
-  const view = useProgressBatch({ file, sceneSlugs: stableSlugs, primaryPreset });
+  // Same stability contract for the credit-limited set: it's read once
+  // by useProgressBatch and never changes across this component's life.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stableCreditLimited = useMemo(
+    () => creditLimitedSlugs,
+    [],
+  );
+  const view = useProgressBatch({
+    file,
+    sceneSlugs: stableSlugs,
+    primaryPreset,
+    creditLimitedSlugs: stableCreditLimited,
+  });
 
   const [batchId] = useState<string>(() => crypto.randomUUID());
   const batchStartRef = useRef<number>(0);
@@ -93,7 +116,11 @@ export function ProgressScreen({
           rawUrl: s.rawUrl ?? undefined,
         };
       }
-      return { slug, error: s?.error?.message ?? "generation failed" };
+      return {
+        slug,
+        error: s?.error?.message ?? "generation failed",
+        errorCode: s?.error?.code,
+      };
     });
     onSettled(out);
   }, [view.streams, stableSlugs, onSettled, batchId]);
@@ -111,7 +138,12 @@ export function ProgressScreen({
       return { ...base, status: "succeeded", outputUrl: s.outputUrl };
     }
     if (s?.error) {
-      return { ...base, status: "failed", error: s.error.message };
+      return {
+        ...base,
+        status: "failed",
+        error: s.error.message,
+        errorCode: s.error.code,
+      };
     }
     return {
       ...base,

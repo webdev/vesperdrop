@@ -108,7 +108,21 @@ function extractConfirmationURL(html: string): string {
     .replace(/&#x3D;/gi, "=");
 }
 
+// /api/try/generate's unauth rate limit is 1 per IP per hour. The dev
+// server keeps its bucket map in-process, so without a unique fake IP
+// per test the second test run in the same hour would always 429. RFC
+// 5737 TEST-NET-2 (198.51.100.0/24) is reserved for documentation —
+// safe to spoof via x-forwarded-for.
+function uniqueTestIp(): string {
+  const lastOctet = (Date.now() ^ Math.floor(Math.random() * 1e6)) % 254 + 1;
+  return `198.51.100.${lastOctet}`;
+}
+
 test.describe("/try freemium funnel", () => {
+  test.beforeEach(async ({ context }) => {
+    await context.setExtraHTTPHeaders({ "x-forwarded-for": uniqueTestIp() });
+  });
+
   // The full conversion-gate happy path — the most important assertion
   // is that generation runs WITHOUT auth and that the download click is
   // what triggers the AuthModal. Everything else flows from there.

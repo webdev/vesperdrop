@@ -8,10 +8,12 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 const renameRunForUser = vi.fn();
+const deleteRunForUser = vi.fn();
 vi.mock("@/lib/db/runs", () => ({
   renameRunForUser: (...a: unknown[]) => renameRunForUser(...a),
+  deleteRunForUser: (...a: unknown[]) => deleteRunForUser(...a),
   RUN_NAME_MAX_LENGTH: 80,
-  // GET handler dependencies; not exercised in PATCH tests but must not throw on import.
+  // GET handler dependencies; not exercised in PATCH/DELETE tests but must not throw on import.
   getRunForUser: vi.fn(),
 }));
 
@@ -22,7 +24,7 @@ vi.mock("@/lib/db/packs", () => ({
   listPacksForRun: vi.fn(),
 }));
 
-import { PATCH } from "./route";
+import { DELETE, PATCH } from "./route";
 
 const params = Promise.resolve({ id: "run-1" });
 
@@ -37,6 +39,7 @@ function req(body: unknown) {
 beforeEach(() => {
   getUser.mockReset().mockResolvedValue({ data: { user: { id: "u1" } } });
   renameRunForUser.mockReset().mockResolvedValue(true);
+  deleteRunForUser.mockReset().mockResolvedValue(true);
 });
 
 describe("PATCH /api/runs/[id]", () => {
@@ -85,5 +88,30 @@ describe("PATCH /api/runs/[id]", () => {
     renameRunForUser.mockRejectedValueOnce(new Error("name exceeds 80 characters"));
     const res = await PATCH(req({ name: "Mine" }), { params });
     expect(res.status).toBe(400);
+  });
+});
+
+describe("DELETE /api/runs/[id]", () => {
+  function delReq() {
+    return new Request("http://localhost/api/runs/run-1", { method: "DELETE" });
+  }
+
+  it("rejects unauthenticated requests", async () => {
+    getUser.mockResolvedValueOnce({ data: { user: null } });
+    const res = await DELETE(delReq(), { params });
+    expect(res.status).toBe(401);
+    expect(deleteRunForUser).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when the run is not owned by the user", async () => {
+    deleteRunForUser.mockResolvedValueOnce(false);
+    const res = await DELETE(delReq(), { params });
+    expect(res.status).toBe(404);
+  });
+
+  it("deletes a run and returns ok", async () => {
+    const res = await DELETE(delReq(), { params });
+    expect(res.status).toBe(200);
+    expect(deleteRunForUser).toHaveBeenCalledWith("run-1", "u1");
   });
 });

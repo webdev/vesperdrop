@@ -41,6 +41,10 @@ export type TileResult = {
   outputUrl?: string;
   rawUrl?: string;
   error?: string;
+  // Set when the failure is a known business outcome we want to render
+  // differently from a generic error. "credit_limit_reached" is the
+  // unauth case where the visitor's free preview was already used.
+  errorCode?: string;
   // Optional live-stream context. When `streamPhaseId` is set the tile shows
   // the rotating, slot-filled caption from our streaming events instead of
   // the synthetic darkroom phase string.
@@ -182,7 +186,13 @@ function Tile({
   };
 
   return (
-    <div className="group flex flex-col gap-2">
+    <div
+      className="group flex flex-col gap-2"
+      data-testid="develop-tile"
+      data-scene-slug={tile.sceneSlug}
+      data-tile-status={tile.status}
+      data-error-code={tile.errorCode ?? ""}
+    >
     <div
       className="relative aspect-[4/5] overflow-hidden border border-zinc-200 bg-zinc-900"
       style={{ cursor: isDone && onDownloadClick ? "pointer" : "default" }}
@@ -270,9 +280,18 @@ function Tile({
     {!isDone ? (
       <div className="min-h-[18px] font-mono text-[10px]">
         {isFailed ? (
-          <span className="tracking-[0.16em] text-orange-500 uppercase">
-            RESHOOT NEEDED
-          </span>
+          tile.errorCode === "credit_limit_reached" ? (
+            <span
+              className="tracking-[0.16em] text-terracotta-dark uppercase"
+              data-testid="tile-credit-limit"
+            >
+              Free preview used · sign up to unlock
+            </span>
+          ) : (
+            <span className="tracking-[0.16em] text-orange-500 uppercase">
+              RESHOOT NEEDED
+            </span>
+          )
         ) : liveMode ? (
           <span className="inline-flex items-center gap-1.5 text-zinc-700">
             <span className="vd-spin inline-block">⟳</span>

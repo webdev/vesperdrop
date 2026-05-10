@@ -581,12 +581,36 @@ function DevelopStep({
 }) {
   const router = useRouter();
 
+  // Unauth visitors get one free preview. Pre-mark every pick after the
+  // first as credit-limited so only one /api/try/generate request fires
+  // for the batch — the others render a sign-up nudge directly. Authed
+  // users keep the full N-pick fan-out.
+  const creditLimitedSlugs = useMemo<ReadonlySet<string>>(
+    () => (isAuthed ? new Set<string>() : new Set(picked.slice(1))),
+    // We intentionally freeze this set on first render — it must stay
+    // stable for the lifetime of useProgressBatch (same contract as
+    // sceneSlugs). The wizard tears down DevelopStep on reset, so
+    // changing pick lists creates a fresh component anyway.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
   const [generationResults, setGenerationResults] = useState<TileResult[]>(() =>
-    picked.map((slug) => ({
-      sceneSlug: slug,
-      sceneName: sceneById[slug]?.name ?? slug,
-      status: "pending",
-    })),
+    picked.map((slug) => {
+      const base = {
+        sceneSlug: slug,
+        sceneName: sceneById[slug]?.name ?? slug,
+      };
+      if (creditLimitedSlugs.has(slug)) {
+        return {
+          ...base,
+          status: "failed" as const,
+          error: "Free preview already used.",
+          errorCode: "credit_limit_reached",
+        };
+      }
+      return { ...base, status: "pending" as const };
+    }),
   );
 
   const [authModal, setAuthModal] = useState<AuthModalState>({
@@ -817,10 +841,11 @@ function DevelopStep({
         </div>
 
         <div>
-          {generationResults.every((r) => r.status === "pending") && photo && effectiveFile && sceneById[picked[0]] ? (
+          {generationResults.some((r) => r.status === "pending") && photo && effectiveFile && sceneById[picked[0]] ? (
             <ProgressScreen
               file={effectiveFile}
               sceneSlugs={picked}
+              creditLimitedSlugs={creditLimitedSlugs}
               userPhotoUrl={photo.url}
               primaryPreset={{
                 slug: sceneById[picked[0]].slug,
@@ -857,7 +882,12 @@ function DevelopStep({
                         rawUrl: hit.rawUrl,
                       };
                     }
-                    return { ...r, status: "failed", error: hit.error ?? "failed" };
+                    return {
+                      ...r,
+                      status: "failed",
+                      error: hit.error ?? "failed",
+                      errorCode: hit.errorCode,
+                    };
                   }),
                 );
                 for (const item of out) {

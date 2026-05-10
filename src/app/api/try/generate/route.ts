@@ -24,6 +24,12 @@ const ipBuckets = new Map<string, { count: number; resetAt: number }>();
 // strict; the conversion gate at download is the real value capture.
 const RATE_LIMIT_AUTHED = 12;
 const WINDOW_MS_AUTHED = 60_000;
+// Unauth visitors get one free preview per visit, enforced client-side
+// by try-flow (only the first picked scene fires /api/try/generate; the
+// rest pre-fail with code "credit_limit_reached"). This server-side
+// budget is the abuse backstop — generous enough that a normal user
+// who refreshes or replays the funnel doesn't get falsely blocked, but
+// strict enough that scripted abuse from one IP costs Sceneify quickly.
 const RATE_LIMIT_UNAUTHED = 3;
 const WINDOW_MS_UNAUTHED = 60 * 60_000;
 const TOTAL_EST_MS = 70_000;
@@ -51,11 +57,18 @@ function rateLimitOk(ip: string, isAuthed: boolean): boolean {
   return true;
 }
 
-function jsonError(message: string, status: number) {
-  return new Response(JSON.stringify({ error: message }), {
-    status,
-    headers: { "content-type": "application/json" },
-  });
+function jsonError(
+  message: string,
+  status: number,
+  code?: string,
+) {
+  return new Response(
+    JSON.stringify(code ? { error: message, code } : { error: message }),
+    {
+      status,
+      headers: { "content-type": "application/json" },
+    },
+  );
 }
 
 function buildMockStream(slug: string): ReadableStream<Uint8Array> {
@@ -121,17 +134,13 @@ export async function POST(req: Request) {
   const userEmail = userData.user?.email ?? null;
   const isAuthed = Boolean(userData.user);
 
-  // Skip rate limiting when the Sceneify mock is enabled — the funnel
-  // e2e (e2e/try-deferred-generation.spec.ts) issues several unauth
-  // generations from a single IP within the unauth hourly window, which
-  // is by design (one per test run, multiple runs while iterating).
-  // The mock env is never set in production, so this guard is safe.
-  if (process.env.E2E_SCENEIFY_MOCK !== "1" && !rateLimitOk(ip, isAuthed)) {
+  if (!rateLimitOk(ip, isAuthed)) {
     return jsonError(
       isAuthed
         ? "Too many previews. Wait a minute and try again."
-        : "Too many free previews from this IP. Sign up for unlimited.",
+        : "Free preview already used — sign up to unlock more.",
       429,
+      isAuthed ? "rate_limit" : "credit_limit_reached",
     );
   }
 

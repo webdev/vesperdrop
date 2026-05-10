@@ -13,6 +13,7 @@ import postgres from "postgres";
  */
 
 const dryRun = process.argv.includes("--dry-run");
+const force = process.argv.includes("--force");
 
 const dbUrl = process.env.POSTGRES_URL_NON_POOLING;
 if (!dbUrl) {
@@ -145,14 +146,22 @@ async function detectFocal(imageUrl: string): Promise<FocalResult> {
 const sql = postgres(dbUrl, { ssl: "require", max: 1 });
 
 async function main() {
-  const rows = await sql<Row[]>`
-    select id, output_url
-    from generations
-    where status = 'succeeded'
-      and output_url is not null
-      and face_box is null
-    order by created_at asc
-  `;
+  const rows = force
+    ? await sql<Row[]>`
+        select id, output_url
+        from generations
+        where status = 'succeeded'
+          and output_url is not null
+        order by created_at asc
+      `
+    : await sql<Row[]>`
+        select id, output_url
+        from generations
+        where status = 'succeeded'
+          and output_url is not null
+          and face_box is null
+        order by created_at asc
+      `;
   console.log(`found ${rows.length} rows to backfill${dryRun ? " (DRY RUN)" : ""}`);
 
   let ok = 0;

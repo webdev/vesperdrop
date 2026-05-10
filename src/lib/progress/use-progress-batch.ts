@@ -33,13 +33,27 @@ export function useProgressBatch(args: {
   file: File;
   sceneSlugs: string[];
   primaryPreset: PresetMeta;
+  // Slugs that should resolve to a credit-limit error without firing
+  // any network request. Used by the unauth funnel: pick 3 → only the
+  // first slug calls /api/try/generate, the other two pre-fail with
+  // code "credit_limit_reached" so the UI renders a sign-up nudge.
+  creditLimitedSlugs?: ReadonlySet<string>;
 }): BatchView {
-  const { file, sceneSlugs, primaryPreset } = args;
+  const { file, sceneSlugs, primaryPreset, creditLimitedSlugs } = args;
 
   const handles = sceneSlugs.map((slug) => ({
     slug,
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    handle: useProgressStream({ file, sceneSlug: slug }),
+    handle: useProgressStream({
+      file,
+      sceneSlug: slug,
+      preFailWithCode: creditLimitedSlugs?.has(slug)
+        ? "credit_limit_reached"
+        : undefined,
+      preFailMessage: creditLimitedSlugs?.has(slug)
+        ? "Free preview already used — sign up to unlock more."
+        : undefined,
+    }),
   }));
   const streams: Record<string, StreamHandle> = Object.fromEntries(
     handles.map(({ slug, handle }) => [slug, handle]),

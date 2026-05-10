@@ -7,6 +7,11 @@ const ClientEnv = z.object({
   // Google Analytics 4 measurement id (e.g. "G-XXXXXXXXXX"). When unset,
   // the AnalyticsProvider skips loading gtag.js and track() is a no-op.
   NEXT_PUBLIC_GA_MEASUREMENT_ID: z.string().min(1).optional(),
+  // Google Tag Manager container id (e.g. "GTM-XXXXXXX"). Used as the
+  // single entry point for non-engineering tags — Contentsquare, Hotjar,
+  // ad pixels, etc. — configured in the GTM UI rather than in code.
+  // When unset, the AnalyticsProvider skips loading GTM entirely.
+  NEXT_PUBLIC_GTM_ID: z.string().min(1).optional(),
   // Auto-set by Vercel: "production" | "preview" | "development". Unset in
   // pure local `pnpm dev`. Used to scope dev-only affordances (e.g. the
   // mock-gen pill) to non-prod environments without manual configuration.
@@ -33,6 +38,7 @@ export const clientEnv = ClientEnv.parse({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
   NEXT_PUBLIC_GA_MEASUREMENT_ID: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID,
+  NEXT_PUBLIC_GTM_ID: process.env.NEXT_PUBLIC_GTM_ID,
   NEXT_PUBLIC_VERCEL_ENV: process.env.NEXT_PUBLIC_VERCEL_ENV,
 });
 

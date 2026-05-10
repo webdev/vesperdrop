@@ -30,6 +30,24 @@ export async function getRunForUser(runId: string, userId: string) {
   return row;
 }
 
+/**
+ * Hard-delete a run and (via FK cascade) its generations and packs.
+ * Returns true when a row was deleted, false when the run doesn't exist
+ * or isn't owned by this user. Blob assets are intentionally left in
+ * place — a separate sweep should reap them — so the delete stays fast
+ * and DB-only.
+ */
+export async function deleteRunForUser(
+  runId: string,
+  userId: string,
+): Promise<boolean> {
+  const deleted = await db
+    .delete(runs)
+    .where(and(eq(runs.id, runId), eq(runs.userId, userId)))
+    .returning({ id: runs.id });
+  return deleted.length > 0;
+}
+
 export const RUN_NAME_MAX_LENGTH = 80;
 
 /**

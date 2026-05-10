@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
+  deleteRunForUser,
   getRunForUser,
   renameRunForUser,
   RUN_NAME_MAX_LENGTH,
@@ -66,4 +67,18 @@ export async function PATCH(
       { status: 400 },
     );
   }
+}
+
+export async function DELETE(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const ok = await deleteRunForUser(id, user.id);
+  if (!ok) return NextResponse.json({ error: "not found" }, { status: 404 });
+  return NextResponse.json({ ok: true });
 }

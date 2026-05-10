@@ -17,7 +17,11 @@ export type StreamState = {
   outputUrl: string | null;
   rawUrl: string | null;
   sourceUrl: string | null;
-  error: { message: string; retryable: boolean } | null;
+  // `code` lets callers distinguish business outcomes (e.g.
+  // "credit_limit_reached" → render a sign-up prompt) from generic
+  // failures. Server SSE may emit it on the "error" event; HTTP errors
+  // surface it from the JSON body when the response wasn't a stream.
+  error: { message: string; retryable: boolean; code?: string } | null;
 };
 
 export type StreamHandle = StreamState & {
@@ -28,6 +32,13 @@ type Args = {
   file: File;
   sceneSlug: string;
   enabled?: boolean;
+  // When set, the hook never fires a network request — it immediately
+  // resolves to status="error" with this code attached. Used by the
+  // unauth funnel to mark "extra" picks as credit-limited without
+  // burning a server slot. The first scene fires normally; the rest
+  // get preFailWithCode="credit_limit_reached".
+  preFailWithCode?: string;
+  preFailMessage?: string;
 };
 
 const initial: StreamState = {
@@ -43,7 +54,13 @@ const initial: StreamState = {
   error: null,
 };
 
-export function useProgressStream({ file, sceneSlug, enabled = true }: Args): StreamHandle {
+export function useProgressStream({
+  file,
+  sceneSlug,
+  enabled = true,
+  preFailWithCode,
+  preFailMessage,
+}: Args): StreamHandle {
   const [state, setState] = useState<StreamState>(initial);
   const abortRef = useRef<AbortController | null>(null);
   const tickRef = useRef<number | null>(null);
@@ -53,6 +70,21 @@ export function useProgressStream({ file, sceneSlug, enabled = true }: Args): St
   const open = useCallback(() => {
     runIdRef.current += 1;
     const myRunId = runIdRef.current;
+    // Pre-fail short-circuit: skip the network entirely and resolve to
+    // a stable error state. Same shape downstream consumers see for a
+    // server-side error, so the rest of the pipeline doesn't branch.
+    if (preFailWithCode) {
+      setState({
+        ...initial,
+        status: "error",
+        error: {
+          message: preFailMessage ?? "Free preview already used.",
+          retryable: false,
+          code: preFailWithCode,
+        },
+      });
+      return;
+    }
     abortRef.current?.abort();
     if (tickRef.current !== null) {
       window.clearInterval(tickRef.current);
@@ -77,9 +109,24 @@ export function useProgressStream({ file, sceneSlug, enabled = true }: Args): St
         });
 
         if (!res.ok || !res.body) {
-          const message = `request failed: ${res.status}`;
+          let message = `request failed: ${res.status}`;
+          let code: string | undefined;
+          try {
+            const body = (await res.clone().json()) as {
+              error?: string;
+              code?: string;
+            };
+            if (body.error) message = body.error;
+            if (body.code) code = body.code;
+          } catch {
+            /* response wasn't JSON; keep the generic message */
+          }
           if (myRunId === runIdRef.current) {
-            setState((s) => ({ ...s, status: "error", error: { message, retryable: res.status >= 500 } }));
+            setState((s) => ({
+              ...s,
+              status: "error",
+              error: { message, retryable: res.status >= 500, code },
+            }));
           }
           return;
         }
@@ -142,7 +189,7 @@ export function useProgressStream({ file, sceneSlug, enabled = true }: Args): St
         }
       }
     })();
-  }, [file, sceneSlug]);
+  }, [file, sceneSlug, preFailWithCode, preFailMessage]);
 
   useEffect(() => {
     if (!enabled) return;
