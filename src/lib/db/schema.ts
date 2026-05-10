@@ -418,6 +418,41 @@ export const tryIntents = pgTable(
 
 export type TryIntent = typeof tryIntents.$inferSelect;
 
+// One row per "$9.99 unlock" funnel — created when an unauth visitor
+// finishes streaming 3 generations (1 free + 2 locked + bonus). The
+// row is keyed by an opaque token used as the URL path on the post-pay
+// landing page; status flips from 'pending' to 'paid' when Stripe's
+// checkout.session.completed webhook lands. The post-pay page also
+// verifies the Stripe session as a synchronous fallback so the user
+// isn't blocked by webhook delivery latency.
+export type UnlockBatchGeneration = {
+  sceneSlug: string;
+  sceneName: string;
+  outputUrl: string; // watermarked
+  rawUrl: string | null; // un-watermarked; what we hand back after payment
+  isBonus: boolean; // bonus tile (server-picked scene, not user-picked)
+  isFreePreview: boolean; // index 0 — visible without payment
+};
+
+export const unlockBatches = pgTable("unlock_batches", {
+  token: text("token").primaryKey(),
+  generations: jsonb("generations").$type<UnlockBatchGeneration[]>().notNull(),
+  status: text("status").notNull().default("pending"),
+  paidAt: timestamp("paid_at", { withTimezone: true }),
+  stripeSessionId: text("stripe_session_id"),
+  stripePaymentIntent: text("stripe_payment_intent"),
+  customerEmail: text("customer_email"),
+  userId: uuid("user_id"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true })
+    .notNull()
+    .default(sql`now() + interval '7 days'`),
+});
+
+export type UnlockBatch = typeof unlockBatches.$inferSelect;
+
 export type EtsyCandidate = typeof etsyCandidates.$inferSelect;
 export type EtsyPreviewPage = typeof etsyPreviewPages.$inferSelect;
 export type EtsyPreviewEvent = typeof etsyPreviewEvents.$inferSelect;
