@@ -601,8 +601,8 @@ function DevelopStep({
   // catalog so the develop view always shows 1 free + 2 locked tiles.
   // Pick the first scene by sort order whose slug isn't in `picked` —
   // this is stable across renders given the immutable `scenes` array.
-  // Frozen on first render alongside `creditLimitedSlugs` so the slug
-  // contract for useProgressBatch stays stable.
+  // Frozen on first render so the slug contract for useProgressBatch
+  // stays stable across the lifetime of DevelopStep.
   const bonusSlug = useMemo<string | null>(() => {
     if (isAuthed) return null;
     const taken = new Set(picked);
@@ -626,38 +626,17 @@ function DevelopStep({
     [],
   );
 
-  // Unauth visitors get one free preview. Pre-mark every pick after the
-  // first as credit-limited so only one /api/try/generate request fires
-  // for the batch — the others render a paywall overlay directly. Authed
-  // users keep the full N-pick fan-out.
-  const creditLimitedSlugs = useMemo<ReadonlySet<string>>(
-    () =>
-      isAuthed
-        ? new Set<string>()
-        : new Set(effectivePicked.slice(1)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
-
   const [generationResults, setGenerationResults] = useState<TileResult[]>(() =>
     effectivePicked.map((slug, i) => {
       const isBonus = !isAuthed && bonusSlug !== null && slug === bonusSlug;
-      const base = {
+      return {
         sceneSlug: slug,
         sceneName: sceneById[slug]?.name ?? slug,
         isFreePreview: !isAuthed && i === 0,
         isBonus,
         softLocked: !isAuthed && i > 0,
+        status: "pending" as const,
       };
-      if (creditLimitedSlugs.has(slug)) {
-        return {
-          ...base,
-          status: "failed" as const,
-          error: "Free preview already used.",
-          errorCode: "credit_limit_reached",
-        };
-      }
-      return { ...base, status: "pending" as const };
     }),
   );
 
@@ -819,13 +798,57 @@ function DevelopStep({
   }, [openAuthModal]);
 
   // Unlock CTA — fired by locked tile clicks AND the offer card.
-  // Stub: opens AuthModal until /api/stripe/unlock-checkout (Agent B's
-  // scope) lands. The integrator will swap this for the real call.
-  const handleUnlockClick = useCallback(() => {
+  // Persists the batch to mint a token, then redirects to Stripe Checkout.
+  // Until the batch finishes generating we open AuthModal as a soft fallback
+  // so the click feels responsive instead of dead.
+  const [unlockSubmitting, setUnlockSubmitting] = useState(false);
+  const handleUnlockClick = useCallback(async () => {
     track("try_unlock_clicked");
-    track("try_signup_clicked", { intent: "unlock" });
-    openAuthModal("unlock");
-  }, [openAuthModal]);
+    if (unlockSubmitting) return;
+    const succeeded = generationResults.filter(
+      (r) => r.status === "succeeded" && r.outputUrl,
+    );
+    if (succeeded.length < effectivePicked.length) {
+      // Still generating — fall back to the auth modal so the click isn't
+      // a dead-end. The user can retry the unlock once the batch finishes.
+      track("try_signup_clicked", { intent: "unlock" });
+      openAuthModal("unlock");
+      return;
+    }
+    setUnlockSubmitting(true);
+    try {
+      const res = await fetch("/api/try/finalize-batch", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          generations: succeeded.map((r) => ({
+            sceneSlug: r.sceneSlug,
+            sceneName: r.sceneName,
+            outputUrl: r.outputUrl as string,
+            ...(r.rawUrl ? { rawUrl: r.rawUrl } : {}),
+            isBonus: Boolean(r.isBonus),
+            isFreePreview: Boolean(r.isFreePreview),
+          })),
+        }),
+      });
+      if (!res.ok) {
+        setUnlockSubmitting(false);
+        track("try_signup_clicked", { intent: "unlock" });
+        openAuthModal("unlock");
+        return;
+      }
+      const data = (await res.json()) as { token?: string };
+      if (!data.token) {
+        setUnlockSubmitting(false);
+        openAuthModal("unlock");
+        return;
+      }
+      window.location.href = `/api/stripe/unlock-checkout?batchToken=${data.token}`;
+    } catch {
+      setUnlockSubmitting(false);
+      openAuthModal("unlock");
+    }
+  }, [unlockSubmitting, generationResults, effectivePicked, openAuthModal]);
 
   const handleBarSignUpClick = useCallback(() => {
     openAuthModal("default");
@@ -900,7 +923,6 @@ function DevelopStep({
             <ProgressScreen
               file={effectiveFile}
               sceneSlugs={effectivePicked}
-              creditLimitedSlugs={creditLimitedSlugs}
               userPhotoUrl={photo.url}
               primaryPreset={{
                 slug: sceneById[effectivePicked[0]].slug,

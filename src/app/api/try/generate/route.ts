@@ -24,13 +24,11 @@ const ipBuckets = new Map<string, { count: number; resetAt: number }>();
 // strict; the conversion gate at download is the real value capture.
 const RATE_LIMIT_AUTHED = 12;
 const WINDOW_MS_AUTHED = 60_000;
-// Unauth visitors get one free preview per visit, enforced client-side
-// by try-flow (only the first picked scene fires /api/try/generate; the
-// rest pre-fail with code "credit_limit_reached"). This server-side
-// budget is the abuse backstop — generous enough that a normal user
-// who refreshes or replays the funnel doesn't get falsely blocked, but
-// strict enough that scripted abuse from one IP costs Sceneify quickly.
-const RATE_LIMIT_UNAUTHED = 3;
+// Unauth visitors are capped at 2 picks + 1 server-injected bonus
+// scene = 3 calls per batch. Bucket sized to ~2 batches so an
+// accidental refresh from the same IP isn't punished, while scripted
+// abuse from one IP burns out within the hour.
+const RATE_LIMIT_UNAUTHED = 6;
 const WINDOW_MS_UNAUTHED = 60 * 60_000;
 const TOTAL_EST_MS = 70_000;
 const MOCK_GEN_DURATION_MS = 14_000;

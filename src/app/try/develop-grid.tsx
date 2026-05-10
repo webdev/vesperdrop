@@ -41,9 +41,8 @@ export type TileResult = {
   outputUrl?: string;
   rawUrl?: string;
   error?: string;
-  // Set when the failure is a known business outcome we want to render
-  // differently from a generic error. "credit_limit_reached" is the
-  // unauth case where the visitor's free preview was already used.
+  // Optional code accompanying a failure for callers that want to
+  // distinguish business outcomes from generic errors.
   errorCode?: string;
   // Optional live-stream context. When `streamPhaseId` is set the tile shows
   // the rotating, slot-filled caption from our streaming events instead of
@@ -137,13 +136,9 @@ function Tile({
   const isFailed = tile.status === "failed";
   const liveMode = tile.streamPhaseId != null && tile.presetMeta != null;
   // Treat soft-locked tiles uniformly whether the underlying generation
-  // succeeded (we still render the image, just blurred) or hit the unauth
-  // credit limit (we use the source photo as a stand-in). In both cases
-  // the visual is the same: blur + dark overlay + lock + $9.99 strip.
-  const isLockedView =
-    tile.softLocked === true &&
-    (isDone ||
-      (isFailed && tile.errorCode === "credit_limit_reached"));
+  // softLocked tiles render the generated image with a heavy blur +
+  // dark overlay + lock icon + $9.99 unlock strip on top.
+  const isLockedView = tile.softLocked === true && isDone;
   const isFreeDone = isDone && tile.isFreePreview === true;
 
   const seed = useMemo(() => hashSeed(tile.sceneSlug + ":" + index), [tile.sceneSlug, index]);
@@ -262,24 +257,6 @@ function Tile({
             opacity: isDone ? 1 : 0,
             filter,
             transition: `filter ${TILE_REVEAL_MS}ms cubic-bezier(0.2,0.8,0.2,1), opacity 280ms ease-out`,
-            zIndex: 30,
-          }}
-        />
-      ) : isLockedView && sourceUrl ? (
-        // No generated image yet (credit-limit failure case), but the
-        // tile is in the locked-paywall view — use the source photo as
-        // a heavily-blurred stand-in so the visual still reads as
-        // "premium preview behind a paywall".
-        <img
-          src={sourceUrl}
-          alt=""
-          aria-hidden
-          draggable={false}
-          className="absolute inset-0 h-full w-full object-contain"
-          style={{
-            opacity: 0.85,
-            filter,
-            transform: "scale(1.05)",
             zIndex: 30,
           }}
         />
@@ -409,18 +386,9 @@ function Tile({
     {!isDone && !isLockedView && !isFreeDone ? (
       <div className="min-h-[18px] font-mono text-[10px]">
         {isFailed ? (
-          tile.errorCode === "credit_limit_reached" ? (
-            <span
-              className="tracking-[0.16em] text-terracotta-dark uppercase"
-              data-testid="tile-credit-limit"
-            >
-              Free preview used · sign up to unlock
-            </span>
-          ) : (
-            <span className="tracking-[0.16em] text-orange-500 uppercase">
-              RESHOOT NEEDED
-            </span>
-          )
+          <span className="tracking-[0.16em] text-orange-500 uppercase">
+            RESHOOT NEEDED
+          </span>
         ) : liveMode ? (
           <span className="inline-flex items-center gap-1.5 text-zinc-700">
             <span className="vd-spin inline-block">⟳</span>

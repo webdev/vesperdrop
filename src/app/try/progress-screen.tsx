@@ -9,10 +9,6 @@ import { DevelopGrid, type DevelopGridVariant, type TileResult } from "./develop
 type Props = {
   file: File;
   sceneSlugs: string[];
-  // Subset of sceneSlugs that should resolve to a credit-limit error
-  // without hitting the server. The unauth funnel passes picked.slice(1)
-  // here so only the first scene fires a real generation.
-  creditLimitedSlugs?: ReadonlySet<string>;
   userPhotoUrl: string;
   primaryPreset: PresetMeta;
   presetMetaBySlug: Record<string, PresetMeta>;
@@ -35,7 +31,6 @@ type Props = {
 export function ProgressScreen({
   file,
   sceneSlugs,
-  creditLimitedSlugs,
   userPhotoUrl,
   primaryPreset,
   presetMetaBySlug,
@@ -48,18 +43,10 @@ export function ProgressScreen({
 }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const stableSlugs = useMemo(() => sceneSlugs, []); // contract: stable for lifetime
-  // Same stability contract for the credit-limited set: it's read once
-  // by useProgressBatch and never changes across this component's life.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const stableCreditLimited = useMemo(
-    () => creditLimitedSlugs,
-    [],
-  );
   const view = useProgressBatch({
     file,
     sceneSlugs: stableSlugs,
     primaryPreset,
-    creditLimitedSlugs: stableCreditLimited,
   });
 
   const [batchId] = useState<string>(() => crypto.randomUUID());

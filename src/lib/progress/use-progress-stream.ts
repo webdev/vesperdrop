@@ -32,13 +32,6 @@ type Args = {
   file: File;
   sceneSlug: string;
   enabled?: boolean;
-  // When set, the hook never fires a network request — it immediately
-  // resolves to status="error" with this code attached. Used by the
-  // unauth funnel to mark "extra" picks as credit-limited without
-  // burning a server slot. The first scene fires normally; the rest
-  // get preFailWithCode="credit_limit_reached".
-  preFailWithCode?: string;
-  preFailMessage?: string;
 };
 
 const initial: StreamState = {
@@ -58,8 +51,6 @@ export function useProgressStream({
   file,
   sceneSlug,
   enabled = true,
-  preFailWithCode,
-  preFailMessage,
 }: Args): StreamHandle {
   const [state, setState] = useState<StreamState>(initial);
   const abortRef = useRef<AbortController | null>(null);
@@ -70,21 +61,6 @@ export function useProgressStream({
   const open = useCallback(() => {
     runIdRef.current += 1;
     const myRunId = runIdRef.current;
-    // Pre-fail short-circuit: skip the network entirely and resolve to
-    // a stable error state. Same shape downstream consumers see for a
-    // server-side error, so the rest of the pipeline doesn't branch.
-    if (preFailWithCode) {
-      setState({
-        ...initial,
-        status: "error",
-        error: {
-          message: preFailMessage ?? "Free preview already used.",
-          retryable: false,
-          code: preFailWithCode,
-        },
-      });
-      return;
-    }
     abortRef.current?.abort();
     if (tickRef.current !== null) {
       window.clearInterval(tickRef.current);
@@ -189,7 +165,7 @@ export function useProgressStream({
         }
       }
     })();
-  }, [file, sceneSlug, preFailWithCode, preFailMessage]);
+  }, [file, sceneSlug]);
 
   useEffect(() => {
     if (!enabled) return;
