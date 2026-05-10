@@ -11,7 +11,9 @@ const generationSchema = z.object({
   sceneName: z.string().min(1).max(200),
   outputUrl: z.string().url(),
   rawUrl: z.string().url().optional(),
-  isBonus: z.boolean(),
+  // Retained as optional for back-compat with the bonus-tile model;
+  // the funnel no longer auto-injects a bonus generation.
+  isBonus: z.boolean().optional().default(false),
   isFreePreview: z.boolean(),
 });
 
@@ -55,14 +57,6 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
-  const bonusCount = generations.filter((g) => g.isBonus).length;
-  if (bonusCount > 1) {
-    return NextResponse.json(
-      { error: "at most one bonus generation allowed" },
-      { status: 400 },
-    );
-  }
-
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },

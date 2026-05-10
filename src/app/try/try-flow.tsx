@@ -59,12 +59,12 @@ type PendingBatch = {
 
 const SAMPLE_SRC = "/marketing/before-after/cami_before.png";
 const SAMPLE_NAME = "CAM-BRN-S_SAMPLE.JPG";
-// Authed users can pick up to 5 scenes per batch. Unauth visitors are
-// capped at 2 picks; the develop step then auto-adds a 3rd "BONUS SHOT"
-// tile from the remaining catalog so the funnel always shows 1 free
-// preview + 2 locked tiles behind the $9.99 unlock CTA.
+// Authed users can pick up to 5 scenes per batch. Unauth visitors get
+// 3 picks: the first is a free watermarked preview, the other two are
+// locked behind the $9.99 unlock CTA. All 3 are real generations whose
+// raw URLs become available post-payment.
 const MAX_TRY_SCENES = 5;
-const MAX_TRY_SCENES_UNAUTH = 2;
+const MAX_TRY_SCENES_UNAUTH = 3;
 
 type Photo = { url: string; name: string; isObjectUrl: boolean; file: File | null };
 
@@ -597,47 +597,14 @@ function DevelopStep({
 }) {
   const router = useRouter();
 
-  // Unauth gets a deterministic 3rd "BONUS SHOT" tile pulled from the
-  // catalog so the develop view always shows 1 free + 2 locked tiles.
-  // Pick the first scene by sort order whose slug isn't in `picked` —
-  // this is stable across renders given the immutable `scenes` array.
-  // Frozen on first render so the slug contract for useProgressBatch
-  // stays stable across the lifetime of DevelopStep.
-  const bonusSlug = useMemo<string | null>(() => {
-    if (isAuthed) return null;
-    const taken = new Set(picked);
-    for (const s of scenes) {
-      if (!taken.has(s.slug)) return s.slug;
-    }
-    return null;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Effective generation slugs: unauth = picked + bonusSlug, authed = picked.
-  // Frozen for the same stability reason as bonusSlug.
-  const effectivePicked = useMemo<string[]>(
-    () =>
-      isAuthed
-        ? picked
-        : bonusSlug
-          ? [...picked, bonusSlug]
-          : picked,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
-
   const [generationResults, setGenerationResults] = useState<TileResult[]>(() =>
-    effectivePicked.map((slug, i) => {
-      const isBonus = !isAuthed && bonusSlug !== null && slug === bonusSlug;
-      return {
-        sceneSlug: slug,
-        sceneName: sceneById[slug]?.name ?? slug,
-        isFreePreview: !isAuthed && i === 0,
-        isBonus,
-        softLocked: !isAuthed && i > 0,
-        status: "pending" as const,
-      };
-    }),
+    picked.map((slug, i) => ({
+      sceneSlug: slug,
+      sceneName: sceneById[slug]?.name ?? slug,
+      isFreePreview: !isAuthed && i === 0,
+      softLocked: !isAuthed && i > 0,
+      status: "pending" as const,
+    })),
   );
 
   const [authModal, setAuthModal] = useState<AuthModalState>({
@@ -808,7 +775,7 @@ function DevelopStep({
     const succeeded = generationResults.filter(
       (r) => r.status === "succeeded" && r.outputUrl,
     );
-    if (succeeded.length < effectivePicked.length) {
+    if (succeeded.length < picked.length) {
       // Still generating — fall back to the auth modal so the click isn't
       // a dead-end. The user can retry the unlock once the batch finishes.
       track("try_signup_clicked", { intent: "unlock" });
@@ -826,7 +793,6 @@ function DevelopStep({
             sceneName: r.sceneName,
             outputUrl: r.outputUrl as string,
             ...(r.rawUrl ? { rawUrl: r.rawUrl } : {}),
-            isBonus: Boolean(r.isBonus),
             isFreePreview: Boolean(r.isFreePreview),
           })),
         }),
@@ -848,7 +814,7 @@ function DevelopStep({
       setUnlockSubmitting(false);
       openAuthModal("unlock");
     }
-  }, [unlockSubmitting, generationResults, effectivePicked, openAuthModal]);
+  }, [unlockSubmitting, generationResults, picked, openAuthModal]);
 
   const handleBarSignUpClick = useCallback(() => {
     openAuthModal("default");
@@ -919,20 +885,20 @@ function DevelopStep({
         </div>
 
         <div className={isAuthed ? undefined : "order-1 md:order-2"}>
-          {generationResults.some((r) => r.status === "pending") && photo && effectiveFile && sceneById[effectivePicked[0]] ? (
+          {generationResults.some((r) => r.status === "pending") && photo && effectiveFile && sceneById[picked[0]] ? (
             <ProgressScreen
               file={effectiveFile}
-              sceneSlugs={effectivePicked}
+              sceneSlugs={picked}
               userPhotoUrl={photo.url}
               primaryPreset={{
-                slug: sceneById[effectivePicked[0]].slug,
-                name: sceneById[effectivePicked[0]].name,
-                mood: sceneById[effectivePicked[0]].mood,
-                palette: sceneById[effectivePicked[0]].palette,
-                category: sceneById[effectivePicked[0]].category,
+                slug: sceneById[picked[0]].slug,
+                name: sceneById[picked[0]].name,
+                mood: sceneById[picked[0]].mood,
+                palette: sceneById[picked[0]].palette,
+                category: sceneById[picked[0]].category,
               }}
               presetMetaBySlug={Object.fromEntries(
-                effectivePicked.map((slug) => [
+                picked.map((slug) => [
                   slug,
                   {
                     slug: sceneById[slug]?.slug ?? slug,

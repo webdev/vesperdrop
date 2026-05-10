@@ -50,12 +50,11 @@ export type TileResult = {
   streamPhaseId?: PhaseId | null;
   streamAttributes?: ExtractedAttributes | null;
   presetMeta?: PresetMeta;
-  // Funnel flags. The unauth flow renders one free preview tile + two
-  // soft-locked tiles (one of which is a "bonus shot" without a scene
-  // count in the header). All three slots still go through generation
-  // server-side; the lock is purely visual until the user pays $9.99.
+  // Funnel flags. The unauth flow renders the first tile as a free
+  // watermarked preview and the rest as soft-locked tiles behind the
+  // $9.99 unlock CTA. All slots still go through generation
+  // server-side; the lock is purely visual until the user pays.
   isFreePreview?: boolean;
-  isBonus?: boolean;
   softLocked?: boolean;
 };
 
@@ -241,7 +240,7 @@ function Tile({
       tabIndex={tileClickable ? 0 : undefined}
       aria-label={
         isLockedView
-          ? `Unlock ${tile.isBonus ? "bonus shot" : tile.sceneName} for $9.99`
+          ? `Unlock ${tile.sceneName} for $9.99`
           : isDone
             ? `Download ${tile.sceneName} HD`
             : undefined
@@ -294,9 +293,7 @@ function Tile({
         className="absolute top-0 right-0 left-0 bg-black px-3 py-2 font-mono text-[10px] tracking-[0.18em] text-white uppercase"
         style={{ zIndex: 40 }}
       >
-        {tile.isBonus
-          ? "Bonus shot"
-          : `${tile.sceneName} · ${String(index + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}`}
+        {`${tile.sceneName} · ${String(index + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}`}
       </div>
 
       {isLockedView ? (
