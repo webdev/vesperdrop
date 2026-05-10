@@ -17,8 +17,15 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 const ipBuckets = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 12;
-const WINDOW_MS = 60_000;
+// Authed users go through the existing per-minute IP cap. Unauthed users
+// (the freemium "Try free" funnel — generate first, sign up to download)
+// are throttled more aggressively because abuse here costs Sceneify and
+// Gemini cost without ever converting. The hourly cap is intentionally
+// strict; the conversion gate at download is the real value capture.
+const RATE_LIMIT_AUTHED = 12;
+const WINDOW_MS_AUTHED = 60_000;
+const RATE_LIMIT_UNAUTHED = 3;
+const WINDOW_MS_UNAUTHED = 60 * 60_000;
 const TOTAL_EST_MS = 70_000;
 const MOCK_GEN_DURATION_MS = 14_000;
 const MOCK_OUTPUT_URL =
@@ -26,14 +33,20 @@ const MOCK_OUTPUT_URL =
 const MOCK_SOURCE_URL =
   "https://placehold.co/1024x1024/cccccc/333333.png?text=MOCK+SOURCE";
 
-function rateLimitOk(ip: string): boolean {
+function rateLimitOk(ip: string, isAuthed: boolean): boolean {
+  // Bucket key includes auth state so a user who's been generating
+  // unauthed and then signs up gets a fresh authed bucket — they
+  // shouldn't carry pre-signup throttle into the post-signup batch.
+  const key = `${isAuthed ? "auth" : "anon"}:${ip}`;
+  const limit = isAuthed ? RATE_LIMIT_AUTHED : RATE_LIMIT_UNAUTHED;
+  const window = isAuthed ? WINDOW_MS_AUTHED : WINDOW_MS_UNAUTHED;
   const now = Date.now();
-  const b = ipBuckets.get(ip);
+  const b = ipBuckets.get(key);
   if (!b || b.resetAt < now) {
-    ipBuckets.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+    ipBuckets.set(key, { count: 1, resetAt: now + window });
     return true;
   }
-  if (b.count >= RATE_LIMIT) return false;
+  if (b.count >= limit) return false;
   b.count += 1;
   return true;
 }
@@ -96,16 +109,31 @@ export async function POST(req: Request) {
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     req.headers.get("x-real-ip") ||
     "anon";
-  if (!rateLimitOk(ip)) {
-    return jsonError("Too many previews. Wait a minute and try again.", 429);
-  }
 
+  // Unauthed generation is allowed by design — the funnel is:
+  //   upload → generate (unauth, watermarked previews)
+  //   → click Download → AuthModal → confirm email → claim hi-res
+  // The download CTA is the conversion gate, not generation. Auth state
+  // is still resolved early so we can rate-limit anon traffic harder
+  // (Sceneify/Gemini cost) and skip mock-mode for non-admins.
   const supabase = await createSupabaseServerClient();
   const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) {
-    return jsonError("Sign in required to generate.", 401);
+  const userEmail = userData.user?.email ?? null;
+  const isAuthed = Boolean(userData.user);
+
+  // Skip rate limiting when the Sceneify mock is enabled — the funnel
+  // e2e (e2e/try-deferred-generation.spec.ts) issues several unauth
+  // generations from a single IP within the unauth hourly window, which
+  // is by design (one per test run, multiple runs while iterating).
+  // The mock env is never set in production, so this guard is safe.
+  if (process.env.E2E_SCENEIFY_MOCK !== "1" && !rateLimitOk(ip, isAuthed)) {
+    return jsonError(
+      isAuthed
+        ? "Too many previews. Wait a minute and try again."
+        : "Too many free previews from this IP. Sign up for unlimited.",
+      429,
+    );
   }
-  const userEmail = userData.user.email ?? null;
 
   const form = await req.formData();
   const file = form.get("file");

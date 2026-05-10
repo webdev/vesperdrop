@@ -23,16 +23,25 @@ export function ClaimHandler() {
     if (ranRef.current) return;
     ranRef.current = true;
 
+    // Prefer localStorage — try-flow writes to both storages, but only
+    // localStorage survives the user closing the tab to check their
+    // email for the signup confirmation link. sessionStorage is a
+    // belt-and-braces fallback for stale tabs.
     let payload: PendingBatch | null = null;
+    let raw: string | null = null;
     try {
-      const raw = window.sessionStorage.getItem(PENDING_BATCH_KEY);
+      raw =
+        window.localStorage.getItem(PENDING_BATCH_KEY) ??
+        window.sessionStorage.getItem(PENDING_BATCH_KEY);
       if (!raw) return;
       payload = JSON.parse(raw) as PendingBatch;
     } catch {
+      window.localStorage.removeItem(PENDING_BATCH_KEY);
       window.sessionStorage.removeItem(PENDING_BATCH_KEY);
       return;
     }
     if (!payload || payload.generations.length === 0) {
+      window.localStorage.removeItem(PENDING_BATCH_KEY);
       window.sessionStorage.removeItem(PENDING_BATCH_KEY);
       return;
     }
@@ -46,6 +55,7 @@ export function ClaimHandler() {
         });
         if (!res.ok) return;
         const data = (await res.json()) as { runId?: string };
+        window.localStorage.removeItem(PENDING_BATCH_KEY);
         window.sessionStorage.removeItem(PENDING_BATCH_KEY);
         if (data.runId) {
           router.replace(`/app/library?claim=${encodeURIComponent(data.runId)}`);

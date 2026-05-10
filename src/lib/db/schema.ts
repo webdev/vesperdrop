@@ -382,6 +382,42 @@ export const igPreviewEvents = pgTable(
   ],
 );
 
+// Pending "Try free" intents persisted server-side so the upload + scene
+// selection survive across devices when the user signs up but opens the
+// confirmation email on a different machine. Keyed by lowercased email
+// (we don't have a user_id at the time the row is written — signUp's
+// session is null with email confirmation enabled). One unconsumed row
+// per email at a time; latest insert wins. Consumed rows are kept for a
+// short while for debugging then can be GC'd.
+export const tryIntents = pgTable(
+  "try_intents",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    email: text("email").notNull(),
+    sourceUrl: text("source_url").notNull(),
+    sourceName: text("source_name").notNull(),
+    sourceMimeType: text("source_mime_type").notNull(),
+    pickedScenes: jsonb("picked_scenes").notNull().$type<string[]>(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+  },
+  (t) => [
+    // Lookup path is by email + "is unconsumed" — composite index covers
+    // both the consume-intent SELECT and the save-intent uniqueness check
+    // (we don't enforce uniqueness; the SELECT just orders by createdAt
+    // DESC and limits 1).
+    index("try_intents_email_unconsumed_idx").on(
+      t.email,
+      t.consumedAt,
+      t.createdAt.desc(),
+    ),
+  ],
+);
+
+export type TryIntent = typeof tryIntents.$inferSelect;
+
 export type EtsyCandidate = typeof etsyCandidates.$inferSelect;
 export type EtsyPreviewPage = typeof etsyPreviewPages.$inferSelect;
 export type EtsyPreviewEvent = typeof etsyPreviewEvents.$inferSelect;

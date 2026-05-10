@@ -79,12 +79,15 @@ export function TryFlow({
   const [photo, setPhoto] = useState<Photo | null>(null);
   const [pickedScenes, setPickedScenes] = useState<string[]>([]);
   const [developDone, setDevelopDone] = useState(false);
-  const [preDevelopAuth, setPreDevelopAuth] = useState(false);
-  const [preDevelopBusy, setPreDevelopBusy] = useState(false);
   // Hydration of post-login intent must happen post-mount so SSR and
   // client first-paint match. Until `hydrated` flips, the URL-correction
   // effect is suppressed so a freshly-returned `?step=develop` doesn't
   // get bounced back to upload before sessionStorage is read.
+  // The conversion gate has moved to the download click in DevelopStep,
+  // so the previous pre-develop AuthModal + intent-persistence path is
+  // dormant — the hydration block below remains as a no-op fallback for
+  // any in-flight visitors (and a hook point for future cross-device
+  // resume work; see /api/try/{save,consume}-intent).
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -92,28 +95,69 @@ export function TryFlow({
       setHydrated(true);
       return;
     }
-    try {
-      const raw = window.sessionStorage.getItem(TRY_INTENT_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as TryIntent;
-        if (
-          parsed &&
-          typeof parsed.sourceUrl === "string" &&
-          Array.isArray(parsed.pickedScenes) &&
-          parsed.pickedScenes.length > 0
-        ) {
-          setPhoto({
-            url: parsed.sourceUrl,
-            name: parsed.photoName,
-            isObjectUrl: false,
-            file: null,
-          });
-          setPickedScenes(parsed.pickedScenes);
+    let cancelled = false;
+    (async () => {
+      // Same-device fast path: localStorage hits without a network
+      // round-trip. (sessionStorage fallback covers any in-flight users
+      // who stored their intent before this change rolled out.)
+      let restored: TryIntent | null = null;
+      try {
+        const raw =
+          window.localStorage.getItem(TRY_INTENT_KEY) ??
+          window.sessionStorage.getItem(TRY_INTENT_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as TryIntent;
+          if (
+            parsed &&
+            typeof parsed.sourceUrl === "string" &&
+            Array.isArray(parsed.pickedScenes) &&
+            parsed.pickedScenes.length > 0
+          ) {
+            restored = parsed;
+          }
         }
+        window.localStorage.removeItem(TRY_INTENT_KEY);
+        window.sessionStorage.removeItem(TRY_INTENT_KEY);
+      } catch {}
+
+      // Cross-device fallback: localStorage was empty (the user clicked
+      // the confirmation email on a different device than where they
+      // uploaded). Look up the latest unconsumed intent for this user's
+      // email and consume it. POST so the response is never cached.
+      if (!restored) {
+        try {
+          const res = await fetch("/api/try/consume-intent", {
+            method: "POST",
+          });
+          if (res.ok) {
+            const data = (await res.json()) as { intent: TryIntent | null };
+            if (
+              data.intent &&
+              typeof data.intent.sourceUrl === "string" &&
+              Array.isArray(data.intent.pickedScenes) &&
+              data.intent.pickedScenes.length > 0
+            ) {
+              restored = data.intent;
+            }
+          }
+        } catch {}
       }
-      window.sessionStorage.removeItem(TRY_INTENT_KEY);
-    } catch {}
-    setHydrated(true);
+
+      if (cancelled) return;
+      if (restored) {
+        setPhoto({
+          url: restored.sourceUrl,
+          name: restored.photoName,
+          isObjectUrl: false,
+          file: null,
+        });
+        setPickedScenes(restored.pickedScenes);
+      }
+      setHydrated(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthed]);
 
   const router = useRouter();
@@ -226,80 +270,19 @@ export function TryFlow({
           <ScenesStep
             scenes={scenes}
             picked={pickedScenes}
-            busy={preDevelopBusy}
             onToggle={togglePickedScene}
             onBack={() => goToStep("upload", "replace")}
-            onContinue={async () => {
-              if (isAuthed) {
-                setDevelopDone(false);
-                goToStep("develop");
-                track("try_develop_started", { scene_count: pickedScenes.length });
-                return;
-              }
-              if (!photo) return;
-              track("try_signup_clicked", { intent: "default" });
-              try {
-                setPreDevelopBusy(true);
-                let sourceUrl: string | null = null;
-                let mimeType = "image/jpeg";
-                let name = photo.name;
-                if (photo.file) {
-                  const fd = new FormData();
-                  fd.append("file", photo.file);
-                  const res = await fetch("/api/try/source-upload", {
-                    method: "POST",
-                    body: fd,
-                  });
-                  if (!res.ok) {
-                    setPreDevelopBusy(false);
-                    return;
-                  }
-                  const data = (await res.json()) as {
-                    sourceUrl: string;
-                    name: string;
-                    mimeType: string;
-                  };
-                  sourceUrl = data.sourceUrl;
-                  mimeType = data.mimeType;
-                  name = data.name;
-                } else if (/^https?:/.test(photo.url)) {
-                  sourceUrl = photo.url;
-                }
-                if (!sourceUrl) {
-                  setPreDevelopBusy(false);
-                  return;
-                }
-                const intent: TryIntent = {
-                  sourceUrl,
-                  photoName: name,
-                  photoMimeType: mimeType,
-                  pickedScenes,
-                };
-                try {
-                  window.sessionStorage.setItem(
-                    TRY_INTENT_KEY,
-                    JSON.stringify(intent),
-                  );
-                } catch {}
-                setPreDevelopAuth(true);
-              } finally {
-                setPreDevelopBusy(false);
-              }
-            }}
-          />
-        ) : null}
-
-        {!isAuthed ? (
-          <AuthModal
-            open={preDevelopAuth}
-            onOpenChange={(open) => setPreDevelopAuth(open)}
-            intent="default"
-            defaultTab="sign-up"
-            next="/try?step=develop"
-            onAuthSuccess={async () => {
-              setPreDevelopAuth(false);
+            onContinue={() => {
+              // Authed and unauth follow the same path now: straight to
+              // the develop step. Generation runs unauthenticated and
+              // returns watermarked previews; the conversion gate
+              // (AuthModal) appears later, when the user clicks Download
+              // on a tile. See DevelopStep below.
               setDevelopDone(false);
               goToStep("develop");
+              track("try_develop_started", {
+                scene_count: pickedScenes.length,
+              });
             }}
           />
         ) : null}
@@ -673,6 +656,13 @@ function DevelopStep({
       })),
     };
     try {
+      // localStorage (not session) so the pending batch survives the
+      // user closing the tab to check their email for the confirmation
+      // link. /app/library's claim-handler reads localStorage on mount,
+      // calls /api/try/claim, then clears the key. sessionStorage write
+      // is kept as belt-and-braces for stale tabs that haven't loaded
+      // the localStorage variant yet.
+      window.localStorage.setItem(PENDING_BATCH_KEY, JSON.stringify(payload));
       window.sessionStorage.setItem(PENDING_BATCH_KEY, JSON.stringify(payload));
     } catch {}
   }, [generationResults, photo, anySucceeded, isAuthed, serverSourceUrl]);

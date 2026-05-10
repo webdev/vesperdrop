@@ -20,6 +20,7 @@ export function AuthForm({
   mode,
   variant = "stacked",
   onSuccess,
+  onConfirmationPending,
   next: nextOverride,
 }: {
   mode: Mode;
@@ -30,6 +31,15 @@ export function AuthForm({
    */
   variant?: Variant;
   onSuccess?: () => void | Promise<void>;
+  /**
+   * Called instead of `onSuccess` when sign-up succeeds but Supabase email
+   * confirmation is required (signUp returns no session). The parent should
+   * swap to a "check your email" UI rather than redirecting — the user is
+   * not yet authenticated, so any auth-gated work (e.g. /api/try/generate)
+   * would fail. The confirmation link routes back through
+   * /api/auth/callback?next=… and resumes the flow.
+   */
+  onConfirmationPending?: (email: string) => void;
   next?: string;
 }) {
   const supabase = createSupabaseBrowserClient();
@@ -69,11 +79,24 @@ export function AuthForm({
     setError(null);
     start(async () => {
       if (mode === "sign-up") {
-        const { data: signUpData, error } = await supabase.auth.signUp({ email, password });
+        const emailRedirectTo = `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(next)}`;
+        const { data: signUpData, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo },
+        });
         if (error) { setError(error.message); return; }
         if (signUpData.user) {
           identify(signUpData.user.id, { email });
           track("user_signed_up", { method: "email" });
+        }
+        // When Supabase email confirmation is enabled, signUp returns a user
+        // with no session. The caller must show a "check your email" panel
+        // instead of redirecting — generation routes are auth-gated, so a
+        // pre-confirmation redirect would 401.
+        if (!signUpData.session && onConfirmationPending) {
+          onConfirmationPending(email);
+          return;
         }
         if (onSuccess) {
           await onSuccess();

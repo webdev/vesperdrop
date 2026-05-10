@@ -18,7 +18,11 @@ export function SignUpBar({
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-line-soft bg-surface shadow-[0_-4px_24px_rgba(43,32,24,0.08)]"
+      // z-50 sits above the bonus tile's "Sign up to unlock" overlay
+      // (zIndex: 41 in develop-grid.tsx). At z-40 they tie at the
+      // viewport bottom when the page is scrolled, and the tile's
+      // higher z-index intercepts clicks on this bar's CTA.
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-line-soft bg-surface shadow-[0_-4px_24px_rgba(43,32,24,0.08)]"
       role="region"
       aria-label="Save your batch"
     >
