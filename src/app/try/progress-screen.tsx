@@ -26,6 +26,7 @@ type Props = {
   ) => void;
   onDownloadClick?: (slug: string) => void;
   onUnlockClick?: () => void;
+  editorial?: boolean;
 };
 
 export function ProgressScreen({
@@ -40,6 +41,7 @@ export function ProgressScreen({
   onSettled,
   onDownloadClick,
   onUnlockClick,
+  editorial = false,
 }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const stableSlugs = useMemo(() => sceneSlugs, []); // contract: stable for lifetime
@@ -155,6 +157,7 @@ export function ProgressScreen({
         sourceUrl={userPhotoUrl}
         onDownloadClick={onDownloadClick}
         onUnlockClick={onUnlockClick}
+        editorial={editorial}
       />
       {stableSlugs.map((slug) => (
         <StreamTelemetry

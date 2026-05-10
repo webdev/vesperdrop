@@ -29,10 +29,8 @@ import {
   type TileResult,
 } from "./develop-grid";
 import { ProgressScreen } from "./progress-screen";
-import { SignUpBar } from "./sign-up-bar";
 import { SavedBar } from "./saved-bar";
 import { AuthModal } from "./auth-modal";
-import { OfferCard } from "./offer-card";
 
 const PENDING_BATCH_KEY = "vd_pending_batch";
 const TRY_INTENT_KEY = "vd_try_intent";
@@ -816,17 +814,13 @@ function DevelopStep({
     }
   }, [unlockSubmitting, generationResults, picked, openAuthModal]);
 
-  const handleBarSignUpClick = useCallback(() => {
-    openAuthModal("default");
-  }, [openAuthModal]);
-
   const handleAuthSuccess = useCallback(async () => {
     setAuthModal((s) => ({ ...s, open: false }));
     router.push("/app/library");
   }, [router]);
 
   return (
-    <div className={`relative ${developDone ? "pb-40 md:pb-44" : ""}`}>
+    <div className={`relative ${developDone && isAuthed ? "pb-40 md:pb-44" : ""}`}>
       <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
@@ -842,50 +836,92 @@ function DevelopStep({
         </div>
       </div>
 
-      <div
-        className={`mb-10 grid grid-cols-1 items-start gap-8 ${
-          isAuthed
-            ? "md:grid-cols-[260px_1fr] md:gap-12"
-            : "md:grid-cols-[220px_minmax(0,1fr)_300px] md:gap-8"
-        }`}
-      >
-        <div className={isAuthed ? undefined : "order-2 md:order-1"}>
-          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-4">
-            Your product
-          </p>
-          {photo ? (
-            <div className="mt-3 aspect-square overflow-hidden rounded-md border border-line-soft bg-surface">
-              <img
-                src={photo.url}
-                alt={photo.name}
-                className="h-full w-full object-contain"
-              />
-            </div>
-          ) : (
-            <div className="mt-3 flex aspect-square items-center justify-center rounded-md border border-line-soft bg-paper-2 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4">
-              No product
-            </div>
-          )}
+      {isAuthed ? (
+        <AuthedDevelopLayout
+          photo={photo}
+          picked={picked}
+          sceneById={sceneById}
+          effectiveFile={effectiveFile}
+          generationResults={generationResults}
+          setGenerationResults={setGenerationResults}
+          setServerSourceUrl={setServerSourceUrl}
+          displayResults={displayResults}
+          variant={variant}
+          handleDownloadClick={handleDownloadClick}
+          handleLockedClick={handleLockedClick}
+        />
+      ) : (
+        <UnauthEditorialStage
+          photo={photo}
+          picked={picked}
+          sceneById={sceneById}
+          effectiveFile={effectiveFile}
+          generationResults={generationResults}
+          setGenerationResults={setGenerationResults}
+          setServerSourceUrl={setServerSourceUrl}
+          variant={variant}
+          handleDownloadClick={handleDownloadClick}
+          handleUnlockClick={handleUnlockClick}
+          unlockSubmitting={unlockSubmitting}
+        />
+      )}
 
-          <div className="mt-6">
-            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-4">
-              Scenes · {picked.length}
-            </p>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {picked.map((id) => (
-                <span
-                  key={id}
-                  className="rounded-full border border-terracotta/30 bg-terracotta-wash px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-terracotta-dark"
-                >
-                  {sceneById[id]?.name ?? id}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
+      {developDone && isAuthed ? (
+        <SavedBar status={saveStatus} runId={savedRunId} onReset={onReset} />
+      ) : null}
 
-        <div className={isAuthed ? undefined : "order-1 md:order-2"}>
-          {generationResults.some((r) => r.status === "pending") && photo && effectiveFile && sceneById[picked[0]] ? (
+      {isAuthed ? null : (
+        <AuthModal
+          open={authModal.open}
+          onOpenChange={(open) => setAuthModal((s) => ({ ...s, open }))}
+          intent={authModal.intent}
+          onAuthSuccess={handleAuthSuccess}
+        />
+      )}
+    </div>
+  );
+}
+
+// The cinematic unauth reveal: 3 generations laid out as a hero-with-
+// peeks stage that bleeds past the content column, watermarked but not
+// blurred. A single inline CTA does all the conversion work; there is
+// no offer card, no bottom strip, no source thumbnail competing for
+// attention. The page reads as an editorial photo spread.
+function UnauthEditorialStage({
+  photo,
+  picked,
+  sceneById,
+  effectiveFile,
+  generationResults,
+  setGenerationResults,
+  setServerSourceUrl,
+  variant,
+  handleDownloadClick,
+  handleUnlockClick,
+  unlockSubmitting,
+}: {
+  photo: Photo | null;
+  picked: string[];
+  sceneById: Record<string, Scene>;
+  effectiveFile: File | null;
+  generationResults: TileResult[];
+  setGenerationResults: React.Dispatch<React.SetStateAction<TileResult[]>>;
+  setServerSourceUrl: (url: string | null) => void;
+  variant: DevelopGridVariant;
+  handleDownloadClick: (slug: string) => void;
+  handleUnlockClick: () => void;
+  unlockSubmitting: boolean;
+}) {
+  const anyPending = generationResults.some((r) => r.status === "pending");
+  return (
+    <>
+      {/* Full-bleed stage: extends past the page container to the viewport
+          edges so the side tiles can peek into the page margins. The
+          `-mx-[calc(50vw-50%)] w-screen` trick anchors the stage to the
+          viewport without leaving the React tree. */}
+      <div className="relative -mx-[calc(50vw-50%)] w-screen">
+        <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-[1fr_2fr_1fr] sm:gap-3">
+          {anyPending && photo && effectiveFile && sceneById[picked[0]] ? (
             <ProgressScreen
               file={effectiveFile}
               sceneSlugs={picked}
@@ -913,7 +949,8 @@ function DevelopStep({
               initialResults={generationResults}
               onSourceUrl={(url) => setServerSourceUrl(url)}
               onDownloadClick={handleDownloadClick}
-              onUnlockClick={isAuthed ? undefined : handleUnlockClick}
+              onUnlockClick={handleUnlockClick}
+              editorial
               onSettled={(out) => {
                 setGenerationResults((prev) =>
                   prev.map((r) => {
@@ -943,75 +980,205 @@ function DevelopStep({
             />
           ) : (
             <DevelopGrid
-              results={displayResults}
+              results={generationResults}
               variant={variant}
               sourceUrl={photo?.url}
               onDownloadClick={handleDownloadClick}
-              onLockedClick={handleLockedClick}
-              onUnlockClick={isAuthed ? undefined : handleUnlockClick}
+              onUnlockClick={handleUnlockClick}
+              editorial
             />
           )}
-
-          {!isAuthed ? <UnlockArrowAnnotation /> : null}
         </div>
-
-        {!isAuthed ? (
-          <div className="order-3 md:sticky md:top-24 md:self-start">
-            <OfferCard onUnlock={handleUnlockClick} />
-          </div>
-        ) : null}
       </div>
 
-      {developDone ? (
-        isAuthed ? (
-          <SavedBar status={saveStatus} runId={savedRunId} onReset={onReset} />
-        ) : (
-          <SignUpBar onReset={onReset} onSignUpClick={handleBarSignUpClick} />
-        )
-      ) : null}
+      <InlineUnlockCta
+        onUnlock={handleUnlockClick}
+        disabled={unlockSubmitting}
+      />
+    </>
+  );
+}
 
-      {isAuthed ? null : (
-        <AuthModal
-          open={authModal.open}
-          onOpenChange={(open) => setAuthModal((s) => ({ ...s, open }))}
-          intent={authModal.intent}
-          onAuthSuccess={handleAuthSuccess}
-        />
-      )}
+// Tiny utility-style component to keep the JSX above legible. The
+// authed flow keeps the original 2-column layout (source thumb + grid)
+// and the bottom SavedBar — only the unauth path moves to editorial.
+function AuthedDevelopLayout({
+  photo,
+  picked,
+  sceneById,
+  effectiveFile,
+  generationResults,
+  setGenerationResults,
+  setServerSourceUrl,
+  displayResults,
+  variant,
+  handleDownloadClick,
+  handleLockedClick,
+}: {
+  photo: Photo | null;
+  picked: string[];
+  sceneById: Record<string, Scene>;
+  effectiveFile: File | null;
+  generationResults: TileResult[];
+  setGenerationResults: React.Dispatch<React.SetStateAction<TileResult[]>>;
+  setServerSourceUrl: (url: string | null) => void;
+  displayResults: TileResult[];
+  variant: DevelopGridVariant;
+  handleDownloadClick: (slug: string) => void;
+  handleLockedClick: () => void;
+}) {
+  return (
+    <div className="mb-10 grid grid-cols-1 items-start gap-8 md:grid-cols-[260px_1fr] md:gap-12">
+      <div>
+        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-4">
+          Your product
+        </p>
+        {photo ? (
+          <div className="mt-3 aspect-square overflow-hidden rounded-md border border-line-soft bg-surface">
+            <img
+              src={photo.url}
+              alt={photo.name}
+              className="h-full w-full object-contain"
+            />
+          </div>
+        ) : (
+          <div className="mt-3 flex aspect-square items-center justify-center rounded-md border border-line-soft bg-paper-2 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4">
+            No product
+          </div>
+        )}
+
+        <div className="mt-6">
+          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-4">
+            Scenes · {picked.length}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {picked.map((id) => (
+              <span
+                key={id}
+                className="rounded-full border border-terracotta/30 bg-terracotta-wash px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-terracotta-dark"
+              >
+                {sceneById[id]?.name ?? id}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        {generationResults.some((r) => r.status === "pending") && photo && effectiveFile && sceneById[picked[0]] ? (
+          <ProgressScreen
+            file={effectiveFile}
+            sceneSlugs={picked}
+            userPhotoUrl={photo.url}
+            primaryPreset={{
+              slug: sceneById[picked[0]].slug,
+              name: sceneById[picked[0]].name,
+              mood: sceneById[picked[0]].mood,
+              palette: sceneById[picked[0]].palette,
+              category: sceneById[picked[0]].category,
+            }}
+            presetMetaBySlug={Object.fromEntries(
+              picked.map((slug) => [
+                slug,
+                {
+                  slug: sceneById[slug]?.slug ?? slug,
+                  name: sceneById[slug]?.name ?? slug,
+                  mood: sceneById[slug]?.mood ?? "",
+                  palette: sceneById[slug]?.palette ?? [],
+                  category: sceneById[slug]?.category ?? "",
+                },
+              ]),
+            )}
+            variant={variant}
+            initialResults={generationResults}
+            onSourceUrl={(url) => setServerSourceUrl(url)}
+            onDownloadClick={handleDownloadClick}
+            onSettled={(out) => {
+              setGenerationResults((prev) =>
+                prev.map((r) => {
+                  const hit = out.find((o) => o.slug === r.sceneSlug);
+                  if (!hit) return r;
+                  if (hit.outputUrl) {
+                    return {
+                      ...r,
+                      status: "succeeded",
+                      outputUrl: hit.outputUrl,
+                      rawUrl: hit.rawUrl,
+                    };
+                  }
+                  return {
+                    ...r,
+                    status: "failed",
+                    error: hit.error ?? "failed",
+                    errorCode: hit.errorCode,
+                  };
+                }),
+              );
+              for (const item of out) {
+                if (item.outputUrl) track("try_generate_succeeded", { slug: item.slug });
+                else track("try_generate_failed", { slug: item.slug, error: item.error ?? "failed" });
+              }
+            }}
+          />
+        ) : (
+          <DevelopGrid
+            results={displayResults}
+            variant={variant}
+            sourceUrl={photo?.url}
+            onDownloadClick={handleDownloadClick}
+            onLockedClick={handleLockedClick}
+          />
+        )}
+      </div>
     </div>
   );
 }
 
-// Decorative flourish placed below cards 2 & 3, pointing up at the
-// locked tiles. The arrow is a tiny inline SVG curve in terracotta;
-// the copy is italic serif. It sits inside the cards-column flow so
-// it inherits the same horizontal bounds as the locked tiles above.
-function UnlockArrowAnnotation() {
+function InlineUnlockCta({
+  onUnlock,
+  disabled,
+}: {
+  onUnlock: () => void;
+  disabled?: boolean;
+}) {
   return (
-    <div className="mt-4 hidden items-end justify-end pr-[12%] sm:flex">
-      <div className="relative max-w-[260px] text-right">
-        <p className="font-serif text-[14px] italic leading-[1.35] text-zinc-600">
-          Unlock the remaining 2 images
-          <br />
-          for high-res downloads.
-        </p>
+    <div className="mt-10 flex flex-col items-center gap-3 text-center md:mt-14">
+      <button
+        type="button"
+        onClick={onUnlock}
+        disabled={disabled}
+        data-testid="inline-unlock-cta"
+        className="group inline-flex items-center gap-3 font-serif text-[clamp(1.125rem,1.6vw,1.5rem)] leading-tight text-ink transition-colors hover:text-terracotta-dark disabled:cursor-not-allowed disabled:opacity-60"
+      >
         <svg
-          aria-hidden
-          width="80"
-          height="44"
-          viewBox="0 0 80 44"
-          className="absolute -top-8 -right-2"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="1"
+          strokeWidth="1.6"
           strokeLinecap="round"
           strokeLinejoin="round"
-          style={{ color: "var(--terracotta, #c2451c)" }}
+          aria-hidden
+          className="text-ink-2 transition-colors group-hover:text-terracotta-dark"
         >
-          <path d="M2 40 C 18 32, 32 22, 50 12 C 58 8, 66 6, 74 4" />
-          <path d="M68 2 L 74 4 L 72 10" />
+          <rect x="4" y="11" width="16" height="10" rx="1.5" />
+          <path d="M8 11V7a4 4 0 0 1 8 0v4" />
         </svg>
-      </div>
+        Unlock full-resolution set —{" "}
+        <span className="font-serif font-medium text-terracotta-dark">
+          $9.99
+        </span>
+        <span
+          aria-hidden
+          className="text-terracotta-dark transition-transform group-hover:translate-x-1"
+        >
+          →
+        </span>
+      </button>
+      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-4">
+        2 high-resolution images · Commercial use · No watermark · Instant download
+      </p>
     </div>
   );
 }

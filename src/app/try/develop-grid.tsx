@@ -67,6 +67,12 @@ export function DevelopGrid({
   onDownloadClick,
   onLockedClick,
   onUnlockClick,
+  // editorial=true renders the unauth cinematic reveal: hero center +
+  // peek sides, watermark + PREVIEW label per tile, no chrome. The
+  // wrapper grid lives in try-flow.tsx so the stage can full-bleed
+  // past the content column. We return a fragment of tile wrappers
+  // with sm:order-N classes that the parent grid uses for placement.
+  editorial = false,
 }: {
   results: TileResult[];
   variant?: DevelopGridVariant;
@@ -74,12 +80,42 @@ export function DevelopGrid({
   onDownloadClick?: (slug: string) => void;
   onLockedClick?: () => void;
   onUnlockClick?: () => void;
+  editorial?: boolean;
 }) {
   if (results.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-line bg-paper-soft px-6 py-12 text-center font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
         Pick at least one scene to develop
       </div>
+    );
+  }
+
+  if (editorial) {
+    // Order: index 0 (free preview) goes to the wide center column on
+    // desktop via sm:order-2; the other two flank it. On mobile the
+    // default source order keeps the hero on top of the stack.
+    const editorialOrder = ["sm:order-2", "sm:order-1", "sm:order-3"];
+    return (
+      <>
+        <style>{GLOBAL_KEYFRAMES}</style>
+        {results.map((r, i) => (
+          <div
+            key={r.sceneSlug}
+            className={editorialOrder[i] ?? "sm:order-1"}
+          >
+            <Tile
+              tile={r}
+              index={i}
+              total={results.length}
+              variant={variant}
+              sourceUrl={sourceUrl}
+              onDownloadClick={onDownloadClick}
+              onUnlockClick={onUnlockClick}
+              editorial
+            />
+          </div>
+        ))}
+      </>
     );
   }
 
@@ -122,6 +158,7 @@ function Tile({
   sourceUrl,
   onDownloadClick,
   onUnlockClick,
+  editorial = false,
 }: {
   tile: TileResult;
   index: number;
@@ -130,6 +167,7 @@ function Tile({
   sourceUrl?: string;
   onDownloadClick?: (slug: string) => void;
   onUnlockClick?: () => void;
+  editorial?: boolean;
 }) {
   const isDone = tile.status === "succeeded";
   const isFailed = tile.status === "failed";
@@ -191,12 +229,13 @@ function Tile({
   const progress = Math.min(0.99, elapsed / ESTIMATED_TOTAL_MS);
   const overrun = elapsed > ESTIMATED_TOTAL_MS;
 
-  // Soft-locked tiles keep a heavy blur + saturation drop after the
-  // image lands; the dark overlay sits on top and a "UNLOCK FOR $9.99"
-  // strip is the only call to action. Clicking anywhere on the tile
-  // fires onUnlockClick.
+  // Editorial mode preserves image fidelity even on locked tiles —
+  // the watermark + Preview label do the visual gating, not blur.
+  // The classic dashboard mode keeps a heavy blur for the same intent.
   const filter = isLockedView
-    ? "blur(18px) saturate(0.9)"
+    ? editorial
+      ? "blur(0px) saturate(1)"
+      : "blur(18px) saturate(0.9)"
     : isDone
       ? "blur(0px) grayscale(0)"
       : "blur(20px) grayscale(1)";
@@ -226,7 +265,11 @@ function Tile({
       data-error-code={tile.errorCode ?? ""}
     >
     <div
-      className="relative aspect-[4/5] overflow-hidden border border-zinc-200 bg-zinc-900"
+      className={
+        editorial
+          ? "relative h-[clamp(360px,62vh,720px)] w-full overflow-hidden bg-zinc-900"
+          : "relative aspect-[4/5] overflow-hidden border border-zinc-200 bg-zinc-900"
+      }
       style={{ cursor: tileClickable ? "pointer" : "default" }}
       onClick={handleTileClick}
       onKeyDown={(e) => {
@@ -251,7 +294,11 @@ function Tile({
           src={tile.outputUrl}
           alt={tile.sceneName}
           draggable={false}
-          className="absolute inset-0 h-full w-full object-contain"
+          className={
+            editorial
+              ? "absolute inset-0 h-full w-full object-cover"
+              : "absolute inset-0 h-full w-full object-contain"
+          }
           style={{
             opacity: isDone ? 1 : 0,
             filter,
@@ -289,14 +336,16 @@ function Tile({
         <div className="pointer-events-none absolute inset-0 bg-zinc-900" style={{ zIndex: 20 }} />
       ) : null}
 
-      <div
-        className="absolute top-0 right-0 left-0 bg-black px-3 py-2 font-mono text-[10px] tracking-[0.18em] text-white uppercase"
-        style={{ zIndex: 40 }}
-      >
-        {`${tile.sceneName} · ${String(index + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}`}
-      </div>
+      {editorial ? null : (
+        <div
+          className="absolute top-0 right-0 left-0 bg-black px-3 py-2 font-mono text-[10px] tracking-[0.18em] text-white uppercase"
+          style={{ zIndex: 40 }}
+        >
+          {`${tile.sceneName} · ${String(index + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}`}
+        </div>
+      )}
 
-      {isLockedView ? (
+      {isLockedView && !editorial ? (
         <>
           <div
             className="pointer-events-none absolute inset-0"
@@ -337,7 +386,67 @@ function Tile({
         </>
       ) : null}
 
-      {isFreeDone ? (
+      {editorial && isDone ? (
+        <>
+          {/* Diagonal repeating VESPERDROP watermark — gates the image
+              visually while preserving full fidelity. SVG pattern is
+              uniquely id'd per tile so multiple instances don't collide. */}
+          <svg
+            className="pointer-events-none absolute inset-0 h-full w-full"
+            style={{ zIndex: 38, mixBlendMode: "overlay" }}
+            aria-hidden
+          >
+            <defs>
+              <pattern
+                id={`vd-wm-${tile.sceneSlug}-${index}`}
+                patternUnits="userSpaceOnUse"
+                width="280"
+                height="96"
+                patternTransform="rotate(-26)"
+              >
+                <text
+                  x="0"
+                  y="56"
+                  fill="white"
+                  fillOpacity="0.55"
+                  fontFamily="ui-monospace, 'SFMono-Regular', monospace"
+                  fontSize="24"
+                  letterSpacing="10"
+                >
+                  VESPERDROP
+                </text>
+              </pattern>
+            </defs>
+            <rect
+              width="100%"
+              height="100%"
+              fill={`url(#vd-wm-${tile.sceneSlug}-${index})`}
+            />
+          </svg>
+          <div
+            className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-white"
+            style={{ zIndex: 41, textShadow: "0 1px 2px rgba(0,0,0,0.55)" }}
+          >
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <rect x="4" y="11" width="16" height="10" rx="1.5" />
+              <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+            </svg>
+            Preview
+          </div>
+        </>
+      ) : null}
+
+      {isFreeDone && !editorial ? (
         <div
           className="absolute right-0 bottom-0 left-0 flex items-center gap-2 bg-paper px-3 py-2"
           style={{ zIndex: 41 }}
@@ -362,7 +471,7 @@ function Tile({
         </div>
       ) : null}
 
-      {isDone && !tile.softLocked && onDownloadClick ? (
+      {isDone && !tile.softLocked && !editorial && onDownloadClick ? (
         <>
           <div
             className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent opacity-0 transition-opacity duration-300 md:group-hover:opacity-100"
