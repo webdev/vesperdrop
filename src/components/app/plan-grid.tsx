@@ -61,7 +61,7 @@ export function PlanGrid({ tiers, currentPlan }: Props) {
                 isDark ? "text-cream/55" : "text-ink-4"
               }`}
             >
-              {tier.credits.toLocaleString()} credits · {tier.perCredit}/credit
+              {tier.credits.toLocaleString()} photos · {tier.perCredit}
             </p>
 
             <ul

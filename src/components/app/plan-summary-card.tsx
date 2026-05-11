@@ -81,13 +81,13 @@ export async function PlanSummaryCard({
 
           <div className="md:border-l md:border-line-soft md:pl-10">
             <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-              Credits
+              Photos
             </p>
             <p className="mt-3 font-serif text-[clamp(2.25rem,3.5vw,3rem)] leading-none tracking-[-0.02em] tabular-nums text-ink">
               {quotaUnitsRemaining.toLocaleString()}
             </p>
             <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-4">
-              {quotaUnitsRemaining === 1 ? "credit remaining" : "credits remaining"}
+              {quotaUnitsRemaining === 1 ? "photo remaining" : "photos remaining"}
             </p>
             {accruedOverageCents > 0 && (
               <div className="mt-3 flex items-baseline justify-between gap-4">

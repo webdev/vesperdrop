@@ -72,7 +72,7 @@ export function RunForm({ scenes, initialSceneIds = [], credits }: Props) {
         const body = await res.json().catch(() => ({}));
         if (res.status === 402) {
           setError(
-            "You're out of credits. Upgrade your plan or buy a credit pack.",
+            "You're out of photos for this cycle. Upgrade your plan to keep generating.",
           );
         } else {
           setError(body.error ?? `HTTP ${res.status}`);
@@ -430,7 +430,7 @@ export function RunForm({ scenes, initialSceneIds = [], credits }: Props) {
           {error ? (
             <div className="rounded-md border border-terracotta/30 bg-terracotta-wash px-4 py-3 text-[14px] text-terracotta-dark">
               {error}
-              {error.includes("credits") ? (
+              {error.includes("photos") ? (
                 <a
                   href="/pricing"
                   className="ml-2 underline underline-offset-4"
@@ -455,10 +455,10 @@ export function RunForm({ scenes, initialSceneIds = [], credits }: Props) {
         <div className="flex flex-col items-stretch gap-4 md:flex-row md:items-center md:justify-between">
           <div className="md:flex-1">
             <p className="text-[14px] font-medium text-ink">
-              You have {credits} {credits === 1 ? "credit" : "credits"}
+              You have {credits} {credits === 1 ? "photo" : "photos"} left
             </p>
             <p className="mt-1 text-[13px] text-ink-3">
-              Need more credits?{" "}
+              Need more?{" "}
               <Link
                 href="/pricing"
                 className="text-terracotta transition-colors hover:text-terracotta-dark"
@@ -483,7 +483,7 @@ export function RunForm({ scenes, initialSceneIds = [], credits }: Props) {
                     <>
                       {sceneIds.length}{" "}
                       {sceneIds.length === 1 ? "scene" : "scenes"} selected ·
-                      Est. credits:{" "}
+                      Est. photos:{" "}
                       <span className="text-ink">{total}</span>
                     </>
                   )}

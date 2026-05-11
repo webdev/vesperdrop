@@ -71,18 +71,18 @@ export async function Nav({ width = "app" }: NavProps = {}) {
             <>
               {isAdmin ? (
                 <span
-                  aria-label="Unlimited credits"
+                  aria-label="Unlimited photos"
                   className="hidden items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-2 md:inline-flex"
                 >
-                  Credits
+                  Photos
                   <span className="text-ink">∞</span>
                 </span>
               ) : typeof credits === "number" ? (
                 <span
-                  aria-label={`${credits} credits remaining`}
+                  aria-label={`${credits} photos remaining`}
                   className="hidden items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-2 md:inline-flex"
                 >
-                  Credits
+                  Photos
                   <span className="text-ink">{credits}</span>
                 </span>
               ) : null}
