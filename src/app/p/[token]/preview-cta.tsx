@@ -93,6 +93,7 @@ export function PreviewCta({ data }: Props) {
               onSuccess={handleOtpSuccess}
               eyebrow={null}
               description={null}
+              autoFocusEmail={false}
             />
           </div>
 

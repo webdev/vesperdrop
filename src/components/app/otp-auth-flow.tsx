@@ -46,6 +46,15 @@ type Props = {
    * straight to /app or back through the checkout flow).
    */
   successMessage?: React.ReactNode | null;
+  /**
+   * Whether to autofocus the email input on mount. Defaults to true,
+   * which is correct for AuthModal, /sign-in, /sign-up, and /try where
+   * the form is the primary focus. Set to false on marketing surfaces
+   * that embed the form mid-document (e.g. preview-cta) — otherwise
+   * the browser scroll-anchors the input on load, jumping past the
+   * hero.
+   */
+  autoFocusEmail?: boolean;
 };
 
 // Subtle but tactile motion. Springs feel right for the "claim" reveal;
@@ -62,6 +71,7 @@ export function OtpAuthFlow({
   surface,
   layout = "vertical",
   successMessage = "✓ Studio claimed",
+  autoFocusEmail = true,
 }: Props) {
   const supabase = createSupabaseBrowserClient();
   const [state, setState] = useState<FlowState>({ kind: "email" });
@@ -156,6 +166,7 @@ export function OtpAuthFlow({
               onSubmit={sendOtp}
               error={error}
               layout={layout}
+              autoFocus={autoFocusEmail}
             />
           </motion.div>
         )}
@@ -225,11 +236,13 @@ function EmailForm({
   onSubmit,
   error,
   layout = "vertical",
+  autoFocus = true,
 }: {
   busy: boolean;
   onSubmit: (email: string) => void;
   error: string | null;
   layout?: "vertical" | "horizontal";
+  autoFocus?: boolean;
 }) {
   const [email, setEmail] = useState("");
 
@@ -252,7 +265,7 @@ function EmailForm({
             inputMode="email"
             autoComplete="email"
             required
-            autoFocus
+            autoFocus={autoFocus}
             placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -300,7 +313,7 @@ function EmailForm({
         inputMode="email"
         autoComplete="email"
         required
-        autoFocus
+        autoFocus={autoFocus}
         placeholder="your@email.com"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
