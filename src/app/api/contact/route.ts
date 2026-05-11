@@ -13,8 +13,10 @@ const PayloadSchema = z.object({
   monthlyVolume: z.enum(["<500", "500-1500", "1500-5000", "5000+"]),
   message: z.string().max(2000).nullable().optional(),
   source: z.string().max(64).default("contact-direct"),
-  // Honeypot. Real clients leave it empty. Bots fill it.
-  website: z.string().max(0).optional(),
+  // Honeypot. Real clients leave it empty. Bots fill it. Accept anything so
+  // we can detect a non-empty value below and return ok silently — failing
+  // the schema would leak that the field is a trap.
+  website: z.string().max(2000).optional(),
 });
 
 // The shared try_take_token RPC keys on uuid user_id, so for an unauthenticated
