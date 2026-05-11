@@ -67,12 +67,21 @@ export function OtpAuthFlow({
       // Supabase ships both `{{ .Token }}` and `{{ .ConfirmationURL }}`
       // in the email payload; even when the template only shows the
       // code, the underlying URL is still resolvable if the user
-      // clicks something Supabase formatted. Set redirect_to to the
-      // current page so that a clicked link lands them back here
-      // (in-flow) instead of the Site URL default (which used to
-      // dump them on /app/library and trigger the legacy claim path).
-      const emailRedirectTo =
-        typeof window !== "undefined" ? window.location.href : undefined;
+      // clicks the formatted link. The link points at Supabase's
+      // verify endpoint, which then redirects to `redirect_to` — but
+      // that URL needs to handle the code-exchange step or the
+      // session never lands. Route through /api/auth/callback (which
+      // exchanges the code) and tell it to forward to the current
+      // page via ?next=. This way:
+      //   - user enters OTP inline → redirect_to is unused (session
+      //     created by verifyOtp), no side effect.
+      //   - user clicks the link → callback exchanges, then forwards
+      //     them back to /try/b/<token> with an active session.
+      let emailRedirectTo: string | undefined;
+      if (typeof window !== "undefined") {
+        const next = window.location.pathname + window.location.search;
+        emailRedirectTo = `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(next)}`;
+      }
       const { error: sendError } = await supabase.auth.signInWithOtp({
         email,
         options: { shouldCreateUser: true, emailRedirectTo },
