@@ -22,12 +22,14 @@ export type ReconcileResult = {
 };
 
 function priceIdToPlan(priceId: string): string | null {
-  const map: Record<string, string> = {
-    [env.STRIPE_PRO_PRICE_ID]: "pro",
-    [env.STRIPE_STARTER_PRICE_ID]: "starter",
-    [env.STRIPE_STUDIO_PRICE_ID]: "studio",
-    [env.STRIPE_AGENCY_PRICE_ID]: "agency",
-  };
+  // Legacy single-interval mapping. Agent B replaces this with an interval-
+  // aware resolver that reads PLAN_STRIPE. During Phase 1 the legacy env
+  // vars are optional, so empty fallbacks are harmless (they never match).
+  const map: Record<string, string> = {};
+  if (env.STRIPE_PRO_PRICE_ID) map[env.STRIPE_PRO_PRICE_ID] = "pro";
+  if (env.STRIPE_STARTER_PRICE_ID) map[env.STRIPE_STARTER_PRICE_ID] = "starter";
+  if (env.STRIPE_STUDIO_PRICE_ID) map[env.STRIPE_STUDIO_PRICE_ID] = "studio";
+  if (env.STRIPE_AGENCY_PRICE_ID) map[env.STRIPE_AGENCY_PRICE_ID] = "agency";
   return map[priceId] ?? null;
 }
 

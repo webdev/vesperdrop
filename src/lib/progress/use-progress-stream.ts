@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createSseParser } from "./sse-parser";
 import type { ExtractedAttributes } from "@/lib/ai/extract-attributes";
 import type { PhaseId, PresetMeta } from "./strings";
+import type { FocalPoint, FaceBox } from "@/lib/ai/sceneify";
 
 export type StreamStatus = "idle" | "connecting" | "streaming" | "done" | "error";
 
@@ -17,6 +18,8 @@ export type StreamState = {
   outputUrl: string | null;
   rawUrl: string | null;
   sourceUrl: string | null;
+  focalPoint: FocalPoint | null;
+  faceBox: FaceBox | null;
   // `code` lets callers distinguish business outcomes (e.g.
   // "credit_limit_reached" → render a sign-up prompt) from generic
   // failures. Server SSE may emit it on the "error" event; HTTP errors
@@ -44,6 +47,8 @@ const initial: StreamState = {
   outputUrl: null,
   rawUrl: null,
   sourceUrl: null,
+  focalPoint: null,
+  faceBox: null,
   error: null,
 };
 
@@ -134,12 +139,19 @@ export function useProgressStream({
           } else if (event === "tick") {
             setState((s) => ({ ...s, elapsedMs: (data as { elapsedMs: number }).elapsedMs }));
           } else if (event === "done") {
-            const d = data as { outputUrl: string; rawUrl?: string };
+            const d = data as {
+              outputUrl: string;
+              rawUrl?: string;
+              focalPoint?: FocalPoint | null;
+              faceBox?: FaceBox | null;
+            };
             setState((s) => ({
               ...s,
               status: "done",
               outputUrl: d.outputUrl,
               rawUrl: d.rawUrl ?? null,
+              focalPoint: d.focalPoint ?? null,
+              faceBox: d.faceBox ?? null,
             }));
           } else if (event === "error") {
             const d = data as { message: string; retryable: boolean };

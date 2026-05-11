@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useProgressBatch } from "@/lib/progress/use-progress-batch";
 import { track } from "@/lib/analytics";
 import type { PresetMeta } from "@/lib/progress/strings";
+import type { FocalPoint, FaceBox } from "@/lib/ai/sceneify";
 import { DevelopGrid, type DevelopGridVariant, type TileResult } from "./develop-grid";
 
 type Props = {
@@ -20,6 +21,8 @@ type Props = {
       slug: string;
       outputUrl?: string;
       rawUrl?: string;
+      focalPoint?: FocalPoint | null;
+      faceBox?: FaceBox | null;
       error?: string;
       errorCode?: string;
     }>,
@@ -109,6 +112,8 @@ export function ProgressScreen({
           slug,
           outputUrl: s.outputUrl,
           rawUrl: s.rawUrl ?? undefined,
+          focalPoint: s.focalPoint,
+          faceBox: s.faceBox,
         };
       }
       return {
@@ -133,7 +138,13 @@ export function ProgressScreen({
     };
     const s = view.streams[slug];
     if (s?.outputUrl) {
-      return { ...base, status: "succeeded", outputUrl: s.outputUrl };
+      return {
+        ...base,
+        status: "succeeded",
+        outputUrl: s.outputUrl,
+        focalPoint: s.focalPoint ?? undefined,
+        faceBox: s.faceBox ?? undefined,
+      };
     }
     if (s?.error) {
       return {

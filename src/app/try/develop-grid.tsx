@@ -34,6 +34,7 @@ const GRAIN_HUD = [
 
 import { pickLine, type PhaseId, type PresetMeta } from "@/lib/progress/strings";
 import type { ExtractedAttributes } from "@/lib/ai/extract-attributes";
+import type { FocalPoint, FaceBox } from "@/lib/ai/sceneify";
 
 export type TileResult = {
   sceneSlug: string;
@@ -57,6 +58,13 @@ export type TileResult = {
   // server-side; the lock is purely visual until the user pays.
   isFreePreview?: boolean;
   softLocked?: boolean;
+  // Normalized 0..1 focal coordinates returned by Sceneify alongside
+  // the generation. When present, the tile uses `object-position` to
+  // keep the subject (usually a face) in frame even when the parent
+  // crops the image (the editorial center tile is wider than the
+  // sides — without this, heads get cut off at the top).
+  focalPoint?: FocalPoint | null;
+  faceBox?: FaceBox | null;
 };
 
 export type DevelopGridVariant = "darkroom" | "grain";

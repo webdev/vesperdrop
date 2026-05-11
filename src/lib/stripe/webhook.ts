@@ -21,9 +21,11 @@ import { markBatchPaid } from "@/lib/db/unlock-batches";
  * Returns null when the price ID is not recognised.
  */
 function priceIdToPlan(priceId: string): string | null {
-  const map: Record<string, string> = {
-    [env.STRIPE_PRO_PRICE_ID]: "pro",
-  };
+  // Legacy single-interval mapping. Agent B replaces with an interval-aware
+  // resolver that reads PLAN_STRIPE. Legacy env vars are optional during the
+  // Phase 1 → Phase 3 transition.
+  const map: Record<string, string> = {};
+  if (env.STRIPE_PRO_PRICE_ID) map[env.STRIPE_PRO_PRICE_ID] = "pro";
   if (env.STRIPE_STARTER_PRICE_ID) map[env.STRIPE_STARTER_PRICE_ID] = "starter";
   if (env.STRIPE_STUDIO_PRICE_ID) map[env.STRIPE_STUDIO_PRICE_ID] = "studio";
   if (env.STRIPE_AGENCY_PRICE_ID) map[env.STRIPE_AGENCY_PRICE_ID] = "agency";

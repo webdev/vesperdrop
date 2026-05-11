@@ -28,14 +28,14 @@ export const QUALITY_CREDIT_COST: Record<"preview" | "hd", number> = {
   hd: 1,
 };
 
-/** Monthly credit allocation per subscription plan (refilled by Stripe webhook) */
-export const PLAN_MONTHLY_QUOTA: Record<string, number> = {
-  free: 0,       // no monthly refill; signs up with 1 credit
-  starter: 50,
-  pro: 200,
-  studio: 1000,
-  agency: 5000,
-};
+import { PLAN_QUOTA } from "@/lib/plans";
+
+/** Monthly quota allocation per subscription plan. Derived from PLAN_QUOTA so
+ * pricing v2 changes only need to update plans.ts. Free signs up with 1 unit
+ * via the schema default; no monthly refill. */
+export const PLAN_MONTHLY_QUOTA: Record<string, number> = Object.fromEntries(
+  Object.entries(PLAN_QUOTA).map(([slug, { monthlyQuota }]) => [slug, monthlyQuota]),
+);
 
 /** Route to the correct fal.ai model based on desired quality */
 export function routeModel(quality: "preview" | "hd"): FalModelId {

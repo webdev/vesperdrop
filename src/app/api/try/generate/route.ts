@@ -249,7 +249,17 @@ export async function POST(req: Request) {
         const finalUrl = await storeWatermarked(watermarked, `${key}.png`, origin);
 
         clearInterval(tickInterval);
-        send("done", { outputUrl: finalUrl, rawUrl, sceneSlug: slug });
+        // Forward focal/face data so the client can position the
+        // tile image with the subject in frame. Sceneify already runs
+        // face detection on every generation, so this is metadata
+        // forwarding — no extra cost.
+        send("done", {
+          outputUrl: finalUrl,
+          rawUrl,
+          sceneSlug: slug,
+          focalPoint: result.focalPoint ?? null,
+          faceBox: result.faceBox ?? null,
+        });
       } catch (e) {
         clearInterval(tickInterval);
         const status = e instanceof SceneifyError ? e.status : 502;
