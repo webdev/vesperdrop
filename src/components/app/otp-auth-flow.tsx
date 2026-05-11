@@ -39,6 +39,13 @@ type Props = {
    * claim section where the headline lives in a parent column.
    */
   layout?: "vertical" | "horizontal";
+  /**
+   * Success-state copy. Defaults to the /try cinematic reveal ("✓ Studio
+   * claimed"). Pass `null` to suppress it entirely on surfaces where the
+   * post-auth navigation already conveys success (e.g. /sign-in routes
+   * straight to /app or back through the checkout flow).
+   */
+  successMessage?: React.ReactNode | null;
 };
 
 // Subtle but tactile motion. Springs feel right for the "claim" reveal;
@@ -54,6 +61,7 @@ export function OtpAuthFlow({
   description = "Save this batch and unlock your first HD image.",
   surface,
   layout = "vertical",
+  successMessage = "✓ Studio claimed",
 }: Props) {
   const supabase = createSupabaseBrowserClient();
   const [state, setState] = useState<FlowState>({ kind: "email" });
@@ -179,7 +187,7 @@ export function OtpAuthFlow({
           </motion.div>
         )}
 
-        {state.kind === "success" && (
+        {state.kind === "success" && successMessage !== null && (
           <motion.div
             key="success"
             initial={{ opacity: 0 }}
@@ -187,7 +195,7 @@ export function OtpAuthFlow({
             transition={STATE_TRANSITION}
             className="font-mono text-[11px] uppercase tracking-[0.18em] text-terracotta-dark"
           >
-            ✓ Studio claimed
+            {successMessage}
           </motion.div>
         )}
       </AnimatePresence>

@@ -111,6 +111,7 @@ export function AuthForm({
       onSuccess={handleOtpSuccess}
       eyebrow={null}
       description={null}
+      successMessage={null}
     />
   );
 
