@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { Container } from "@/components/ui/container";
 import { Button } from "@/components/ui/button";
+import { DownloadButton } from "./download-button";
 import { stripe } from "@/lib/stripe/server";
 import {
   getUnlockBatchByToken,
@@ -135,17 +136,10 @@ export default async function UnlockedPage({
                   </div>
                   {isPaid && g.rawUrl ? (
                     <div className="mt-4">
-                      <Button
-                        variant="accent"
-                        render={
-                          <a
-                            href={g.rawUrl}
-                            download={`vesperdrop-${g.sceneSlug}.png`}
-                          />
-                        }
-                      >
-                        Download HD
-                      </Button>
+                      <DownloadButton
+                        url={g.rawUrl}
+                        filename={`vesperdrop-${g.sceneSlug}.png`}
+                      />
                     </div>
                   ) : null}
                 </figure>
