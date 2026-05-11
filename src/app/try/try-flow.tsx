@@ -825,15 +825,31 @@ function DevelopStep({
     setAuthModal({ open: true, intent });
   }, []);
 
-  const triggerDirectDownload = useCallback((url: string, filename: string) => {
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  }, []);
+  // Cross-origin URLs (Vercel Blob) ignore the <a download> attribute
+  // unless the response sets Content-Disposition: attachment, so the
+  // browser opens them in a new tab. Fetch as blob + object URL so
+  // we get a same-origin URL that honors `download`.
+  const triggerDirectDownload = useCallback(
+    async (url: string, filename: string) => {
+      try {
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error(`fetch ${res.status}`);
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = objectUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      } catch (err) {
+        console.error("[try-flow] download failed", err);
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+    },
+    [],
+  );
 
   // Once the user has claimed (OTP verified + batch attached) we know
   // there's an active client session even though `isAuthed` (from SSR)
@@ -853,7 +869,7 @@ function DevelopStep({
           const isHeroUnlocked =
             tile.isFreePreview === true && claimed && Boolean(tile.rawUrl);
           const url = isHeroUnlocked ? (tile.rawUrl as string) : tile.outputUrl;
-          triggerDirectDownload(
+          void triggerDirectDownload(
             url,
             `${tile.sceneName.toLowerCase().replace(/\s+/g, "-")}.png`,
           );

@@ -37,15 +37,37 @@ export function BatchView({
     faceBox: g.faceBox ?? null,
   }));
 
-  const triggerDownload = useCallback((url: string, filename: string) => {
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  }, []);
+  // Cross-origin URLs (Vercel Blob) ignore the <a download> attribute
+  // unless the response sets Content-Disposition: attachment, so the
+  // browser opens them in a new tab instead of saving. Fetch the
+  // resource as a blob and download via an object URL — that's
+  // same-origin from the browser's perspective and bypasses the
+  // disposition rule entirely.
+  const triggerDownload = useCallback(
+    async (url: string, filename: string) => {
+      try {
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error(`fetch ${res.status}`);
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = objectUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        // Revoke after a tick so the click has time to start the
+        // download in some browsers.
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      } catch (err) {
+        // Last-resort fallback: open in a new tab so the user can
+        // right-click → Save image as.
+        console.error("[batch-view] download failed", err);
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+    },
+    [],
+  );
 
   const handleDownload = useCallback(
     (slug: string) => {
@@ -55,7 +77,7 @@ export function BatchView({
       if (claimed && gen.isFreePreview) {
         // Hero post-claim: HD raw. Falls back to the watermarked
         // outputUrl if rawUrl wasn't captured (older batches).
-        triggerDownload(
+        void triggerDownload(
           gen.rawUrl ?? gen.outputUrl,
           `${gen.sceneName.toLowerCase().replace(/\s+/g, "-")}.png`,
         );
