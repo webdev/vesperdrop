@@ -5,7 +5,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { db } from "@/lib/db";
 import { generations } from "@/lib/db/schema";
-import { tryConsumeQuota, addQuota } from "@/lib/db/quota";
+import { addQuota } from "@/lib/db/quota";
+import { consumeQuota } from "@/lib/billing/quota";
 import {
   createPackWithShots,
   findExistingPack,
@@ -108,17 +109,26 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   const cost = packCreditCost(platform);
+  // Count of within-cap consumes — used to compute the refund amount when
+  // Sceneify rejects the request. Overage consumes aren't billed yet (the
+  // workflow's success path is what triggers the Stripe invoice item), so
+  // they don't need refunding when the upstream call never lands.
+  let withinCapCount = 0;
   if (!isAdmin) {
-    const ok = await tryConsumeQuota(user.id, cost);
-    if (!ok) {
-      return NextResponse.json(
-        {
-          error: "insufficient credits",
-          required: cost,
-          platform,
-        },
-        { status: 402 },
-      );
+    for (let i = 0; i < cost; i += 1) {
+      const r = await consumeQuota(user.id, runId);
+      if (!r.ok) {
+        if (withinCapCount > 0) await addQuota(user.id, withinCapCount);
+        return NextResponse.json(
+          {
+            error: "insufficient credits",
+            required: cost,
+            platform,
+          },
+          { status: 402 },
+        );
+      }
+      if (r.withinCap) withinCapCount += 1;
     }
   }
 
@@ -130,9 +140,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       callerRef: `vesperdrop:run:${runId}:gen:${parent.id}`,
     });
   } catch (err) {
-    // Refund the credits we just debited — Sceneify never accepted the work.
-    // Admins skipped the deduction, so nothing to refund.
-    if (!isAdmin) await addQuota(user.id, cost);
+    // Refund only the within-cap consumes; overage consumes generate no
+    // Stripe charge until the workflow's success path fires.
+    if (!isAdmin && withinCapCount > 0) await addQuota(user.id, withinCapCount);
     const message = err instanceof Error ? err.message : String(err);
     console.error("complete-look POST: sceneify call failed", message);
     return NextResponse.json(

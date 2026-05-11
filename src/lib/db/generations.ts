@@ -10,6 +10,7 @@ export async function insertPendingGenerations(
     userId: string;
     sceneifySourceId: string;
     presetId: string;
+    wasOverage?: boolean;
   }>,
 ) {
   const inserted = await db
@@ -20,6 +21,7 @@ export async function insertPendingGenerations(
         userId: r.userId,
         sceneifySourceId: r.sceneifySourceId,
         presetId: r.presetId,
+        wasOverage: r.wasOverage ?? false,
       })),
     )
     .returning({
