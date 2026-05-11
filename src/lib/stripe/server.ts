@@ -1,17 +1,64 @@
 import "server-only";
 import Stripe from "stripe";
 import { env } from "@/lib/env";
+import {
+  isPaidPlanSlug,
+  priceIdForPlan,
+  type BillingInterval,
+  type PaidPlanSlug,
+} from "@/lib/plans";
 
 export const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
   apiVersion: "2026-04-22.dahlia",
 });
 
-// Stub: replaced by Agent B's Stripe money flow plan with a real
-// implementation that retrieves the subscription, finds the metered
-// overage item, and returns its id. Returning null here means Agent C's
-// overage hook silently no-ops until Agent B lands the real version.
+// Stub: pricing v2 pivoted overage from a metered subscription item to
+// runtime invoice items (Agent C calls stripe.invoiceItems.create). This
+// helper is kept as an unused no-op so external callers don't break, and
+// to keep diff churn small. Safe to remove in a later cleanup pass.
 export async function findOverageSubscriptionItem(
   _subscriptionId: string,
 ): Promise<string | null> {
   return null;
+}
+
+export interface CheckoutInput {
+  customerEmail?: string | null;
+  customerId?: string | null;
+  slug: PaidPlanSlug;
+  interval: BillingInterval;
+  successUrl: string;
+  cancelUrl: string;
+  metadata?: Record<string, string>;
+}
+
+export async function createCheckoutSession(
+  input: CheckoutInput,
+): Promise<Stripe.Checkout.Session> {
+  if (!isPaidPlanSlug(input.slug)) {
+    throw new Error(`createCheckoutSession: invalid plan "${input.slug}"`);
+  }
+  const flatPriceId = priceIdForPlan(input.slug, input.interval);
+  return stripe.checkout.sessions.create({
+    mode: "subscription",
+    customer: input.customerId ?? undefined,
+    customer_email: input.customerId
+      ? undefined
+      : input.customerEmail ?? undefined,
+    line_items: [{ price: flatPriceId, quantity: 1 }],
+    success_url: input.successUrl,
+    cancel_url: input.cancelUrl,
+    allow_promotion_codes: true,
+    metadata: {
+      ...input.metadata,
+      vd_plan: input.slug,
+      vd_interval: input.interval,
+    },
+    subscription_data: {
+      metadata: {
+        vd_plan: input.slug,
+        vd_interval: input.interval,
+      },
+    },
+  });
 }
