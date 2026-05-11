@@ -61,6 +61,35 @@ configured Google credentials on your Supabase project.
 The app's `/api/auth/callback` route exchanges the OAuth code for a session and
 redirects to `?next=...` (defaults to `/app`).
 
+## Production SMTP (Resend)
+
+Supabase's built-in SMTP caps email sends at **2/hour project-wide** across every
+endpoint (OTP, signup confirm, password reset, email change). Custom SMTP via
+Resend lifts the ceiling — the OTP-gated `/try` HD download will trip the
+default cap with a single round of QA.
+
+One-time setup:
+
+1. **Resend** ([resend.com](https://resend.com)) → sign up, add `vesperdrop.com`
+   as a domain, complete DNS verification (SPF + DKIM + DMARC records).
+2. Resend → API Keys → create one with "Send access" only. Copy the `re_...`
+   value somewhere safe; you can't view it again.
+3. **Supabase Dashboard** → your production project → Authentication → Emails
+   → SMTP Settings → enable, then paste:
+   - Host: `smtp.resend.com`
+   - Port: `465`
+   - Username: `resend`
+   - Password: `<the re_... key>`
+   - Sender email: `noreply@vesperdrop.com`
+   - Sender name: `Vesperdrop`
+4. **Supabase Dashboard** → Authentication → Rate Limits → bump "Emails sent
+   per hour" to a real number (e.g. 100) now that custom SMTP is in place.
+
+Local dev keeps using Inbucket — `supabase/config.toml` raises the local
+`email_sent` cap to 100 so OTP testing doesn't lock you out, and `[auth.email.smtp]`
+stays commented out in that file (the block doubles as a reference for the
+values to enter in the dashboard).
+
 ## Daily
 
 ```
