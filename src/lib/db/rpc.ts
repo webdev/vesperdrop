@@ -45,6 +45,13 @@ export async function tryConsumeQuota(
   return Boolean(result[0]?.ok);
 }
 
+export async function tryConsumeAnonCredit(anonId: string): Promise<boolean> {
+  const result = await db.execute<{ ok: boolean }>(
+    sql`select public.try_consume_anon_credit(${anonId}::uuid) as ok`,
+  );
+  return Boolean(result[0]?.ok);
+}
+
 export async function refillQuota(
   userId: string,
   plan: string,

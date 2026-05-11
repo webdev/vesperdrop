@@ -11,53 +11,24 @@ import { encodeSse } from "@/lib/progress/sse-encoder";
 import { phaseAtElapsed, type PhaseId } from "@/lib/progress/strings";
 import { isAdminEmail } from "@/lib/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  ANON_COOKIE_MAX_AGE_SECONDS,
+  ANON_COOKIE_NAME,
+  getOrCreateAnonCredit,
+  tryConsumeAnonCredit,
+} from "@/lib/db/anon-credits";
+import { tryConsumeQuota } from "@/lib/db/quota";
 import { env } from "@/lib/env";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-const ipBuckets = new Map<string, { count: number; resetAt: number }>();
-// Authed users go through the existing per-minute IP cap. Unauthed users
-// (the freemium "Try free" funnel — generate first, sign up to download)
-// are throttled more aggressively because abuse here costs Sceneify and
-// Gemini cost without ever converting. The hourly cap is intentionally
-// strict; the conversion gate at download is the real value capture.
-const RATE_LIMIT_AUTHED = 12;
-const WINDOW_MS_AUTHED = 60_000;
-// Unauth visitors are capped at 2 picks + 1 server-injected bonus
-// scene = 3 calls per batch. Bucket sized to ~2 batches so an
-// accidental refresh from the same IP isn't punished, while scripted
-// abuse from one IP burns out within the hour.
-const RATE_LIMIT_UNAUTHED = 6;
-const WINDOW_MS_UNAUTHED = 60 * 60_000;
 const TOTAL_EST_MS = 70_000;
 const MOCK_GEN_DURATION_MS = 14_000;
 const MOCK_OUTPUT_URL =
   "https://placehold.co/1024x1024/1b1915/f4f0e8.png?text=MOCK+GEN";
 const MOCK_SOURCE_URL =
   "https://placehold.co/1024x1024/cccccc/333333.png?text=MOCK+SOURCE";
-
-function rateLimitOk(ip: string, isAuthed: boolean): boolean {
-  // Mock mode: no real Sceneify cost, no real abuse vector. Skip the
-  // bucket entirely so a dev iterating on the funnel can re-run the
-  // flow without restarting the server to clear in-memory state.
-  if (process.env.E2E_SCENEIFY_MOCK === "1") return true;
-  // Bucket key includes auth state so a user who's been generating
-  // unauthed and then signs up gets a fresh authed bucket — they
-  // shouldn't carry pre-signup throttle into the post-signup batch.
-  const key = `${isAuthed ? "auth" : "anon"}:${ip}`;
-  const limit = isAuthed ? RATE_LIMIT_AUTHED : RATE_LIMIT_UNAUTHED;
-  const window = isAuthed ? WINDOW_MS_AUTHED : WINDOW_MS_UNAUTHED;
-  const now = Date.now();
-  const b = ipBuckets.get(key);
-  if (!b || b.resetAt < now) {
-    ipBuckets.set(key, { count: 1, resetAt: now + window });
-    return true;
-  }
-  if (b.count >= limit) return false;
-  b.count += 1;
-  return true;
-}
 
 function jsonError(
   message: string,
@@ -120,30 +91,55 @@ function buildMockStream(slug: string): ReadableStream<Uint8Array> {
 }
 
 export async function POST(req: Request) {
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    "anon";
-
   // Unauthed generation is allowed by design — the funnel is:
   //   upload → generate (unauth, watermarked previews)
-  //   → click Download → AuthModal → confirm email → claim hi-res
-  // The download CTA is the conversion gate, not generation. Auth state
-  // is still resolved early so we can rate-limit anon traffic harder
-  // (Sceneify/Gemini cost) and skip mock-mode for non-admins.
+  //   → claim via inline OTP → Stripe unlock for HD
+  // The download CTA is the conversion gate, not generation. Auth
+  // state is resolved early so we can route to the right credit
+  // ledger (per-profile quota_units vs cookie-keyed anon_credits).
   const supabase = await createSupabaseServerClient();
   const { data: userData } = await supabase.auth.getUser();
   const userEmail = userData.user?.email ?? null;
   const isAuthed = Boolean(userData.user);
+  const cookieStore = await cookies();
+  const isMockMode = process.env.E2E_SCENEIFY_MOCK === "1";
 
-  if (!rateLimitOk(ip, isAuthed)) {
-    return jsonError(
-      isAuthed
-        ? "Too many previews. Wait a minute and try again."
-        : "Free preview already used — sign up to unlock more.",
-      429,
-      isAuthed ? "rate_limit" : "credit_limit_reached",
-    );
+  // Credit gate — replaces the old per-IP hourly bucket which was
+  // trivially defeated by VPN rotators and punished office NAT users.
+  // Authed:   1 quota_unit per generation (atomic RPC).
+  // Unauth:   1 anon_credit per generation, keyed on cookie+DB row.
+  // Mock:     skipped entirely so devs can iterate freely.
+  if (!isMockMode) {
+    if (isAuthed && userData.user) {
+      const ok = await tryConsumeQuota(userData.user.id, 1);
+      if (!ok) {
+        return jsonError(
+          "Out of credits. Upgrade your plan to keep generating.",
+          402,
+          "quota_exhausted",
+        );
+      }
+    } else {
+      const cookieAnonId = cookieStore.get(ANON_COOKIE_NAME)?.value;
+      const { anonId, created } = await getOrCreateAnonCredit(cookieAnonId);
+      if (created) {
+        cookieStore.set(ANON_COOKIE_NAME, anonId, {
+          maxAge: ANON_COOKIE_MAX_AGE_SECONDS,
+          httpOnly: true,
+          sameSite: "lax",
+          secure: process.env.NODE_ENV === "production",
+          path: "/",
+        });
+      }
+      const consumed = await tryConsumeAnonCredit(anonId);
+      if (!consumed) {
+        return jsonError(
+          "You've used your free previews. Sign up to keep generating.",
+          402,
+          "credit_limit_reached",
+        );
+      }
+    }
   }
 
   const form = await req.formData();
@@ -169,7 +165,6 @@ export async function POST(req: Request) {
   // there. VERCEL_ENV is unset in pure local `pnpm dev`, so the check passes
   // and the mock works locally too.
   const mockEnabled = process.env.VERCEL_ENV !== "production";
-  const cookieStore = await cookies();
   const wantsMock = mockEnabled && cookieStore.get("vd_mock_gen")?.value === "1";
   const isAdmin = wantsMock ? isAdminEmail(userEmail) : false;
   if (wantsMock && isAdmin) {

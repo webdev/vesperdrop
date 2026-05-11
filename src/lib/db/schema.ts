@@ -511,6 +511,23 @@ export const unlockBatches = pgTable("unlock_batches", {
 
 export type UnlockBatch = typeof unlockBatches.$inferSelect;
 
+// Anon credit ledger for the unauth /try/generate path. Each visitor
+// gets `credits_remaining` (default 3) keyed on a cookie-stored
+// anon_id. Atomic decrement happens via try_consume_anon_credit RPC.
+export const anonCredits = pgTable("anon_credits", {
+  anonId: uuid("anon_id").primaryKey().default(sql`gen_random_uuid()`),
+  creditsRemaining: integer("credits_remaining").notNull().default(3),
+  fingerprintHash: text("fingerprint_hash"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .default(sql`now()`),
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true })
+    .notNull()
+    .default(sql`now()`),
+});
+
+export type AnonCredit = typeof anonCredits.$inferSelect;
+
 export type EtsyCandidate = typeof etsyCandidates.$inferSelect;
 export type EtsyPreviewPage = typeof etsyPreviewPages.$inferSelect;
 export type EtsyPreviewEvent = typeof etsyPreviewEvents.$inferSelect;
