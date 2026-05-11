@@ -21,10 +21,32 @@ const PayloadSchema = z.object({
 
 // The shared try_take_token RPC keys on uuid user_id, so for an unauthenticated
 // public form we run a tiny in-memory limiter scoped to this route instead of
-// shipping a new migration. 3 submissions per IP per hour.
+// shipping a new migration. 3 submissions per IP per hour. Per-instance only
+// (each Vercel lambda has its own Map) which is fine for a contact form
+// alongside the honeypot. Map is capped to MAX_IPS entries; once full we drop
+// entries whose most-recent hit is oldest, preventing unbounded memory growth
+// from random scanner IPs.
 const WINDOW_MS = 60 * 60 * 1000;
 const LIMIT = 3;
+const MAX_IPS = 1024;
 const ipHits = new Map<string, number[]>();
+
+function evictIfNeeded(): void {
+  if (ipHits.size <= MAX_IPS) return;
+  const cutoff = Date.now() - WINDOW_MS;
+  // First pass: drop entries where every recorded hit is past the window.
+  for (const [ip, hits] of ipHits) {
+    if (hits.every((t) => t <= cutoff)) ipHits.delete(ip);
+  }
+  // Still over budget? Drop oldest-by-most-recent-hit until under budget.
+  if (ipHits.size > MAX_IPS) {
+    const ranked = [...ipHits].sort(
+      (a, b) => (a[1].at(-1) ?? 0) - (b[1].at(-1) ?? 0),
+    );
+    const toDrop = ipHits.size - MAX_IPS;
+    for (let i = 0; i < toDrop; i += 1) ipHits.delete(ranked[i][0]);
+  }
+}
 
 function rateLimited(ip: string): boolean {
   const now = Date.now();
@@ -36,6 +58,7 @@ function rateLimited(ip: string): boolean {
   }
   recent.push(now);
   ipHits.set(ip, recent);
+  evictIfNeeded();
   return false;
 }
 

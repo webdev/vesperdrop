@@ -12,16 +12,6 @@ export const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
   apiVersion: "2026-04-22.dahlia",
 });
 
-// Stub: pricing v2 pivoted overage from a metered subscription item to
-// runtime invoice items (Agent C calls stripe.invoiceItems.create). This
-// helper is kept as an unused no-op so external callers don't break, and
-// to keep diff churn small. Safe to remove in a later cleanup pass.
-export async function findOverageSubscriptionItem(
-  _subscriptionId: string,
-): Promise<string | null> {
-  return null;
-}
-
 export interface CheckoutInput {
   customerEmail?: string | null;
   customerId?: string | null;

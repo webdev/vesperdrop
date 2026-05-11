@@ -116,12 +116,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   let withinCapCount = 0;
   if (!isAdmin) {
     for (let i = 0; i < cost; i += 1) {
-      const r = await consumeQuota(user.id, runId);
+      const r = await consumeQuota(user.id);
       if (!r.ok) {
         if (withinCapCount > 0) await addQuota(user.id, withinCapCount);
         return NextResponse.json(
           {
-            error: "insufficient credits",
+            error: "insufficient photos",
             required: cost,
             platform,
           },

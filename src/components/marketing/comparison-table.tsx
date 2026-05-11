@@ -30,11 +30,18 @@ export function ComparisonTable({ rows }: { rows: ComparisonRow[] }) {
             : `/api/stripe/checkout?plan=${slug}&interval=${interval}`;
           const perPhoto =
             interval === "annual" ? m.perPhotoAnnualDisplay : m.perPhotoMonthlyDisplay;
+          const onTrack = () => {
+            if (!isContact) {
+              track("pricing_plan_clicked", { plan: slug, billing: interval });
+            }
+          };
           return (
-            <div
+            <a
               key={slug}
+              href={href}
+              onClick={onTrack}
               className={
-                "grid grid-cols-[1fr_auto] items-center gap-4 px-6 py-5 sm:grid-cols-[160px_1fr_120px_120px_140px] " +
+                "grid grid-cols-[1fr_auto] items-center gap-4 px-6 py-5 transition-colors hover:bg-paper-soft/40 sm:grid-cols-[160px_1fr_120px_120px_140px] " +
                 (m.badge === "popular" ? "bg-paper-soft/60" : "")
               }
             >
@@ -62,18 +69,14 @@ export function ComparisonTable({ rows }: { rows: ComparisonRow[] }) {
                 <span className="text-[12px] font-normal text-ink-3">/mo</span>
               </div>
               <div className="hidden justify-end sm:flex">
-                <a
-                  href={href}
-                  onClick={() =>
-                    !isContact &&
-                    track("pricing_plan_clicked", { plan: slug, billing: interval })
-                  }
-                  className="inline-flex items-center gap-2 rounded-full border border-line bg-paper-soft px-4 py-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink transition-colors hover:bg-paper-2"
+                <span
+                  aria-hidden
+                  className="inline-flex items-center gap-2 rounded-full border border-line bg-paper-soft px-4 py-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink"
                 >
                   {m.ctaLabel}
-                </a>
+                </span>
               </div>
-            </div>
+            </a>
           );
         })}
       </div>

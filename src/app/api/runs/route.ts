@@ -83,7 +83,7 @@ export async function POST(req: Request) {
 
   if (!mockMode && !isAdmin) {
     for (let i = 0; i < total; i += 1) {
-      const result = await consumeQuota(user.id, "");
+      const result = await consumeQuota(user.id);
       if (!result.ok) {
         serverTrack({
           distinctId: user.id,

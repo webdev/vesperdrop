@@ -68,6 +68,10 @@ async function reportOverageForGeneration(
     PLAN_QUOTA[profileRow.plan as PlanSlug]?.overageCentsPerPhoto ?? 0;
   if (cents <= 0) return;
 
+  // The ledger row is inserted whether or not Stripe accepts the invoice
+  // item — if Stripe is down the user still sees their accrued overage in
+  // /account, and we can later reconcile orphan rows (stripeInvoiceItemId
+  // is null) by replaying via reportOverage's generation_id idempotency key.
   const invoiceItemId = await reportOverage({
     customerId: stripeCustomerId,
     generationId,

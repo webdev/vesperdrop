@@ -11,7 +11,6 @@ const FAILED_RETRY_WINDOW_MS = 5 * 60 * 1000;
 
 export async function consumeQuota(
   userId: string,
-  _runId: string,
 ): Promise<ConsumeQuotaResult> {
   const { data: profile, error } = await supabaseAdmin
     .from("profiles")
@@ -23,14 +22,23 @@ export async function consumeQuota(
     throw new Error(`consumeQuota: profile not found for ${userId}`);
   }
 
+  // Retry-within-5-minutes grace. Atomic: predicate the clear on the timestamp
+  // we read, so two concurrent retries can't both skip deduction — only the
+  // first UPDATE matches and claims the grace.
   if (profile.last_failed_run_at) {
-    const elapsed = Date.now() - new Date(profile.last_failed_run_at).getTime();
+    const ts = profile.last_failed_run_at as string;
+    const elapsed = Date.now() - new Date(ts).getTime();
     if (elapsed < FAILED_RETRY_WINDOW_MS) {
-      await supabaseAdmin
+      const { data: cleared } = await supabaseAdmin
         .from("profiles")
         .update({ last_failed_run_at: null })
-        .eq("id", userId);
-      return { ok: true, withinCap: true };
+        .eq("id", userId)
+        .eq("last_failed_run_at", ts)
+        .select("id");
+      if (cleared && cleared.length > 0) {
+        return { ok: true, withinCap: true };
+      }
+      // Lost the race; fall through to normal deduction.
     }
   }
 
