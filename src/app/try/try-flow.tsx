@@ -1044,18 +1044,61 @@ function UnauthEditorialStage({
     !anyPending &&
     generationResults.length > 0 &&
     generationResults.every((r) => r.status === "succeeded");
+  // Editorial grid composition adapts to tile count so 1 or 2 scenes
+  // don't render as "giant boxes in a void". 3 keeps the cinematic
+  // hero-with-peeks; 2 splits 55/45 hero+supporting; 1 centers the
+  // hero with breathing room. Counts > 3 keep the 3-col rhythm and
+  // wrap remainder below.
+  const tileCount = generationResults.length || picked.length;
+  const stageGridClass =
+    tileCount <= 1
+      ? "grid grid-cols-1 items-stretch gap-3 sm:max-w-[min(80vw,820px)] sm:mx-auto"
+      : tileCount === 2
+        ? // DevelopGrid's editorialOrder hardcodes index 0 → sm:order-2
+          // (right slot) and index 1 → sm:order-1 (left slot). So with
+          // 2 tiles the hero is on the right — keep the larger column
+          // on the right to match.
+          "grid grid-cols-1 items-stretch gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] sm:gap-4 sm:max-w-[min(92vw,1280px)] sm:mx-auto"
+        : "grid grid-cols-1 items-stretch gap-3 sm:grid-cols-[1fr_2fr_1fr] sm:gap-3";
   // The claim + upsell rail only appears once the batch is persisted
   // (so we have a token to attach on OTP success). Before that, even
   // if the images are visible, the email entry would authenticate
   // without an attached batch.
   return (
     <>
+      {/* Compact developing-state meta strip. Visible only while at
+          least one tile is pending; gives the user a tactile sense of
+          "something is being crafted" instead of waiting next to a
+          dark void. Source thumb + scene count + a rotating preview
+          phase string. Hidden once all tiles complete (the editorial
+          claim rail takes over). */}
+      {anyPending && photo ? (
+        <DevelopingMetaStrip
+          sourceUrl={photo.url}
+          sceneNames={picked
+            .map((slug) => sceneById[slug]?.name)
+            .filter((n): n is string => Boolean(n))}
+        />
+      ) : null}
       {/* Full-bleed stage: extends past the page container to the viewport
           edges so the side tiles can peek into the page margins. The
           `-mx-[calc(50vw-50%)] w-screen` trick anchors the stage to the
-          viewport without leaving the React tree. */}
+          viewport without leaving the React tree. During pending we
+          paint a soft radial atmosphere behind the stage so the tiles
+          read as floating in a warm cream-lit room rather than against
+          a flat page. */}
       <div className="relative -mx-[calc(50vw-50%)] w-screen">
-        <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-[1fr_2fr_1fr] sm:gap-3">
+        {anyPending ? (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-10"
+            style={{
+              background:
+                "radial-gradient(60% 50% at 50% 38%, oklch(0.95 0.018 70 / 0.7) 0%, transparent 70%), radial-gradient(120% 80% at 50% 100%, oklch(0.87 0.025 65 / 0.55) 0%, transparent 70%)",
+            }}
+          />
+        ) : null}
+        <div className={stageGridClass}>
           {anyPending && photo && effectiveFile && sceneById[picked[0]] ? (
             <ProgressScreen
               file={effectiveFile}
@@ -1143,6 +1186,81 @@ function UnauthEditorialStage({
         </>
       ) : null}
     </>
+  );
+}
+
+// Compact "we're crafting this" strip rendered above the editorial
+// stage while any tile is still pending. Source thumb + scene names +
+// rotating editorial copy. Hidden as soon as the batch completes
+// (the claim rail takes over the bottom of the page). Kept minimal
+// so it doesn't compete with the tiles themselves for attention.
+function DevelopingMetaStrip({
+  sourceUrl,
+  sceneNames,
+}: {
+  sourceUrl: string;
+  sceneNames: string[];
+}) {
+  const phrases = useMemo(
+    () => [
+      "Reading shape and texture",
+      "Picking reference frames",
+      "Composing in the studio",
+      "Tuning shadow to read true",
+      "Layering light and tone",
+      "Aligning to the mood",
+    ],
+    [],
+  );
+  const [phraseIdx, setPhraseIdx] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(
+      () => setPhraseIdx((i) => (i + 1) % phrases.length),
+      2400,
+    );
+    return () => window.clearInterval(id);
+  }, [phrases.length]);
+
+  const count = sceneNames.length;
+  const looksLabel = count === 1 ? "1 look" : `${count} looks`;
+  // Cap displayed scene names — two is plenty, the rest get "+N more".
+  const visibleScenes = sceneNames.slice(0, 2);
+  const remaining = sceneNames.length - visibleScenes.length;
+
+  return (
+    <div className="mb-8 flex items-center justify-center md:mb-10">
+      <div className="flex items-center gap-4 rounded-full border border-line-soft/80 bg-paper/90 px-4 py-2 shadow-[0_8px_24px_-16px_rgba(40,30,20,0.25)] backdrop-blur-sm">
+        <span className="relative inline-flex h-9 w-9 shrink-0 overflow-hidden rounded-full border border-line-soft bg-cream">
+          <img
+            src={sourceUrl}
+            alt=""
+            aria-hidden
+            draggable={false}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        </span>
+        <div className="flex min-w-0 flex-col gap-0.5 leading-tight">
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-4">
+            Developing · {looksLabel}
+            {visibleScenes.length > 0 ? (
+              <>
+                <span className="mx-1.5 opacity-60">·</span>
+                <span className="text-ink-3">{visibleScenes.join(" · ")}</span>
+                {remaining > 0 ? (
+                  <span className="ml-1 opacity-70">+{remaining}</span>
+                ) : null}
+              </>
+            ) : null}
+          </span>
+          <span
+            key={phraseIdx}
+            className="font-serif text-[14px] italic leading-tight text-ink motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-500"
+          >
+            {phrases[phraseIdx]}…
+          </span>
+        </div>
+      </div>
+    </div>
   );
 }
 

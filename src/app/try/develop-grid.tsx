@@ -983,9 +983,13 @@ function ghostFilterFor(phase: Phase, mode: "darkroom" | "grain") {
   if (mode === "darkroom") {
     switch (phase) {
       case "EXPOSING":
+        // Bumped opacity 0.18 → 0.38 so the source product reads
+        // through immediately. The previous floor made the tile look
+        // like an empty dark blur for the first ~2s — felt broken
+        // when only 1–2 scenes were generating in editorial mode.
         return {
-          opacity: 0.18,
-          filter: "blur(48px) saturate(0.05) brightness(0.55) contrast(0.85)",
+          opacity: 0.38,
+          filter: "blur(40px) saturate(0.1) brightness(0.62) contrast(0.9)",
           transform: "scale(1.05)",
         };
       case "DEVELOPING":
@@ -1012,10 +1016,12 @@ function ghostFilterFor(phase: Phase, mode: "darkroom" | "grain") {
   }
   switch (phase) {
     case "EXPOSING":
+      // See darkroom EXPOSING note above — same opacity bump applied
+      // to grain mode so the tile reads from frame 1.
       return {
-        opacity: 0.22,
+        opacity: 0.4,
         filter:
-          "blur(44px) saturate(0) brightness(0.6) contrast(1.4) hue-rotate(180deg)",
+          "blur(36px) saturate(0.08) brightness(0.65) contrast(1.35) hue-rotate(180deg)",
         transform: "scale(1.05)",
       };
     case "DEVELOPING":
