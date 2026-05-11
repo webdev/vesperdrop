@@ -45,7 +45,7 @@ export const PLAN_MARKETING: Record<PlanSlug, PlanMarketing> = {
   },
   starter: {
     label: "Starter",
-    description: "",
+    description: "For shops dipping their toe in. 25 photos a month.",
     features: [
       "25 photos per month",
       "Full resolution, no watermark",
@@ -78,7 +78,8 @@ export const PLAN_MARKETING: Record<PlanSlug, PlanMarketing> = {
   },
   studio: {
     label: "Studio",
-    description: "",
+    description:
+      "For brands shipping a steady catalog. 250 photos a month, every month.",
     features: [
       "250 photos per month",
       "Full resolution, no watermark",
@@ -94,7 +95,8 @@ export const PLAN_MARKETING: Record<PlanSlug, PlanMarketing> = {
   },
   agency: {
     label: "Agency",
-    description: "",
+    description:
+      "For studios and agencies running multiple brands. 1,500 photos a month and a direct line to us.",
     features: [
       "1,500 photos per month",
       "API access on request",

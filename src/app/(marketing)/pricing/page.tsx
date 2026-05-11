@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { PricingCards } from "@/components/marketing/pricing-cards";
+import type { ComparisonRow } from "@/components/marketing/comparison-table";
 import { PricingFaq } from "@/components/marketing/pricing-faq";
 import { PricingProductJsonLd } from "@/components/marketing/structured-data";
 import { Container } from "@/components/ui/container";
-import { PLAN_CATALOG, PAID_PLAN_SLUGS } from "@/lib/plans";
+import { BillingProvider } from "@/components/marketing/billing-provider";
+import { MonthlyAnnualToggle } from "@/components/marketing/monthly-annual-toggle";
+import { PAID_PLAN_SLUGS, PLAN_MARKETING, PLAN_QUOTA } from "@/lib/plans";
 
-const PRICING_TITLE = "Pricing — AI lifestyle photography from $19/mo";
+const PRICING_TITLE = "Pricing, photo-based plans from $19/mo";
 const PRICING_DESCRIPTION =
-  "Simple credit-based pricing. 1 credit = 1 lifestyle shot at 2000px. Free tier with 1 HD generation, Pro from $49/mo for 200 credits. Cancel any time.";
+  "Photo-based plans for lifestyle product shots. Try free, no card. Annual saves 20%. Pro from $39/mo for 75 photos. Cancel any time.";
 
 export const metadata: Metadata = {
-  // `absolute` skips the root template so the SERP title is the SEO copy,
-  // not "Pricing — … · Vesperdrop · Vesperdrop".
   title: { absolute: `${PRICING_TITLE} · Vesperdrop` },
   description: PRICING_DESCRIPTION,
   alternates: { canonical: "/pricing" },
@@ -21,61 +23,50 @@ export const metadata: Metadata = {
     url: "/pricing",
     type: "website",
   },
-  twitter: {
-    title: PRICING_TITLE,
-    description: PRICING_DESCRIPTION,
-  },
+  twitter: { title: PRICING_TITLE, description: PRICING_DESCRIPTION },
 };
 
 const PRICING_OFFERS = [
-  {
-    name: "Free",
-    priceUSD: 0,
-    description:
-      "1 full-resolution HD generation, 5 watermarked previews. No card required.",
-  },
-  {
-    name: "Starter",
-    priceUSD: 19,
-    description: "50 credits per month, full resolution, no watermark.",
-  },
-  {
-    name: "Pro",
-    priceUSD: 49,
-    description: "200 credits per month, priority queue, custom prompts.",
-  },
-  {
-    name: "Studio",
-    priceUSD: 149,
-    description: "1,000 credits per month, bulk download, CSV export.",
-  },
-  {
-    name: "Agency",
-    priceUSD: 499,
-    description: "5,000 credits per month, dedicated Slack support.",
-  },
+  { name: "Free", priceUSD: 0, description: "1 full quality photo, 2 watermarked HD previews. No card needed." },
+  { name: "Starter", priceUSD: 19, description: "25 photos per month, full resolution, no watermark." },
+  { name: "Pro", priceUSD: 39, description: "75 photos per month, priority queue, custom prompts." },
+  { name: "Studio", priceUSD: 99, description: "250 photos per month, full resolution, no watermark." },
+  { name: "Agency", priceUSD: 499, description: "1,500 photos per month, API access, team seats, white label available." },
 ];
 
 export default function Page() {
+  const rows: ComparisonRow[] = PAID_PLAN_SLUGS.map((slug) => ({
+    slug,
+    marketing: PLAN_MARKETING[slug],
+    quota: PLAN_QUOTA[slug],
+  }));
+
   return (
     <>
       <PricingProductJsonLd offers={PRICING_OFFERS} />
-      <Container as="header" width="reading" className="pb-12 pt-20 text-center md:pt-28">
-        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-          Pricing · simple credits
-        </p>
-        <h1 className="mt-5 font-serif text-[clamp(3rem,6vw,4.5rem)] leading-[0.98] tracking-[-0.02em] text-ink">
-          One credit.{" "}
-          <em className="not-italic font-serif italic text-terracotta-dark">
-            One lifestyle shot.
-          </em>
-        </h1>
-        <p className="mx-auto mt-6 max-w-xl text-[16px] leading-[1.6] text-ink-3">
-          Try free — no card. Upgrade when you see the result. Credits roll
-          over and never expire within your billing period.
-        </p>
-      </Container>
-      <PricingCards tiers={PAID_PLAN_SLUGS.map((slug) => PLAN_CATALOG[slug])} />
+      <Suspense fallback={null}>
+        <BillingProvider>
+          <Container as="header" width="reading" className="pb-10 pt-20 text-center md:pt-28">
+            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+              Pricing
+            </p>
+            <h1 className="mt-5 font-serif text-[clamp(3rem,6vw,4.5rem)] leading-[0.98] tracking-[-0.02em] text-ink">
+              Lifestyle shots for every product.
+            </h1>
+            <p className="mx-auto mt-6 max-w-xl text-[16px] leading-[1.6] text-ink-3">
+              Try free, no card needed. Upgrade when you see the result. Photos refresh every billing cycle.
+            </p>
+            <div className="mt-8">
+              <MonthlyAnnualToggle />
+            </div>
+          </Container>
+          <PricingCards
+            free={PLAN_MARKETING.free}
+            pro={PLAN_MARKETING.pro}
+            rows={rows}
+          />
+        </BillingProvider>
+      </Suspense>
       <PricingFaq />
     </>
   );
