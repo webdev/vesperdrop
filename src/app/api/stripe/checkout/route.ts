@@ -42,9 +42,12 @@ export async function GET(req: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.redirect(new URL("/sign-in?next=/pricing", req.url), {
-      status: 303,
-    });
+    // Preserve the checkout intent across sign-in so post-OTP redirect lands
+    // back here and creates the session instead of dropping to /pricing.
+    const next = `/api/stripe/checkout?plan=${plan}&interval=${interval}`;
+    const signIn = new URL("/sign-in", req.url);
+    signIn.searchParams.set("next", next);
+    return NextResponse.redirect(signIn, { status: 303 });
   }
 
   const { data: profile } = await supabaseAdmin
