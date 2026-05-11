@@ -2,9 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to work through this plan task-by-task.
 
-**Goal:** Update checkout, webhook, and reconcile to handle the new pricing model: monthly + annual flat prices, a metered overage subscription item per paid subscription, and Agency CTA routed away from checkout. Add a daily cron that grants monthly quota chunks to annual subscribers.
+**Goal:** Update checkout, webhook, and reconcile to handle the new pricing model: monthly + annual flat prices and Agency CTA routed away from checkout. Add a daily cron that grants monthly quota chunks to annual subscribers.
 
-**Architecture:** All Stripe-side logic flows through `src/lib/stripe/*`. Checkout sessions are created with two subscription items per paid plan: the flat tier price + the metered overage price at `quantity: 0` (Stripe requires it pre-attached so usage records have a target). Webhook now resolves the plan + interval from the subscription's flat-price item, and reconcile keeps profiles in sync. A new cron route grants monthly quota chunks to annual subs every ~28 days.
+**Architecture:** All Stripe-side logic flows through `src/lib/stripe/*`. Checkout sessions are created with a single subscription item per paid plan (the flat tier price for the chosen interval). Webhook resolves the plan + interval from that flat-price item, and reconcile keeps profiles in sync. A new cron route grants monthly quota chunks to annual subs every ~28 days.
+
+**Pivot from original plan:** Overage was originally going to use a metered Stripe subscription item with usage records. The Stripe MCP can't create the Meter object that modern metered prices require, so we pivoted to **runtime invoice items** (Agent C calls `stripe.invoiceItems.create` on overage). That means: no overage price IDs in env, no metered subscription items in checkout, no `findOverageSubscriptionItem` helper (the Phase 1 stub remains but is unused). Subscriptions have one flat-price item. Ignore any sub-step below that refers to the metered overage item — those steps become no-ops.
 
 **Tech Stack:** Stripe SDK v22, Drizzle ORM, Supabase admin client, Next.js Route Handlers, Vitest.
 
@@ -27,7 +29,7 @@
 
 | File | Action | Responsibility |
 |---|---|---|
-| `src/lib/stripe/server.ts` | Expand | Helpers: `createCheckoutSession({ slug, interval })`, `findOverageSubscriptionItem(subscriptionId)` |
+| `src/lib/stripe/server.ts` | Expand | Helper: `createCheckoutSession({ slug, interval })`. The `findOverageSubscriptionItem` stub from Phase 1 stays as-is (unused after pivot). |
 | `src/lib/stripe/webhook.ts` | Modify | Resolve plan + interval from items; grant quota on `invoice.paid` |
 | `src/lib/stripe/reconcile.ts` | Modify | Sync plan + interval + period_end |
 | `src/app/api/stripe/checkout/route.ts` | Modify | Parse `interval` query param, route Agency to `/contact`, call new helper |
@@ -46,21 +48,14 @@
 
 ```ts
 import "server-only";
-import Stripe from "stripe";
-import { env } from "@/lib/env";
+import type Stripe from "stripe";
+import { stripe } from "./server"; // already exported; this file IS server.ts — drop self-import
 import {
-  PAID_PLAN_SLUGS,
-  PLAN_STRIPE,
   isPaidPlanSlug,
   priceIdForPlan,
-  overagePriceIdForPlan,
   type BillingInterval,
   type PaidPlanSlug,
 } from "@/lib/plans";
-
-export const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-  apiVersion: "2026-04-22.dahlia",
-});
 
 export interface CheckoutInput {
   customerEmail?: string | null;
@@ -79,15 +74,11 @@ export async function createCheckoutSession(
     throw new Error(`createCheckoutSession: invalid plan "${input.slug}"`);
   }
   const flatPriceId = priceIdForPlan(input.slug, input.interval);
-  const overagePriceId = overagePriceIdForPlan(input.slug);
   return stripe.checkout.sessions.create({
     mode: "subscription",
     customer: input.customerId ?? undefined,
     customer_email: input.customerId ? undefined : input.customerEmail ?? undefined,
-    line_items: [
-      { price: flatPriceId, quantity: 1 },
-      { price: overagePriceId },
-    ],
+    line_items: [{ price: flatPriceId, quantity: 1 }],
     success_url: input.successUrl,
     cancel_url: input.cancelUrl,
     metadata: {
@@ -103,28 +94,9 @@ export async function createCheckoutSession(
     },
   });
 }
-
-export async function findOverageSubscriptionItem(
-  subscriptionId: string,
-): Promise<string | null> {
-  const sub = await stripe.subscriptions.retrieve(subscriptionId, {
-    expand: ["items.data.price"],
-  });
-  const overagePriceIds = new Set(
-    PAID_PLAN_SLUGS.map((slug) => {
-      try {
-        return overagePriceIdForPlan(slug);
-      } catch {
-        return null;
-      }
-    }).filter((s): s is string => Boolean(s)),
-  );
-  const item = sub.items.data.find((i) => overagePriceIds.has(i.price.id));
-  return item?.id ?? null;
-}
 ```
 
-The Stripe metered line item requires no `quantity` on `line_items` (omit it; Stripe rejects `quantity` on metered prices).
+The existing `stripe` Stripe client and `findOverageSubscriptionItem` stub at the top of `server.ts` (landed in Phase 1) stay as-is. Just add `createCheckoutSession`.
 
 - [ ] **Step 2: Verify**
 ```bash

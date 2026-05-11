@@ -309,6 +309,10 @@ git commit -m "feat(billing): consumeQuota engine with 5m retry grace"
 
 ## Task C3: `reportOverage` Stripe helper (TDD)
 
+**Pivot from original plan:** Stripe Meters require pre-created Meter objects that the Stripe MCP cannot create. We're using **invoice items at runtime** instead — `stripe.invoiceItems.create({ customer, amount, currency, description })` attaches an unbilled line to the customer's next invoice. No Meter, no metered price, no pre-attached subscription item. Subscriptions remain a single flat-price item.
+
+Idempotency comes from a per-`generation_id` cache: we check the `overage_ledger` for a row with this generation_id before calling Stripe. Stripe also supports `Idempotency-Key` header on `invoiceItems.create` via the SDK's `{ idempotencyKey }` request option.
+
 **Files:**
 - Create: `src/lib/billing/overage.test.ts`
 - Create: `src/lib/billing/overage.ts`
@@ -327,7 +331,7 @@ export interface RecordOverageInput {
   runId: string;
   generationId: string;
   cents: number;
-  stripeUsageRecordId: string | null;
+  stripeInvoiceItemId: string | null;
   cycleAnchor: Date;
 }
 
@@ -339,7 +343,10 @@ export async function recordOverage(input: RecordOverageInput): Promise<void> {
       runId: input.runId,
       generationId: input.generationId,
       cents: input.cents,
-      stripeUsageRecordId: input.stripeUsageRecordId,
+      // schema column is `stripe_usage_record_id` — we repurpose it for the
+      // invoice item id since the runtime no longer creates usage records.
+      // (renaming the column is deferred; Drizzle field stays unchanged.)
+      stripeUsageRecordId: input.stripeInvoiceItemId,
       cycleAnchor: input.cycleAnchor.toISOString() as unknown as Date,
     })
     .onConflictDoNothing();
@@ -370,8 +377,8 @@ import { reportOverage } from "./overage";
 
 vi.mock("@/lib/stripe/server", () => ({
   stripe: {
-    subscriptionItems: {
-      createUsageRecord: vi.fn(),
+    invoiceItems: {
+      create: vi.fn(),
     },
   },
 }));
@@ -379,24 +386,38 @@ vi.mock("@/lib/stripe/server", () => ({
 describe("reportOverage", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("calls stripe.subscriptionItems.createUsageRecord with idempotency key", async () => {
+  it("calls stripe.invoiceItems.create with the right shape and idempotency key", async () => {
     const { stripe } = await import("@/lib/stripe/server");
-    (stripe.subscriptionItems.createUsageRecord as ReturnType<typeof vi.fn>)
-      .mockResolvedValue({ id: "ur_123" });
-    const r = await reportOverage("si_xyz", "gen_abc");
-    expect(stripe.subscriptionItems.createUsageRecord).toHaveBeenCalledWith(
-      "si_xyz",
-      expect.objectContaining({ quantity: 1, action: "increment" }),
+    (stripe.invoiceItems.create as ReturnType<typeof vi.fn>)
+      .mockResolvedValue({ id: "ii_123" });
+    const r = await reportOverage({
+      customerId: "cus_xyz",
+      generationId: "gen_abc",
+      cents: 50,
+      description: "Overage photo",
+    });
+    expect(stripe.invoiceItems.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customer: "cus_xyz",
+        amount: 50,
+        currency: "usd",
+        description: "Overage photo",
+      }),
       { idempotencyKey: "overage:gen_abc" },
     );
-    expect(r).toBe("ur_123");
+    expect(r).toBe("ii_123");
   });
 
   it("returns null on Stripe error and does not throw", async () => {
     const { stripe } = await import("@/lib/stripe/server");
-    (stripe.subscriptionItems.createUsageRecord as ReturnType<typeof vi.fn>)
+    (stripe.invoiceItems.create as ReturnType<typeof vi.fn>)
       .mockRejectedValue(new Error("network"));
-    const r = await reportOverage("si_xyz", "gen_abc");
+    const r = await reportOverage({
+      customerId: "cus_xyz",
+      generationId: "gen_abc",
+      cents: 50,
+      description: "Overage photo",
+    });
     expect(r).toBeNull();
   });
 });
@@ -408,23 +429,32 @@ describe("reportOverage", () => {
 import "server-only";
 import { stripe } from "@/lib/stripe/server";
 
+export interface ReportOverageInput {
+  customerId: string;
+  generationId: string;
+  cents: number;
+  description: string;
+}
+
 export async function reportOverage(
-  subscriptionItemId: string,
-  generationId: string,
+  input: ReportOverageInput,
 ): Promise<string | null> {
   try {
-    const r = await stripe.subscriptionItems.createUsageRecord(
-      subscriptionItemId,
+    const r = await stripe.invoiceItems.create(
       {
-        quantity: 1,
-        timestamp: Math.floor(Date.now() / 1000),
-        action: "increment",
+        customer: input.customerId,
+        amount: input.cents,
+        currency: "usd",
+        description: input.description,
       },
-      { idempotencyKey: `overage:${generationId}` },
+      { idempotencyKey: `overage:${input.generationId}` },
     );
     return r.id ?? null;
   } catch (err) {
-    console.error("[overage] stripe usage record failed", { generationId, err });
+    console.error("[overage] stripe invoice item failed", {
+      generationId: input.generationId,
+      err,
+    });
     return null;
   }
 }
@@ -514,72 +544,58 @@ git commit -m "feat(billing): replace free-only gate with consumeQuota (overage-
 **Files:**
 - Modify: `src/lib/workflows/process-run.ts`
 
-- [ ] **Step 1: After a successful generation, check if it was an overage and report**
+The `was_overage` column on `generations` already exists (Phase 1 Task 6 contract). The runs route (Task C4 Step 1) sets it on insert when `consumeQuota` returns `withinCap: false`. The workflow's success path just reads it and reports.
+
+- [ ] **Step 1: Wire the `was_overage` flag in `runs/route.ts`**
+
+After each `consumeQuota`, mark the corresponding planned generation as `was_overage: true` when `withinCap === false`. Inspect how `runs/route.ts` creates generation rows (likely via a batch insert) and add a `was_overage` field per row.
+
+- [ ] **Step 2: In `process-run.ts`, add the overage hook after generation success**
 
 Find the successful-generation branch in `process-run.ts`. Add immediately after the generation row is updated to status `succeeded`:
 
 ```ts
-import { findOverageSubscriptionItem } from "@/lib/stripe/server";
 import { reportOverage } from "@/lib/billing/overage";
 import { recordOverage } from "@/lib/db/overage-ledger";
-import { getQuotaBalance } from "@/lib/db/quota";
 import { PLAN_QUOTA } from "@/lib/plans";
 
-// ... inside the success path
-const balance = await getQuotaBalance(userId);
-const cap = PLAN_QUOTA[profile.plan]?.monthlyQuota ?? 0;
-const overCap = balance < 0; // try_consume_quota allows going negative on paid; if not, see note below
+// ... inside the success path, with `userId`, `runId`, `generationId` already in scope
+const { data: gen } = await supabaseAdmin
+  .from("generations")
+  .select("was_overage")
+  .eq("id", generationId)
+  .single();
 
-if (overCap) {
-  // Find the active sub for this user to get the metered item id
+if (gen?.was_overage) {
   const { data: profileRow } = await supabaseAdmin
     .from("profiles")
-    .select("stripe_customer_id, plan_renews_at")
+    .select("plan, stripe_customer_id, plan_renews_at")
     .eq("id", userId)
     .single();
   const stripeCustomerId = profileRow?.stripe_customer_id;
-  if (stripeCustomerId) {
-    const subs = await stripe.subscriptions.list({ customer: stripeCustomerId, status: "active", limit: 1 });
-    const subId = subs.data[0]?.id;
-    if (subId) {
-      const itemId = await findOverageSubscriptionItem(subId);
-      if (itemId) {
-        const usageRecordId = await reportOverage(itemId, generationId);
-        const cents = PLAN_QUOTA[profile.plan]?.overageCentsPerPhoto ?? 0;
-        const cycleAnchor = profileRow?.plan_renews_at
-          ? new Date(profileRow.plan_renews_at)
-          : new Date();
-        await recordOverage({
-          userId,
-          runId,
-          generationId,
-          cents,
-          stripeUsageRecordId: usageRecordId,
-          cycleAnchor,
-        });
-      }
+  if (stripeCustomerId && profileRow) {
+    const cents = PLAN_QUOTA[profileRow.plan as keyof typeof PLAN_QUOTA]?.overageCentsPerPhoto ?? 0;
+    if (cents > 0) {
+      const invoiceItemId = await reportOverage({
+        customerId: stripeCustomerId,
+        generationId,
+        cents,
+        description: "Overage photo",
+      });
+      const cycleAnchor = profileRow.plan_renews_at
+        ? new Date(profileRow.plan_renews_at)
+        : new Date();
+      await recordOverage({
+        userId,
+        runId,
+        generationId,
+        cents,
+        stripeInvoiceItemId: invoiceItemId,
+        cycleAnchor,
+      });
     }
   }
 }
-```
-
-**Important note on `try_consume_quota` semantics:** the current RPC body (per Phase 1 Task 1) only deducts when balance is sufficient — meaning paid plans hit `withinCap: false` from `consumeQuota`, NOT a negative balance. The detection "did this generation count as overage" can't come from the balance alone.
-
-**Fix:** thread the `withinCap` decision through to the workflow. The cleanest path:
-1. Add a column `generations.was_overage boolean default false`.
-2. The runs route, after `consumeQuota` returns `withinCap: false`, sets `was_overage: true` on the generation row when it creates it.
-3. The workflow's success path simply reads `was_overage` and reports.
-
-Update the route:
-```ts
-// in runs/route.ts after each consumeQuota call
-const wasOverage = result.ok && !result.withinCap;
-// store wasOverage in the array of decisions, applied to generations on insert
-```
-
-The migration `20260510000002_quota_engine.sql` should include this column:
-```sql
-ALTER TABLE generations ADD COLUMN was_overage boolean NOT NULL DEFAULT false;
 ```
 
 Update Drizzle `generations` table:
@@ -599,15 +615,7 @@ if (gen?.was_overage) {
 }
 ```
 
-- [ ] **Step 2: Update the migration + schema with the new column**
-
-Update `supabase/migrations/20260510000002_quota_engine.sql` to add `ALTER TABLE generations ADD COLUMN was_overage boolean NOT NULL DEFAULT false;`. Update Drizzle schema. `pnpm db:reset`. Re-commit if needed.
-
-- [ ] **Step 3: Wire the `was_overage` flag in `runs/route.ts`**
-
-After each `consumeQuota`, mark the corresponding planned generation as `was_overage: true` when `withinCap === false`. The exact insert path depends on how `runs/route.ts` creates generation rows — inspect first.
-
-- [ ] **Step 4: On generation failure, call `markRunFailed`**
+- [ ] **Step 3: On generation failure, call `markRunFailed`**
 
 In the workflow's failure path:
 ```ts
@@ -618,13 +626,13 @@ await markRunFailed(userId);
 
 This sets `last_failed_run_at` so a retry within 5 minutes is free.
 
-- [ ] **Step 5: Verify**
+- [ ] **Step 4: Verify**
 ```bash
 pnpm tsc --noEmit
 pnpm test
 ```
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 5: Commit**
 ```bash
 git add -u
 git commit -m "feat(billing): overage hook on successful generations + retry grace"

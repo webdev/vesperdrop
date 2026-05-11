@@ -4,7 +4,9 @@
 
 **Spec:** `docs/superpowers/specs/2026-05-10-pricing-v2-design.md`
 
-**Goal:** Move VesperDrop to a photo-based subscription model with four tiers, monthly/annual toggle, metered overage past cap, and a contact-sales flow.
+**Goal:** Move VesperDrop to a photo-based subscription model with four tiers, monthly/annual toggle, overage past cap, and a contact-sales flow.
+
+**Overage approach (revised 2026-05-11):** Original plan used metered Stripe subscription items. Modern Stripe metered prices require a pre-created Meter object that the Stripe MCP can't create. Pivoted to **runtime invoice items**: Agent C's overage hook calls `stripe.invoiceItems.create({ customer, amount, currency, description })` per overage photo. Subscriptions have a single flat-price item. Customer-facing UX is identical (overage appears on next invoice); engineering surface is smaller (no Meter coordination, no metered subscription item pre-attachment, no usage records).
 
 ## Build order
 
