@@ -168,7 +168,18 @@ export function TryFlow({
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const urlStep = parseStep(searchParams.get("step"));
+  // history.replaceState in DevelopStep moves the URL to /try/b/<token>
+  // once finalize-batch resolves (so the batch is deep-linkable + back-
+  // button-safe). useSearchParams observes that pathname change and
+  // re-derives `step` as "upload" since /try/b/<token> has no ?step=
+  // param. Pin to "develop" whenever the pathname is the batch URL so
+  // the wizard doesn't collapse the user back to UploadStep mid-flow.
+  const onBatchPath =
+    typeof window !== "undefined" &&
+    window.location.pathname.startsWith("/try/b/");
+  const urlStep: StepId = onBatchPath
+    ? "develop"
+    : parseStep(searchParams.get("step"));
   const effectiveStep: StepId =
     urlStep === "develop" && (!photo || pickedScenes.length === 0)
       ? photo
