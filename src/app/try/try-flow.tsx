@@ -474,7 +474,7 @@ function ScenesStep({
   }
   return (
     <div>
-      <div className="mb-10 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+      <div className="mb-10 flex flex-col gap-5 md:flex-row md:items-end md:justify-between md:gap-8">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
             Scenes · N°02
@@ -490,13 +490,31 @@ function ScenesStep({
             Choose the looks you want. We&apos;ll spread your batch across them.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onBack}
-          className="self-start font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3 underline-offset-4 transition-colors hover:text-ink hover:underline md:self-end"
-        >
-          ← Back to upload
-        </button>
+        {/* Right-aligned action stack. The Develop CTA lives here too
+            (in addition to the bottom action row) so it's reachable
+            without scrolling once the user has picked at least one
+            scene. Disabled state mirrors the bottom button. */}
+        <div className="flex flex-col items-start gap-3 md:items-end">
+          <button
+            type="button"
+            onClick={onBack}
+            className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3 underline-offset-4 transition-colors hover:text-ink hover:underline"
+          >
+            ← Back to upload
+          </button>
+          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+            {picked.length} of {sceneCap} scene{picked.length === 1 ? "" : "s"} picked
+          </p>
+          <button
+            type="button"
+            data-testid="generate-button-top"
+            disabled={picked.length === 0 || busy}
+            onClick={onContinue}
+            className="inline-flex items-center rounded-full bg-terracotta px-6 py-3 font-mono text-[12px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {busy ? "Loading…" : "Develop my batch →"}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">

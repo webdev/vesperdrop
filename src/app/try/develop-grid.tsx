@@ -256,11 +256,22 @@ function Tile({
   const staggerMs = (seed % 7) * 140;
   const cornerSeed = seed % 4;
 
-  const tileClickable =
-    (isDone && !tile.softLocked && !!onDownloadClick) ||
-    (isLockedView && !!onUnlockClick);
+  // Editorial mode: ALL succeeded tiles (including locked ones) route
+  // their click through onDownloadClick. handleDownloadClick on /try
+  // gates on auth, so any tap on an image opens the OTP claim flow
+  // first. After login, the watermarked low-res is downloadable for
+  // every tile; HD upgrade lives in the upsell rail's $9.99 CTA.
+  // Non-editorial (authed dashboard) keeps the old branch.
+  const tileClickable = editorial
+    ? isDone && !!onDownloadClick
+    : (isDone && !tile.softLocked && !!onDownloadClick) ||
+      (isLockedView && !!onUnlockClick);
 
   const handleTileClick = () => {
+    if (editorial && isDone && onDownloadClick) {
+      onDownloadClick(tile.sceneSlug);
+      return;
+    }
     if (isLockedView && onUnlockClick) {
       onUnlockClick();
       return;
@@ -412,6 +423,46 @@ function Tile({
 
       {editorial && isDone ? (
         <>
+          {/* Visible Download CTA in the top-right of each tile. Same
+              click target as the tile body — handleDownloadClick on
+              /try gates on auth, so this is the obvious entry point
+              into the OTP claim flow before the user has scrolled to
+              the email form below. */}
+          {onDownloadClick ? (
+            <motion.button
+              type="button"
+              key="download-cta"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDownloadClick(tile.sceneSlug);
+              }}
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, ease: [0.2, 0.8, 0.2, 1] }}
+              className="absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-ink/85 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-cream backdrop-blur-sm transition-colors hover:bg-ink"
+              style={{ zIndex: 42 }}
+              aria-label={`Download ${tile.sceneName}`}
+              data-testid="tile-download-cta"
+            >
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="M12 3v12" />
+                <path d="M6 9l6 6 6-6" />
+                <path d="M5 21h14" />
+              </svg>
+              Download
+            </motion.button>
+          ) : null}
+
           {/* Diagonal repeating VESPERDROP watermark + Preview label.
               When the free preview unlocks, both fade out and a small
               HD download badge fades in. The image itself never blurs
