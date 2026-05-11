@@ -30,6 +30,8 @@ export function BatchView({
     rawUrl: g.rawUrl ?? undefined,
     isFreePreview: g.isFreePreview,
     softLocked: !g.isFreePreview,
+    focalPoint: g.focalPoint ?? null,
+    faceBox: g.faceBox ?? null,
   }));
 
   const triggerDownload = useCallback((url: string, filename: string) => {

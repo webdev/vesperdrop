@@ -758,6 +758,8 @@ function DevelopStep({
               outputUrl: r.outputUrl as string,
               ...(r.rawUrl ? { rawUrl: r.rawUrl } : {}),
               isFreePreview: Boolean(r.isFreePreview),
+              focalPoint: r.focalPoint ?? null,
+              faceBox: r.faceBox ?? null,
             })),
           }),
         });
@@ -1033,6 +1035,8 @@ function UnauthEditorialStage({
                         status: "succeeded",
                         outputUrl: hit.outputUrl,
                         rawUrl: hit.rawUrl,
+                        focalPoint: hit.focalPoint ?? r.focalPoint ?? null,
+                        faceBox: hit.faceBox ?? r.faceBox ?? null,
                       };
                     }
                     return {
@@ -1184,6 +1188,8 @@ function AuthedDevelopLayout({
                       status: "succeeded",
                       outputUrl: hit.outputUrl,
                       rawUrl: hit.rawUrl,
+                      focalPoint: hit.focalPoint ?? r.focalPoint ?? null,
+                      faceBox: hit.faceBox ?? r.faceBox ?? null,
                     };
                   }
                   return {

@@ -432,6 +432,11 @@ export type UnlockBatchGeneration = {
   rawUrl: string | null; // un-watermarked; what we hand back after payment
   isBonus: boolean; // bonus tile (server-picked scene, not user-picked)
   isFreePreview: boolean; // index 0 — visible without payment
+  // Normalized 0..1 coordinates returned by Sceneify. The render
+  // layer applies object-position: {x*100}% {y*100}% so the subject
+  // (usually a face) stays in frame even when the tile crops.
+  focalPoint?: FocalPoint | null;
+  faceBox?: FaceBox | null;
 };
 
 export const unlockBatches = pgTable("unlock_batches", {

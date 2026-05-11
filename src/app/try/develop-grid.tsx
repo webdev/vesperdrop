@@ -317,6 +317,16 @@ function Tile({
             opacity: isDone ? 1 : 0,
             filter,
             transition: `filter ${TILE_REVEAL_MS}ms cubic-bezier(0.2,0.8,0.2,1), opacity 280ms ease-out`,
+            // Anchor the crop to the detected subject when available.
+            // Editorial mode is the one that needs this — object-cover
+            // crops the image to fill the tile, and without a focal
+            // override the default center crop chops heads off the
+            // taller portrait outputs. Other modes use object-contain
+            // and don't crop, so the position doesn't matter.
+            objectPosition:
+              editorial && tile.focalPoint
+                ? `${Math.round(tile.focalPoint.x * 100)}% ${Math.round(tile.focalPoint.y * 100)}%`
+                : undefined,
             zIndex: 30,
           }}
         />

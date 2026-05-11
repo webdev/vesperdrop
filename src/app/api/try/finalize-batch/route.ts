@@ -6,6 +6,31 @@ import type { UnlockBatchGeneration } from "@/lib/db/schema";
 
 export const runtime = "nodejs";
 
+// Normalized 0..1 focal coordinates emitted by Sceneify alongside the
+// generation. We don't compute or re-derive them server-side; we just
+// pass them through to the persisted JSONB so the render layer (and
+// any future db-row migration) has them.
+const focalPointSchema = z
+  .object({
+    x: z.number().min(0).max(1),
+    y: z.number().min(0).max(1),
+    confidence: z.number().min(0).max(1),
+    source: z.enum(["face", "saliency", "center"]),
+  })
+  .nullable()
+  .optional();
+
+const faceBoxSchema = z
+  .object({
+    x: z.number().min(0).max(1),
+    y: z.number().min(0).max(1),
+    width: z.number().min(0).max(1),
+    height: z.number().min(0).max(1),
+    confidence: z.number().min(0).max(1),
+  })
+  .nullable()
+  .optional();
+
 const generationSchema = z.object({
   sceneSlug: z.string().min(1).max(100),
   sceneName: z.string().min(1).max(200),
@@ -15,6 +40,8 @@ const generationSchema = z.object({
   // the funnel no longer auto-injects a bonus generation.
   isBonus: z.boolean().optional().default(false),
   isFreePreview: z.boolean(),
+  focalPoint: focalPointSchema,
+  faceBox: faceBoxSchema,
 });
 
 const bodySchema = z.object({
@@ -69,6 +96,8 @@ export async function POST(req: Request) {
     rawUrl: g.rawUrl ?? null,
     isBonus: g.isBonus,
     isFreePreview: g.isFreePreview,
+    focalPoint: g.focalPoint ?? null,
+    faceBox: g.faceBox ?? null,
   }));
 
   const token = await createUnlockBatch({
