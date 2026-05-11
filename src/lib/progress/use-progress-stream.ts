@@ -37,6 +37,17 @@ type Args = {
   enabled?: boolean;
 };
 
+// Auto-retry policy for retryable errors. Generation failures bubble
+// up as "RESHOOT NEEDED" tiles that are dead-ends — the user has no
+// way to recover without restarting the whole batch. Server marks
+// retryable=true for 5xx + transport errors and retryable=false for
+// user-actionable codes (credit_limit_reached, quota_exhausted), so
+// we only auto-fire on the former. Cap at 2 attempts to bound model
+// cost; backoff with jitter to avoid thundering-herd against the
+// upstream provider.
+const MAX_AUTO_RETRIES = 2;
+const RETRY_BACKOFF_MS = [1500, 4000];
+
 const initial: StreamState = {
   status: "idle",
   startedAt: null,
@@ -62,8 +73,14 @@ export function useProgressStream({
   const tickRef = useRef<number | null>(null);
   const startedAtRef = useRef<number | null>(null);
   const runIdRef = useRef(0);
+  const autoRetryRef = useRef(0);
+  const retryTimerRef = useRef<number | null>(null);
 
   const open = useCallback(() => {
+    if (retryTimerRef.current !== null) {
+      window.clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
     runIdRef.current += 1;
     const myRunId = runIdRef.current;
     abortRef.current?.abort();
@@ -181,6 +198,7 @@ export function useProgressStream({
 
   useEffect(() => {
     if (!enabled) return;
+    autoRetryRef.current = 0;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     open();
     return () => {
@@ -189,8 +207,40 @@ export function useProgressStream({
         window.clearInterval(tickRef.current);
         tickRef.current = null;
       }
+      if (retryTimerRef.current !== null) {
+        window.clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
     };
   }, [enabled, open]);
 
-  return { ...state, retry: open };
+  // Auto-retry retryable errors. Tile UX previously dead-ended on
+  // "RESHOOT NEEDED" with no recovery — now we silently reissue the
+  // request up to MAX_AUTO_RETRIES times with backoff before
+  // surfacing the failure to the user.
+  useEffect(() => {
+    if (state.status !== "error") return;
+    if (!state.error?.retryable) return;
+    if (autoRetryRef.current >= MAX_AUTO_RETRIES) return;
+    const attempt = autoRetryRef.current;
+    autoRetryRef.current += 1;
+    const delay = RETRY_BACKOFF_MS[attempt] ?? 4000;
+    retryTimerRef.current = window.setTimeout(() => {
+      retryTimerRef.current = null;
+      open();
+    }, delay);
+    return () => {
+      if (retryTimerRef.current !== null) {
+        window.clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+    };
+  }, [state.status, state.error?.retryable, open]);
+
+  const retry = useCallback(() => {
+    autoRetryRef.current = 0;
+    open();
+  }, [open]);
+
+  return { ...state, retry };
 }
