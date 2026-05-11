@@ -925,10 +925,17 @@ function DevelopStep({
     setClaimed(true);
   }, [batchToken]);
 
+  // Originally pushed to /app/library, which threw the user out of the
+  // generations page they just signed up *from*. Now we mirror the
+  // inline-claim flow: attach the batch, flip `claimed`, refresh server
+  // state, and close the modal. The page stays put and the tiles
+  // promote to their authed states (HD downloads, no watermark on the
+  // free hero, etc.).
   const handleAuthSuccess = useCallback(async () => {
+    await handleClaimSuccess();
     setAuthModal((s) => ({ ...s, open: false }));
-    router.push("/app/library");
-  }, [router]);
+    router.refresh();
+  }, [handleClaimSuccess, router]);
 
   return (
     <div className={`relative ${developDone && isAuthed ? "pb-40 md:pb-44" : ""}`}>
