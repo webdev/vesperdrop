@@ -38,6 +38,10 @@ const MOCK_SOURCE_URL =
   "https://placehold.co/1024x1024/cccccc/333333.png?text=MOCK+SOURCE";
 
 function rateLimitOk(ip: string, isAuthed: boolean): boolean {
+  // Mock mode: no real Sceneify cost, no real abuse vector. Skip the
+  // bucket entirely so a dev iterating on the funnel can re-run the
+  // flow without restarting the server to clear in-memory state.
+  if (process.env.E2E_SCENEIFY_MOCK === "1") return true;
   // Bucket key includes auth state so a user who's been generating
   // unauthed and then signs up gets a fresh authed bucket — they
   // shouldn't carry pre-signup throttle into the post-signup batch.
