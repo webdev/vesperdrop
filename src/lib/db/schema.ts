@@ -25,6 +25,15 @@ export const profiles = pgTable("profiles", {
     .default("free"),
   planRenewsAt: timestamp("plan_renews_at", { withTimezone: true }),
   quotaUnitsBalance: integer("quota_units_balance").notNull().default(1),
+  planBillingInterval: text("plan_billing_interval", {
+    enum: ["monthly", "annual"],
+  })
+    .notNull()
+    .default("monthly"),
+  annualLastGrantedAt: timestamp("annual_last_granted_at", {
+    withTimezone: true,
+  }),
+  lastFailedRunAt: timestamp("last_failed_run_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .default(sql`now()`),
@@ -88,6 +97,7 @@ export const generations = pgTable(
     completedAt: timestamp("completed_at", { withTimezone: true }),
     focalPoint: jsonb("focal_point").$type<FocalPoint>(),
     faceBox: jsonb("face_box").$type<FaceBox>(),
+    wasOverage: boolean("was_overage").notNull().default(false),
   },
   (t) => [
     index("generations_run_idx").on(t.runId),
@@ -97,6 +107,40 @@ export const generations = pgTable(
     index("generations_parent_idx").on(t.parentGenerationId),
   ],
 );
+
+// Per-generation overage charges. Idempotent via the (user_id, generation_id)
+// unique index — workflow retries that re-enter the overage hook cannot
+// double-bill. Cycle anchor = subscription's current_period_start, used by
+// the plan summary card to sum accrual since the cycle began.
+export const overageLedger = pgTable(
+  "overage_ledger",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    runId: uuid("run_id")
+      .notNull()
+      .references(() => runs.id, { onDelete: "cascade" }),
+    generationId: uuid("generation_id").references(() => generations.id, {
+      onDelete: "set null",
+    }),
+    cents: integer("cents").notNull(),
+    stripeUsageRecordId: text("stripe_usage_record_id"),
+    reportedAt: timestamp("reported_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+    cycleAnchor: timestamp("cycle_anchor", { withTimezone: true }).notNull(),
+  },
+  (t) => [
+    index("overage_ledger_user_cycle_idx").on(
+      t.userId,
+      t.cycleAnchor.desc(),
+    ),
+  ],
+);
+
+export type OverageLedger = typeof overageLedger.$inferSelect;
 
 export const usageMonthly = pgTable(
   "usage_monthly",
