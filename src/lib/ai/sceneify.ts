@@ -95,6 +95,30 @@ export async function generateViaSceneify(
   input: SceneifyGenerateInput,
   init?: { signal?: AbortSignal },
 ): Promise<SceneifyGenerateResult> {
+  // Short-circuit for local dev / e2e: skip the remote call entirely
+  // and return a stub result so /try doesn't burn real Sceneify cost
+  // while iterating. Gate stays the FAL token-bucket so concurrent
+  // request behavior matches prod's queue semantics.
+  if (process.env.E2E_SCENEIFY_MOCK === "1") {
+    const priority = PRIORITY_SCORE[input.priority ?? "user"];
+    return FAL_GATE.run(async () => {
+      // Honor an optional artificial delay so progress streams have
+      // something to animate against in dev. Default 4s mirrors the
+      // mock route at /api/internal/generations.
+      const delayMs = Number(process.env.E2E_SCENEIFY_MOCK_DELAY_MS) || 4000;
+      await new Promise((r) => setTimeout(r, delayMs));
+      return {
+        generationId: `mock-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        outputUrl:
+          "https://placehold.co/1024x1280/1b1915/f4f0e8.png?text=MOCK+GEN",
+        model: input.model ?? "gpt-image-2",
+        requestedModel: input.model,
+        focalPoint: { x: 0.5, y: 0.4, confidence: 0.9, source: "face" },
+        faceBox: null,
+      } satisfies SceneifyGenerateResult;
+    }, priority);
+  }
+
   const priority = PRIORITY_SCORE[input.priority ?? "user"];
   return FAL_GATE.run(async () => {
     const token = await getVercelOidcToken();

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="color-scheme" content="light" />
     <meta name="supported-color-schemes" content="light" />
-    <title>Confirm your Vesperdrop account</title>
+    <title>Your Vesperdrop verification code</title>
   </head>
   <body style="margin:0;padding:0;background:#f7f2ea;color:#181614;font-family:Georgia,'Times New Roman',serif;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f7f2ea;">
@@ -22,30 +22,28 @@
             <tr>
               <td style="padding:8px 36px 0 36px;">
                 <h1 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:34px;line-height:1.05;letter-spacing:-0.01em;color:#181614;font-weight:400;">
-                  Confirm your <em style="font-style:italic;color:#9f442a;">Vesperdrop</em> account.
+                  Your <em style="font-style:italic;color:#9f442a;">studio</em> code.
                 </h1>
               </td>
             </tr>
             <tr>
               <td style="padding:18px 36px 0 36px;">
                 <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.55;color:#2a2622;">
-                  Welcome. Tap the button below to verify your email and unlock studio-quality lifestyle images from a single flat lay.
+                  Welcome. Enter this 6-digit code on the page you opened a moment ago to verify your email and unlock studio-quality lifestyle images.
                 </p>
               </td>
             </tr>
             <tr>
-              <td align="left" style="padding:24px 36px 8px 36px;">
-                <a href="{{ .ConfirmationURL }}"
-                   style="display:inline-block;background:#c65f3d;color:#faf7f0;text-decoration:none;font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;padding:14px 22px;border-radius:9999px;">
-                  Confirm email &rarr;
-                </a>
+              <td align="center" style="padding:28px 36px 8px 36px;">
+                <div style="display:inline-block;background:#f7f2ea;border:1px solid #ead0c3;border-radius:8px;padding:18px 28px;font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:34px;letter-spacing:0.32em;color:#181614;font-weight:500;">
+                  {{ .Token }}
+                </div>
               </td>
             </tr>
             <tr>
-              <td style="padding:16px 36px 0 36px;">
-                <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.55;color:#6f6962;">
-                  Or paste this link into your browser:<br />
-                  <a href="{{ .ConfirmationURL }}" style="color:#9f442a;word-break:break-all;">{{ .ConfirmationURL }}</a>
+              <td style="padding:14px 36px 0 36px;">
+                <p style="margin:0;font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:#a59e8f;">
+                  This code expires in 1 hour.
                 </p>
               </td>
             </tr>
