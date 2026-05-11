@@ -76,6 +76,11 @@ export function DevelopGrid({
   onDownloadClick,
   onLockedClick,
   onUnlockClick,
+  // Image-body click handler. When set, supersedes the default
+  // "body click = onDownloadClick" behavior. Used by /try/b/[token]
+  // to open a lightbox on tap; the explicit Download pill + HD badge
+  // still trigger onDownloadClick directly via stopPropagation.
+  onPreviewClick,
   // editorial=true renders the unauth cinematic reveal: hero center +
   // peek sides, watermark + PREVIEW label per tile, no chrome. The
   // wrapper grid lives in try-flow.tsx so the stage can full-bleed
@@ -90,6 +95,7 @@ export function DevelopGrid({
   onDownloadClick?: (slug: string) => void;
   onLockedClick?: () => void;
   onUnlockClick?: () => void;
+  onPreviewClick?: (slug: string) => void;
   editorial?: boolean;
   freePreviewUnlocked?: boolean;
 }) {
@@ -122,6 +128,7 @@ export function DevelopGrid({
               sourceUrl={sourceUrl}
               onDownloadClick={onDownloadClick}
               onUnlockClick={onUnlockClick}
+              onPreviewClick={onPreviewClick}
               editorial
               freePreviewUnlocked={freePreviewUnlocked}
             />
@@ -154,6 +161,7 @@ export function DevelopGrid({
               sourceUrl={sourceUrl}
               onDownloadClick={onDownloadClick}
               onUnlockClick={onUnlockClick}
+              onPreviewClick={onPreviewClick}
             />
           ),
         )}
@@ -170,6 +178,7 @@ function Tile({
   sourceUrl,
   onDownloadClick,
   onUnlockClick,
+  onPreviewClick,
   editorial = false,
   freePreviewUnlocked = false,
 }: {
@@ -180,6 +189,7 @@ function Tile({
   sourceUrl?: string;
   onDownloadClick?: (slug: string) => void;
   onUnlockClick?: () => void;
+  onPreviewClick?: (slug: string) => void;
   editorial?: boolean;
   freePreviewUnlocked?: boolean;
 }) {
@@ -263,11 +273,18 @@ function Tile({
   // every tile; HD upgrade lives in the upsell rail's $9.99 CTA.
   // Non-editorial (authed dashboard) keeps the old branch.
   const tileClickable = editorial
-    ? isDone && !!onDownloadClick
+    ? isDone && (!!onPreviewClick || !!onDownloadClick)
     : (isDone && !tile.softLocked && !!onDownloadClick) ||
       (isLockedView && !!onUnlockClick);
 
   const handleTileClick = () => {
+    // onPreviewClick (set by /try/b/[token] BatchView) takes precedence:
+    // opens a lightbox to enlarge the image. Download pill + HD badge
+    // still fire onDownloadClick directly via stopPropagation.
+    if (editorial && isDone && onPreviewClick) {
+      onPreviewClick(tile.sceneSlug);
+      return;
+    }
     if (editorial && isDone && onDownloadClick) {
       onDownloadClick(tile.sceneSlug);
       return;
@@ -555,15 +572,22 @@ function Tile({
               )
             ) : null}
 
-            {tile.isFreePreview && freePreviewUnlocked ? (
-              <motion.div
+            {tile.isFreePreview && freePreviewUnlocked && onDownloadClick ? (
+              <motion.button
+                type="button"
                 key="hd-badge"
-                className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-white"
-                style={{ zIndex: 41, textShadow: "0 1px 2px rgba(0,0,0,0.55)" }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDownloadClick(tile.sceneSlug);
+                }}
+                className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-terracotta px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-cream transition-colors hover:bg-terracotta-dark"
+                style={{ zIndex: 42 }}
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.6, delay: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+                aria-label={`Download ${tile.sceneName} in HD`}
+                data-testid="tile-hd-badge"
               >
                 <svg
                   width="11"
@@ -581,7 +605,7 @@ function Tile({
                   <path d="M5 21h14" />
                 </svg>
                 Download HD
-              </motion.div>
+              </motion.button>
             ) : null}
           </AnimatePresence>
         </>

@@ -847,8 +847,14 @@ function DevelopStep({
       if (effectivelyAuthed) {
         const tile = generationResults.find((r) => r.sceneSlug === slug);
         if (tile?.outputUrl) {
+          // Free preview tile post-claim: hand back the un-watermarked
+          // rawUrl (HD). Everything else gets the watermarked outputUrl
+          // — locked tiles aren't entitled to the raw until $9.99 paid.
+          const isHeroUnlocked =
+            tile.isFreePreview === true && claimed && Boolean(tile.rawUrl);
+          const url = isHeroUnlocked ? (tile.rawUrl as string) : tile.outputUrl;
           triggerDirectDownload(
-            tile.outputUrl,
+            url,
             `${tile.sceneName.toLowerCase().replace(/\s+/g, "-")}.png`,
           );
         }
@@ -857,7 +863,7 @@ function DevelopStep({
       track("try_signup_clicked", { intent: "download", slug });
       openAuthModal("download");
     },
-    [effectivelyAuthed, generationResults, triggerDirectDownload, openAuthModal],
+    [effectivelyAuthed, claimed, generationResults, triggerDirectDownload, openAuthModal],
   );
 
   const handleLockedClick = useCallback(() => {
