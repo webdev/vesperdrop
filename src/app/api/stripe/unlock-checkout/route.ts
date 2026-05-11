@@ -31,7 +31,7 @@ export async function GET(req: Request) {
     mode: "payment",
     line_items: [{ price: env.STRIPE_PRICE_UNLOCK, quantity: 1 }],
     success_url: `${origin}/try/b/${token}?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/try`,
+    cancel_url: `${origin}/try/b/${token}`,
     metadata: { unlock_batch_token: token },
     client_reference_id: token,
   });
