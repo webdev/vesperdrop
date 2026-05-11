@@ -711,16 +711,16 @@ function DevelopStep({
         ...(r.rawUrl ? { rawUrl: r.rawUrl } : {}),
       })),
     };
-    try {
-      // localStorage (not session) so the pending batch survives the
-      // user closing the tab to check their email for the confirmation
-      // link. /app/library's claim-handler reads localStorage on mount,
-      // calls /api/try/claim, then clears the key. sessionStorage write
-      // is kept as belt-and-braces for stale tabs that haven't loaded
-      // the localStorage variant yet.
-      window.localStorage.setItem(PENDING_BATCH_KEY, JSON.stringify(payload));
-      window.sessionStorage.setItem(PENDING_BATCH_KEY, JSON.stringify(payload));
-    } catch {}
+    // localStorage pending-batch was the magic-link era cross-device
+    // handoff: /app/library's ClaimHandler would pick it up post-login
+    // and POST /api/try/claim, bypassing the unlock_batches paywall.
+    // The OTP-inline flow makes this dangerous: a user who happens to
+    // click the (still-present) magic link in the email instead of
+    // entering the code lands on /app/library and ClaimHandler hands
+    // them un-paid access to all 3 generations. Drop the write
+    // entirely — finalize-batch + attach-batch own the persistence
+    // contract now. `payload` is intentionally unused.
+    void payload;
   }, [generationResults, photo, anySucceeded, isAuthed, serverSourceUrl]);
 
   // Authed: auto-claim once developDone fires. No modal, no prompt.

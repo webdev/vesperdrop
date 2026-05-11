@@ -64,9 +64,18 @@ export function OtpAuthFlow({
       setError(null);
       setState({ kind: "sending", email });
       track("auth_otp_send_requested", { surface });
+      // Supabase ships both `{{ .Token }}` and `{{ .ConfirmationURL }}`
+      // in the email payload; even when the template only shows the
+      // code, the underlying URL is still resolvable if the user
+      // clicks something Supabase formatted. Set redirect_to to the
+      // current page so that a clicked link lands them back here
+      // (in-flow) instead of the Site URL default (which used to
+      // dump them on /app/library and trigger the legacy claim path).
+      const emailRedirectTo =
+        typeof window !== "undefined" ? window.location.href : undefined;
       const { error: sendError } = await supabase.auth.signInWithOtp({
         email,
-        options: { shouldCreateUser: true },
+        options: { shouldCreateUser: true, emailRedirectTo },
       });
       if (sendError) {
         setError(sendError.message);

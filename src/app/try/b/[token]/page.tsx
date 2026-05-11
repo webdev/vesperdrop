@@ -5,6 +5,7 @@ import { Container } from "@/components/ui/container";
 import { stripe } from "@/lib/stripe/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
+  attachBatchToUser,
   getUnlockBatchByToken,
   markBatchPaid,
 } from "@/lib/db/unlock-batches";
@@ -79,6 +80,19 @@ export default async function Page({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Auto-claim path: an authed visitor finding a batch with no owner
+  // becomes the owner. The 32-char hex token is unguessable so this
+  // can't cross-pollinate — whoever has the URL is treated as the
+  // legitimate visitor. Covers the case where the user signed in via
+  // a magic link (still present in Supabase's default email template)
+  // instead of entering the inline OTP — they'd otherwise return to
+  // /try/b/<token> with batch.userId=null and see the claim form even
+  // though they're already logged in.
+  if (user && !batch.userId) {
+    await attachBatchToUser(token, user.id);
+    batch.userId = user.id;
+  }
   const initialClaimed =
     batch.userId !== null && batch.userId === (user?.id ?? null);
 
