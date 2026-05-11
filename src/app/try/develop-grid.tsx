@@ -88,6 +88,11 @@ export function DevelopGrid({
   // with sm:order-N classes that the parent grid uses for placement.
   editorial = false,
   freePreviewUnlocked = false,
+  // Global "every tile is unlocked" flag. Used by /try/b/[token]
+  // post-payment to suppress the watermark + Preview label on ALL
+  // tiles (not just the free hero) so the editorial stage renders
+  // the un-watermarked HD images directly.
+  paidAll = false,
 }: {
   results: TileResult[];
   variant?: DevelopGridVariant;
@@ -98,6 +103,7 @@ export function DevelopGrid({
   onPreviewClick?: (slug: string) => void;
   editorial?: boolean;
   freePreviewUnlocked?: boolean;
+  paidAll?: boolean;
 }) {
   if (results.length === 0) {
     return (
@@ -131,6 +137,7 @@ export function DevelopGrid({
               onPreviewClick={onPreviewClick}
               editorial
               freePreviewUnlocked={freePreviewUnlocked}
+              paidAll={paidAll}
             />
           </div>
         ))}
@@ -181,6 +188,7 @@ function Tile({
   onPreviewClick,
   editorial = false,
   freePreviewUnlocked = false,
+  paidAll = false,
 }: {
   tile: TileResult;
   index: number;
@@ -192,6 +200,7 @@ function Tile({
   onPreviewClick?: (slug: string) => void;
   editorial?: boolean;
   freePreviewUnlocked?: boolean;
+  paidAll?: boolean;
 }) {
   const isDone = tile.status === "succeeded";
   const isFailed = tile.status === "failed";
@@ -487,7 +496,7 @@ function Tile({
               in editorial mode, so the unlock animation reads as the
               watermark *dissolving away* from the underlying photo. */}
           <AnimatePresence initial={false}>
-            {!(tile.isFreePreview && freePreviewUnlocked) ? (
+            {!(paidAll || (tile.isFreePreview && freePreviewUnlocked)) ? (
               <motion.svg
                 key="watermark"
                 className="pointer-events-none absolute inset-0 h-full w-full"
@@ -527,7 +536,7 @@ function Tile({
               </motion.svg>
             ) : null}
 
-            {!(tile.isFreePreview && freePreviewUnlocked) ? (
+            {!(paidAll || (tile.isFreePreview && freePreviewUnlocked)) ? (
               tile.isFreePreview ? (
                 <motion.div
                   key="hero-pill"
@@ -573,7 +582,7 @@ function Tile({
               )
             ) : null}
 
-            {tile.isFreePreview && freePreviewUnlocked && onDownloadClick ? (
+            {(paidAll || (tile.isFreePreview && freePreviewUnlocked)) && onDownloadClick ? (
               <motion.button
                 type="button"
                 key="hd-badge"

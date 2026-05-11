@@ -30,7 +30,7 @@ export async function GET(req: Request) {
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     line_items: [{ price: env.STRIPE_PRICE_UNLOCK, quantity: 1 }],
-    success_url: `${origin}/try/unlocked/${token}?session_id={CHECKOUT_SESSION_ID}`,
+    success_url: `${origin}/try/b/${token}?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/try`,
     metadata: { unlock_batch_token: token },
     client_reference_id: token,

@@ -12,27 +12,32 @@ export function BatchView({
   token,
   generations,
   initialClaimed,
+  initialPaid,
 }: {
   token: string;
   generations: UnlockBatchGeneration[];
   initialClaimed: boolean;
+  initialPaid: boolean;
 }) {
   const [claimed, setClaimed] = useState(initialClaimed);
+  const [paid] = useState(initialPaid);
   const [unlockSubmitting, setUnlockSubmitting] = useState(false);
   const [lightboxSlug, setLightboxSlug] = useState<string | null>(null);
 
   // Convert persisted batch entries into the TileResult shape that
   // DevelopGrid expects. All tiles are "succeeded" — there's no
-  // streaming on this page. Soft-locked is mirrored from the funnel
-  // contract: index 0 is the free hero, indexes 1..N are paywalled.
+  // streaming on this page. Post-payment we swap outputUrl for the
+  // un-watermarked rawUrl so the editorial stage renders the real
+  // HD asset directly (and pass `paid` to DevelopGrid to suppress
+  // the watermark + Preview label overlays).
   const tileResults: TileResult[] = generations.map((g) => ({
     sceneSlug: g.sceneSlug,
     sceneName: g.sceneName,
     status: "succeeded",
-    outputUrl: g.outputUrl,
+    outputUrl: paid && g.rawUrl ? g.rawUrl : g.outputUrl,
     rawUrl: g.rawUrl ?? undefined,
     isFreePreview: g.isFreePreview,
-    softLocked: !g.isFreePreview,
+    softLocked: !paid && !g.isFreePreview,
     focalPoint: g.focalPoint ?? null,
     faceBox: g.faceBox ?? null,
   }));
@@ -75,7 +80,17 @@ export function BatchView({
       const gen = generations.find((g) => g.sceneSlug === slug);
       if (!gen) return;
 
-      // Hero post-claim: real download of the raw HD URL.
+      // Post-payment: every tile is entitled to its raw HD download.
+      if (paid && gen.rawUrl) {
+        void triggerDownload(
+          gen.rawUrl,
+          `${gen.sceneName.toLowerCase().replace(/\s+/g, "-")}.png`,
+        );
+        return;
+      }
+
+      // Hero post-claim (still unpaid): free HD download for the
+      // free-preview tile.
       if (claimed && gen.isFreePreview) {
         void triggerDownload(
           gen.rawUrl ?? gen.outputUrl,
@@ -84,9 +99,9 @@ export function BatchView({
         return;
       }
 
-      // Locked tile (not the free preview): kick off the $9.99 Stripe
-      // checkout — that's how the user pays for this image. Whether or
-      // not they've claimed the batch, payment is the gating step.
+      // Locked tile (not the free preview), pre-payment: kick off
+      // the $9.99 Stripe checkout — that's how the user pays for
+      // this image.
       if (!gen.isFreePreview) {
         if (unlockSubmitting) return;
         setUnlockSubmitting(true);
@@ -102,7 +117,7 @@ export function BatchView({
       el?.scrollIntoView({ behavior: "smooth", block: "center" });
       el?.focus();
     },
-    [claimed, generations, triggerDownload, token, unlockSubmitting],
+    [claimed, paid, generations, triggerDownload, token, unlockSubmitting],
   );
 
   const handleUnlock = useCallback(() => {
@@ -132,7 +147,7 @@ export function BatchView({
       <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-            Your studio · Saved
+            {paid ? "Your studio · Complete" : "Your studio · Saved"}
           </p>
           <h1 className="mt-4 font-serif text-[clamp(2.5rem,5.5vw,4rem)] leading-[0.98] tracking-[-0.02em] text-ink">
             In the{" "}
@@ -142,6 +157,24 @@ export function BatchView({
             .
           </h1>
         </div>
+        {paid ? (
+          <div className="inline-flex items-center gap-2 rounded-full bg-terracotta-wash px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-terracotta-dark">
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 12 12"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M2.5 6.5l2.5 2.5 4.5-5" />
+            </svg>
+            Studio set unlocked
+          </div>
+        ) : null}
       </div>
 
       {/* Same full-bleed editorial stage as /try post-success. */}
@@ -151,7 +184,12 @@ export function BatchView({
             results={tileResults}
             variant="darkroom"
             editorial
-            freePreviewUnlocked={claimed}
+            // Post-payment all tiles are unlocked; pre-payment only
+            // the free hero unlocks on claim. Threading `paid` through
+            // as a global free-preview-unlocked flag is the cleanest
+            // way to suppress every watermark + Preview label.
+            freePreviewUnlocked={paid || claimed}
+            paidAll={paid}
             onDownloadClick={handleDownload}
             onUnlockClick={handleUnlock}
             onPreviewClick={setLightboxSlug}
@@ -159,13 +197,15 @@ export function BatchView({
         </div>
       </div>
 
-      <EditorialClaimRail
-        generations={tileResults}
-        claimed={claimed}
-        onClaimSuccess={handleClaimSuccess}
-        onUnlock={handleUnlock}
-        unlockSubmitting={unlockSubmitting}
-      />
+      {paid ? null : (
+        <EditorialClaimRail
+          generations={tileResults}
+          claimed={claimed}
+          onClaimSuccess={handleClaimSuccess}
+          onUnlock={handleUnlock}
+          unlockSubmitting={unlockSubmitting}
+        />
+      )}
       <TrustRow />
 
       <Lightbox

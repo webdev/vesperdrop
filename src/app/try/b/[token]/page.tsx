@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { Nav } from "@/components/nav";
 import { Container } from "@/components/ui/container";
+import { stripe } from "@/lib/stripe/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getUnlockBatchByToken } from "@/lib/db/unlock-batches";
+import {
+  getUnlockBatchByToken,
+  markBatchPaid,
+} from "@/lib/db/unlock-batches";
 import { BatchView } from "./batch-view";
 
 export const dynamic = "force-dynamic";
@@ -15,27 +19,60 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// /try/b/[token] is the persistent deep link for a generated batch.
-// The URL is the canonical home for the batch — try-flow.tsx flips
-// the browser URL here as soon as /api/try/finalize-batch resolves,
-// so refresh/back/bookmark all keep the user on the same studio.
+// /try/b/[token] is the canonical home for a generated batch — the
+// URL Try Flow flips to via history.replaceState the moment
+// /api/try/finalize-batch resolves. The page adapts to every state:
 //
-// State routing:
-//   missing token       → 404
-//   paid                → /try/unlocked/[token] (post-pay view exists)
-//   pending (any state) → renders the editorial reveal + claim/upsell
-//                         rail; OTP claim attaches the batch to the
-//                         signed-in user.
+//   missing token           → 404
+//   pending + unclaimed     → editorial reveal + Claim CTA
+//   pending + claimed       → editorial reveal + Complete-the-set upsell
+//   paid                    → editorial reveal, all tiles unlocked,
+//                             Download HD pills on each tile
+//
+// Stripe Checkout's success_url comes back here with ?session_id=...;
+// we verify the session synchronously as a fallback so the user
+// isn't blocked by webhook delivery latency.
 export default async function Page({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>;
+  searchParams: Promise<{ session_id?: string }>;
 }) {
   const { token } = await params;
+  const { session_id } = await searchParams;
+
   const batch = await getUnlockBatchByToken(token);
   if (!batch) notFound();
-  if (batch.status === "paid") {
-    redirect(`/try/unlocked/${token}`);
+
+  let isPaid = batch.status === "paid";
+
+  // Stripe sometimes redirects the user before the webhook lands on
+  // our `checkout.session.completed` handler. Verify the session
+  // synchronously so the post-payment view renders immediately
+  // instead of looking like the unpaid state.
+  if (!isPaid && session_id) {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(session_id);
+      if (
+        session.payment_status === "paid" &&
+        session.metadata?.unlock_batch_token === token
+      ) {
+        isPaid = true;
+        const paymentIntent =
+          typeof session.payment_intent === "string"
+            ? session.payment_intent
+            : session.payment_intent?.id ?? null;
+        await markBatchPaid({
+          token,
+          paymentIntent,
+          customerEmail:
+            session.customer_details?.email ?? session.customer_email ?? null,
+        });
+      }
+    } catch (err) {
+      console.error("[try/b] stripe verify failed", err);
+    }
   }
 
   const supabase = await createSupabaseServerClient();
@@ -53,6 +90,7 @@ export default async function Page({
           token={token}
           generations={batch.generations}
           initialClaimed={initialClaimed}
+          initialPaid={isPaid}
         />
       </Container>
     </div>
