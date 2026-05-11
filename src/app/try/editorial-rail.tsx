@@ -29,25 +29,37 @@ export function EditorialClaimRail({
   onUnlock: () => void;
   unlockSubmitting: boolean;
 }) {
+  // Layout decision: pre-claim, the page is purely a free-preview
+  // reveal + claim CTA. The $9.99 upsell only appears once the
+  // visitor has authenticated via OTP — that's when they own one
+  // HD image and the "complete the set" framing becomes natural.
   return (
     <motion.div
       layout
       transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
-      className="mt-12 grid grid-cols-1 items-start gap-10 md:mt-16 md:grid-cols-[1.1fr_auto_0.95fr] md:gap-12"
+      className={
+        claimed
+          ? "mt-12 grid grid-cols-1 items-start gap-10 md:mt-16 md:grid-cols-[1.1fr_auto_0.95fr] md:gap-12"
+          : "mt-12 md:mt-16"
+      }
     >
       <ClaimColumn claimed={claimed} onClaimSuccess={onClaimSuccess} />
 
-      <div
-        aria-hidden
-        className="hidden self-stretch md:block md:w-px md:bg-line-soft"
-      />
+      {claimed ? (
+        <>
+          <div
+            aria-hidden
+            className="hidden self-stretch md:block md:w-px md:bg-line-soft"
+          />
 
-      <UpsellColumn
-        generations={generations}
-        onUnlock={onUnlock}
-        disabled={unlockSubmitting}
-        claimed={claimed}
-      />
+          <UpsellColumn
+            generations={generations}
+            onUnlock={onUnlock}
+            disabled={unlockSubmitting}
+            claimed={claimed}
+          />
+        </>
+      ) : null}
     </motion.div>
   );
 }
