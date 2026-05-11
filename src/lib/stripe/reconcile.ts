@@ -4,6 +4,11 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe/server";
 import { env } from "@/lib/env";
 import { PLAN_MONTHLY_QUOTA } from "@/lib/ai/models";
+import {
+  PAID_PLAN_SLUGS,
+  PLAN_STRIPE,
+  type BillingInterval,
+} from "@/lib/plans";
 
 export type ReconcileResult = {
   scanned: number;
@@ -21,37 +26,47 @@ export type ReconcileResult = {
   }>;
 };
 
-function priceIdToPlan(priceId: string): string | null {
-  // Legacy single-interval mapping. Agent B replaces this with an interval-
-  // aware resolver that reads PLAN_STRIPE. During Phase 1 the legacy env
-  // vars are optional, so empty fallbacks are harmless (they never match).
-  const map: Record<string, string> = {};
-  if (env.STRIPE_PRO_PRICE_ID) map[env.STRIPE_PRO_PRICE_ID] = "pro";
-  if (env.STRIPE_STARTER_PRICE_ID) map[env.STRIPE_STARTER_PRICE_ID] = "starter";
-  if (env.STRIPE_STUDIO_PRICE_ID) map[env.STRIPE_STUDIO_PRICE_ID] = "studio";
-  if (env.STRIPE_AGENCY_PRICE_ID) map[env.STRIPE_AGENCY_PRICE_ID] = "agency";
-  return map[priceId] ?? null;
+function resolvePriceId(
+  priceId: string,
+): { plan: string; interval: BillingInterval } | null {
+  for (const slug of PAID_PLAN_SLUGS) {
+    const cfg = PLAN_STRIPE[slug];
+    if (env[cfg.monthlyPriceIdEnv] === priceId) {
+      return { plan: slug, interval: "monthly" };
+    }
+    if (env[cfg.annualPriceIdEnv] === priceId) {
+      return { plan: slug, interval: "annual" };
+    }
+  }
+  return null;
+}
+
+function flatItem(sub: Stripe.Subscription) {
+  return sub.items.data.find(
+    (i) => i.price?.recurring?.usage_type !== "metered",
+  );
 }
 
 /**
  * Pick the subscription that should drive the customer's plan when a customer
- * has multiple active subscriptions. We rank by monthly credits (a proxy for
- * tier), breaking ties with most-recently-created.
+ * has multiple active subscriptions. We rank by monthly quota (a proxy for
+ * tier), breaking ties with most-recently-created. Metered items are ignored
+ * when resolving the primary's price.
  */
 function pickPrimary(
   subs: Stripe.Subscription[],
 ): Stripe.Subscription | null {
-  let best: { sub: Stripe.Subscription; credits: number } | null = null;
+  let best: { sub: Stripe.Subscription; quota: number } | null = null;
   for (const sub of subs) {
-    const priceId = sub.items.data[0]?.price?.id;
-    const plan = priceId ? priceIdToPlan(priceId) : null;
-    const credits = plan ? (PLAN_MONTHLY_QUOTA[plan] ?? 0) : 0;
+    const priceId = flatItem(sub)?.price?.id;
+    const resolved = priceId ? resolvePriceId(priceId) : null;
+    const quota = resolved ? (PLAN_MONTHLY_QUOTA[resolved.plan] ?? 0) : 0;
     if (
       !best ||
-      credits > best.credits ||
-      (credits === best.credits && sub.created > best.sub.created)
+      quota > best.quota ||
+      (quota === best.quota && sub.created > best.sub.created)
     ) {
-      best = { sub, credits };
+      best = { sub, quota };
     }
   }
   return best?.sub ?? null;
@@ -100,19 +115,20 @@ export async function reconcileSubscriptions(): Promise<ReconcileResult> {
     result.scanned += 1;
     const primary = pickPrimary(subs);
     if (!primary) continue;
-    const priceId = primary.items.data[0]?.price?.id;
-    const plan = priceId ? priceIdToPlan(priceId) : null;
-    if (!plan) {
+    const priceId = flatItem(primary)?.price?.id;
+    const resolved = priceId ? resolvePriceId(priceId) : null;
+    if (!resolved) {
       result.unknownPrice += 1;
       console.warn("[reconcile] unknown price id", { customerId, priceId });
       continue;
     }
+    const { plan, interval } = resolved;
     const pe = periodEnd(primary);
     const renewsAt = pe ? new Date(pe * 1000).toISOString() : null;
 
     const { data: profile, error: selErr } = await supabaseAdmin
       .from("profiles")
-      .select("id, plan, plan_renews_at")
+      .select("id, plan, plan_renews_at, plan_billing_interval")
       .eq("stripe_customer_id", customerId)
       .single();
 
@@ -125,11 +141,22 @@ export async function reconcileSubscriptions(): Promise<ReconcileResult> {
     const currentRenews = profile.plan_renews_at
       ? new Date(profile.plan_renews_at).toISOString()
       : null;
-    if (profile.plan === plan && currentRenews === renewsAt) continue;
+    const currentInterval = profile.plan_billing_interval ?? "monthly";
+    if (
+      profile.plan === plan &&
+      currentRenews === renewsAt &&
+      currentInterval === interval
+    ) {
+      continue;
+    }
 
     const { error: upErr } = await supabaseAdmin
       .from("profiles")
-      .update({ plan, plan_renews_at: renewsAt })
+      .update({
+        plan,
+        plan_renews_at: renewsAt,
+        plan_billing_interval: interval,
+      })
       .eq("id", profile.id);
 
     if (upErr) {
