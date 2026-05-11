@@ -454,8 +454,9 @@ function Tile({
               set); this pill is the explicit "I want this image"
               action — it fires the payment / claim workflow via
               onDownloadClick. stopPropagation keeps it isolated from
-              the lightbox click. */}
-          {onDownloadClick ? (
+              the lightbox click. Hidden in paidAll mode where the
+              bottom-left "Download HD" pill is the unified action. */}
+          {onDownloadClick && !paidAll ? (
             <motion.button
               type="button"
               key="download-cta"

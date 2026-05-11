@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { AuthForm } from "@/components/app/auth-form";
 import { Nav } from "@/components/nav";
 import { Container } from "@/components/ui/container";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Sign in",
@@ -13,7 +15,26 @@ export const metadata: Metadata = {
   robots: { index: false, follow: true },
 };
 
-export default function Page() {
+export const dynamic = "force-dynamic";
+
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
+  // Already signed in → skip the form. Forward to the page the user
+  // was trying to reach (or /app as the sane default). The `next`
+  // param is the same one AuthForm consumes after a fresh sign-in,
+  // so the two paths agree on the destination.
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    const target = next && next.startsWith("/") ? next : "/app";
+    redirect(target);
+  }
   return (
     <div className="flex min-h-screen flex-col bg-paper text-ink">
       <Nav width="marketing" />

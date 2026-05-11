@@ -1,8 +1,13 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "./index";
-import { unlockBatches, type UnlockBatch, type UnlockBatchGeneration } from "./schema";
+import {
+  generations,
+  unlockBatches,
+  type UnlockBatch,
+  type UnlockBatchGeneration,
+} from "./schema";
 
 export type CreateBatchInput = {
   generations: UnlockBatchGeneration[];
@@ -72,13 +77,37 @@ export async function markBatchPaid(args: {
   paymentIntent?: string | null;
   customerEmail?: string | null;
 }): Promise<void> {
-  await db
-    .update(unlockBatches)
-    .set({
-      status: "paid",
-      paidAt: new Date(),
-      stripePaymentIntent: args.paymentIntent ?? null,
-      customerEmail: args.customerEmail ?? null,
-    })
-    .where(eq(unlockBatches.token, args.token));
+  await db.transaction(async (tx) => {
+    const [batch] = await tx
+      .update(unlockBatches)
+      .set({
+        status: "paid",
+        paidAt: new Date(),
+        stripePaymentIntent: args.paymentIntent ?? null,
+        customerEmail: args.customerEmail ?? null,
+      })
+      .where(eq(unlockBatches.token, args.token))
+      .returning({ runId: unlockBatches.runId });
+
+    // Promote the watermarked output_url to the raw HD URL on every
+    // generation in the batch. After this swap /app/library and any
+    // other consumer that reads `output_url` naturally renders the
+    // un-watermarked HD — no JOIN against unlock_batches needed.
+    if (batch?.runId) {
+      await tx
+        .update(generations)
+        .set({
+          outputUrl: sql`${generations.rawUrl}`,
+          watermarked: false,
+          quality: "hd",
+        })
+        .where(
+          and(
+            eq(generations.runId, batch.runId),
+            isNotNull(generations.rawUrl),
+            eq(generations.watermarked, true),
+          ),
+        );
+    }
+  });
 }

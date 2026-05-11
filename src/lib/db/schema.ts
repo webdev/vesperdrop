@@ -85,6 +85,10 @@ export const generations = pgTable(
       .notNull()
       .default("pending"),
     outputUrl: text("output_url"),
+    // Un-watermarked HD URL stored alongside outputUrl. Populated at
+    // finalize-batch insert; the unlock webhook flips output_url to
+    // raw_url so /app/library and other readers naturally show the HD.
+    rawUrl: text("raw_url"),
     watermarked: boolean("watermarked").notNull().default(false),
     error: text("error"),
     modelUsed: text("model_used"),

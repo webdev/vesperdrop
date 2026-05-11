@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { AuthForm } from "@/components/app/auth-form";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Create account",
@@ -11,7 +13,22 @@ export const metadata: Metadata = {
   robots: { index: false, follow: true },
 };
 
-export default function Page() {
+export const dynamic = "force-dynamic";
+
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    const target = next && next.startsWith("/") ? next : "/app";
+    redirect(target);
+  }
   return (
     <>
       <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">

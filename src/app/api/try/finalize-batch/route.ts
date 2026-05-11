@@ -145,6 +145,7 @@ export async function POST(req: Request) {
         presetId: g.sceneSlug,
         status: "succeeded" as const,
         outputUrl: g.outputUrl,
+        rawUrl: g.rawUrl ?? null,
         watermarked: true,
         quality: "preview" as const,
         focalPoint: g.focalPoint ?? null,
