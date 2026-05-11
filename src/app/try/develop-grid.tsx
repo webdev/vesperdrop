@@ -440,12 +440,11 @@ function Tile({
 
       {editorial && isDone ? (
         <>
-          {/* Visible Download CTA in the top-right of each tile. Same
-              click target as the tile body — handleDownloadClick on
-              /try gates on auth, so this is the obvious entry point
-              into the OTP claim flow before the user has scrolled to
-              the email form below. */}
-          {onDownloadClick ? (
+          {/* Visible Download CTA in the top-right. Suppressed when
+              onPreviewClick is wired (BatchView on /try/b/[token]) so
+              the tile reads as a pure click-to-enlarge target there;
+              downloads happen from inside the lightbox instead. */}
+          {onDownloadClick && !onPreviewClick ? (
             <motion.button
               type="button"
               key="download-cta"
@@ -572,7 +571,7 @@ function Tile({
               )
             ) : null}
 
-            {tile.isFreePreview && freePreviewUnlocked && onDownloadClick ? (
+            {tile.isFreePreview && freePreviewUnlocked && onDownloadClick && !onPreviewClick ? (
               <motion.button
                 type="button"
                 key="hd-badge"
