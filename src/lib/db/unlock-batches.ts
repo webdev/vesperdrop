@@ -7,6 +7,10 @@ import { unlockBatches, type UnlockBatch, type UnlockBatchGeneration } from "./s
 export type CreateBatchInput = {
   generations: UnlockBatchGeneration[];
   userId?: string | null;
+  // Run that owns the generation rows (created in the same finalize-
+  // batch transaction). Nullable for back-compat with old batches
+  // that only existed as JSONB blobs.
+  runId?: string | null;
 };
 
 export function newToken(): string {
@@ -19,6 +23,7 @@ export async function createUnlockBatch(input: CreateBatchInput): Promise<string
     token,
     generations: input.generations,
     userId: input.userId ?? null,
+    runId: input.runId ?? null,
   });
   return token;
 }

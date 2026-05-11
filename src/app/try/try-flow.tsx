@@ -752,6 +752,11 @@ function DevelopStep({
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
+            // sourceUrl lands on each generation row's
+            // sceneify_source_id column (mirrors /api/try/claim).
+            // Falls back server-side to outputUrl[0] if absent so
+            // older clients without this field don't 400.
+            ...(serverSourceUrl ? { sourceUrl: serverSourceUrl } : {}),
             generations: succeeded.map((r) => ({
               sceneSlug: r.sceneSlug,
               sceneName: r.sceneName,
@@ -783,7 +788,7 @@ function DevelopStep({
         finalizeRanRef.current = false;
       }
     })();
-  }, [isAuthed, generationResults, batchToken]);
+  }, [isAuthed, generationResults, batchToken, serverSourceUrl]);
 
   const displayResults: TileResult[] = generationResults;
 

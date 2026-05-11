@@ -34,9 +34,12 @@ export const runs = pgTable(
   "runs",
   {
     id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => profiles.id, { onDelete: "cascade" }),
+    // Nullable for the unauth /try funnel — anonymous runs live with
+    // userId=null until the visitor OTP-claims the batch, at which
+    // point /api/try/attach-batch UPDATEs this column.
+    userId: uuid("user_id").references(() => profiles.id, {
+      onDelete: "cascade",
+    }),
     sourceCount: integer("source_count").notNull(),
     presetCount: integer("preset_count").notNull(),
     totalImages: integer("total_images").notNull(),
@@ -52,12 +55,14 @@ export const generations = pgTable(
   "generations",
   {
     id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-    runId: uuid("run_id")
-      .notNull()
-      .references(() => runs.id, { onDelete: "cascade" }),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => profiles.id, { onDelete: "cascade" }),
+    // Nullable for the unauth /try funnel — anonymous generations have
+    // a run but no owning user until OTP claim re-parents the rows.
+    runId: uuid("run_id").references(() => runs.id, {
+      onDelete: "cascade",
+    }),
+    userId: uuid("user_id").references(() => profiles.id, {
+      onDelete: "cascade",
+    }),
     sceneifySourceId: text("sceneify_source_id").notNull(),
     sceneifyGenerationId: text("sceneify_generation_id"),
     presetId: text("preset_id").notNull(),
@@ -448,6 +453,10 @@ export const unlockBatches = pgTable("unlock_batches", {
   stripePaymentIntent: text("stripe_payment_intent"),
   customerEmail: text("customer_email"),
   userId: uuid("user_id"),
+  // FK to the runs row that owns this batch's generations. Set when
+  // /api/try/finalize-batch writes the run + generation rows; nullable
+  // for back-compat with batches created before the DB-row migration.
+  runId: uuid("run_id").references(() => runs.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

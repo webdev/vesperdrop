@@ -67,3 +67,4 @@ export async function listGenerationsForRun(runId: string, userId: string) {
     .where(and(eq(generations.runId, runId), eq(generations.userId, userId)))
     .orderBy(asc(generations.createdAt));
 }
+

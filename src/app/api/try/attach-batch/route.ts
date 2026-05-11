@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { and, eq, isNull } from "drizzle-orm";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import {
-  attachBatchToUser,
-  getUnlockBatchByToken,
-} from "@/lib/db/unlock-batches";
+import { db } from "@/lib/db";
+import { runs, generations, unlockBatches } from "@/lib/db/schema";
+import { getUnlockBatchByToken } from "@/lib/db/unlock-batches";
 
 export const runtime = "nodejs";
 
-// Called by the /try inline OTP flow once verifyOtp resolves. The
-// frontend holds the batch token from /api/try/finalize-batch; this
-// route binds that anonymous batch to the now-authenticated user so
-// the post-payment unlock page (and the user's library) can find it.
+// Called by the /try inline OTP flow once verifyOtp resolves. Re-
+// parents the anonymous batch + its run + its generations to the
+// now-authenticated user. The three updates run in a transaction so
+// a partial failure leaves no orphans.
 //
 // Idempotent: if the batch is already attached to this user, returns
 // ok:true. If it's attached to a different user (race / abuse),
@@ -53,9 +53,55 @@ export async function POST(req: Request) {
     );
   }
 
-  const attached = await attachBatchToUser(parsed.data.token, user.id);
-  if (!attached) {
-    // Lost a race — re-read to figure out what happened.
+  const result = await db.transaction(async (tx) => {
+    // Step 1: attach the batch row itself. Guarded on user_id IS NULL
+    // so a concurrent retry can't transfer ownership to a different
+    // user. If the row is already owned (race), we re-read below.
+    const updatedBatch = await tx
+      .update(unlockBatches)
+      .set({ userId: user.id })
+      .where(
+        and(
+          eq(unlockBatches.token, parsed.data.token),
+          isNull(unlockBatches.userId),
+        ),
+      )
+      .returning({ runId: unlockBatches.runId });
+    if (updatedBatch.length === 0) return { batchAttached: false };
+
+    const runId = updatedBatch[0].runId;
+    if (!runId) {
+      // Batch from before the DB-row migration — no run to re-parent.
+      return { batchAttached: true, generationsUpdated: 0, runUpdated: false };
+    }
+
+    // Step 2: re-parent the run. WHERE clause guards on user_id IS
+    // NULL so we never overwrite a real owner; also restricts to the
+    // run referenced by this batch.
+    const updatedRun = await tx
+      .update(runs)
+      .set({ userId: user.id })
+      .where(and(eq(runs.id, runId), isNull(runs.userId)))
+      .returning({ id: runs.id });
+
+    // Step 3: re-parent all generations under the run. WHERE clause
+    // guards on user_id IS NULL same way.
+    const updatedGens = await tx
+      .update(generations)
+      .set({ userId: user.id })
+      .where(
+        and(eq(generations.runId, runId), isNull(generations.userId)),
+      )
+      .returning({ id: generations.id });
+
+    return {
+      batchAttached: true,
+      runUpdated: updatedRun.length > 0,
+      generationsUpdated: updatedGens.length,
+    };
+  });
+
+  if (!result.batchAttached) {
     const refreshed = await getUnlockBatchByToken(parsed.data.token);
     if (refreshed?.userId === user.id) {
       return NextResponse.json({ ok: true, alreadyAttached: true });
@@ -66,5 +112,9 @@ export async function POST(req: Request) {
     );
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    runUpdated: result.runUpdated,
+    generationsUpdated: result.generationsUpdated,
+  });
 }

@@ -79,6 +79,9 @@ export default async function Page({
 
   const gensByRun = new Map<string, typeof gens>();
   for (const g of gens) {
+    // runId is nullable for anon /try generations; the library view
+    // only renders authed runs (filtered upstream), so skip orphans.
+    if (!g.runId) continue;
     const arr = gensByRun.get(g.runId) ?? [];
     arr.push(g);
     gensByRun.set(g.runId, arr);

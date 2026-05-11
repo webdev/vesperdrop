@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { createUnlockBatch } from "@/lib/db/unlock-batches";
+import { db } from "@/lib/db";
+import { runs, generations, unlockBatches } from "@/lib/db/schema";
+import { newToken } from "@/lib/db/unlock-batches";
 import type { UnlockBatchGeneration } from "@/lib/db/schema";
 
 export const runtime = "nodejs";
 
 // Normalized 0..1 focal coordinates emitted by Sceneify alongside the
 // generation. We don't compute or re-derive them server-side; we just
-// pass them through to the persisted JSONB so the render layer (and
-// any future db-row migration) has them.
+// pass them through to the row + JSONB so the render layer has them.
 const focalPointSchema = z
   .object({
     x: z.number().min(0).max(1),
@@ -46,8 +47,26 @@ const generationSchema = z.object({
 
 const bodySchema = z.object({
   generations: z.array(generationSchema).min(1).max(6),
+  // Source URL of the product photo the visitor uploaded. Stored on
+  // each generation row as `sceneify_source_id` (mirrors the authed
+  // /api/try/claim path). Optional only for back-compat with older
+  // clients; new clients should always send it.
+  sourceUrl: z.string().url().optional(),
 });
 
+/**
+ * Finalize a /try batch:
+ *   1. Persist a `runs` row (anonymous if no session, owned otherwise)
+ *   2. Persist 3 `generations` rows (one per scene, with focal data)
+ *   3. Mint an unlock_batches token linked to the run
+ *
+ * All three writes happen inside a single transaction so a partial
+ * failure leaves no orphans. The visitor receives `{ token }` and
+ * the frontend flips its URL to /try/b/{token}.
+ *
+ * On OTP claim, /api/try/attach-batch UPDATEs runs.user_id +
+ * generations.user_id in lockstep to re-parent the anonymous rows.
+ */
 export async function POST(req: Request) {
   let json: unknown;
   try {
@@ -64,21 +83,21 @@ export async function POST(req: Request) {
     );
   }
 
-  const { generations } = parsed.data;
+  const { generations: gens, sourceUrl } = parsed.data;
 
-  if (generations.length !== 3) {
+  if (gens.length !== 3) {
     return NextResponse.json(
       { error: "expected exactly 3 generations" },
       { status: 400 },
     );
   }
-  if (!generations[0].isFreePreview) {
+  if (!gens[0].isFreePreview) {
     return NextResponse.json(
       { error: "first generation must be the free preview" },
       { status: 400 },
     );
   }
-  if (generations.slice(1).some((g) => g.isFreePreview)) {
+  if (gens.slice(1).some((g) => g.isFreePreview)) {
     return NextResponse.json(
       { error: "only index 0 may be the free preview" },
       { status: 400 },
@@ -88,8 +107,14 @@ export async function POST(req: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const userId = user?.id ?? null;
 
-  const stored: UnlockBatchGeneration[] = generations.map((g) => ({
+  // The DB row stores the source URL on each generation; fall back
+  // to the first output URL if the client didn't pass one (rare —
+  // older versions of the frontend) so the column stays non-null.
+  const sceneifySource = sourceUrl ?? gens[0].outputUrl;
+
+  const stored: UnlockBatchGeneration[] = gens.map((g) => ({
     sceneSlug: g.sceneSlug,
     sceneName: g.sceneName,
     outputUrl: g.outputUrl,
@@ -100,10 +125,43 @@ export async function POST(req: Request) {
     faceBox: g.faceBox ?? null,
   }));
 
-  const token = await createUnlockBatch({
-    generations: stored,
-    userId: user?.id ?? null,
+  const now = new Date();
+  const { runId, token } = await db.transaction(async (tx) => {
+    const [runRow] = await tx
+      .insert(runs)
+      .values({
+        userId,
+        sourceCount: 1,
+        presetCount: gens.length,
+        totalImages: gens.length,
+      })
+      .returning({ id: runs.id });
+
+    await tx.insert(generations).values(
+      gens.map((g) => ({
+        runId: runRow.id,
+        userId,
+        sceneifySourceId: sceneifySource,
+        presetId: g.sceneSlug,
+        status: "succeeded" as const,
+        outputUrl: g.outputUrl,
+        watermarked: true,
+        quality: "preview" as const,
+        focalPoint: g.focalPoint ?? null,
+        faceBox: g.faceBox ?? null,
+        completedAt: now,
+      })),
+    );
+
+    const t = newToken();
+    await tx.insert(unlockBatches).values({
+      token: t,
+      generations: stored,
+      userId,
+      runId: runRow.id,
+    });
+    return { runId: runRow.id, token: t };
   });
 
-  return NextResponse.json({ token }, { status: 201 });
+  return NextResponse.json({ token, runId }, { status: 201 });
 }
