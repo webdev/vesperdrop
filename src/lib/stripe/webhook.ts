@@ -7,6 +7,11 @@ import { db } from "@/lib/db";
 import { refillQuota } from "@/lib/db/quota";
 import { PLAN_MONTHLY_QUOTA } from "@/lib/ai/models";
 import { env } from "@/lib/env";
+import {
+  PAID_PLAN_SLUGS,
+  PLAN_STRIPE,
+  type BillingInterval,
+} from "@/lib/plans";
 import { serverTrack } from "@/lib/analytics-server";
 import { recordEvent } from "@/lib/etsy-outreach/events";
 import { getPreviewByToken } from "@/lib/etsy-outreach/pages";
@@ -17,19 +22,22 @@ import { markBatchPaid } from "@/lib/db/unlock-batches";
 // ---------------------------------------------------------------------------
 
 /**
- * Map a Stripe price ID to a Vesperdrop plan name using env-configured price IDs.
- * Returns null when the price ID is not recognised.
+ * Map a Stripe price ID to a Vesperdrop plan + billing interval using
+ * PLAN_STRIPE env-configured price IDs. Returns null when unrecognised.
  */
-function priceIdToPlan(priceId: string): string | null {
-  // Legacy single-interval mapping. Agent B replaces with an interval-aware
-  // resolver that reads PLAN_STRIPE. Legacy env vars are optional during the
-  // Phase 1 → Phase 3 transition.
-  const map: Record<string, string> = {};
-  if (env.STRIPE_PRO_PRICE_ID) map[env.STRIPE_PRO_PRICE_ID] = "pro";
-  if (env.STRIPE_STARTER_PRICE_ID) map[env.STRIPE_STARTER_PRICE_ID] = "starter";
-  if (env.STRIPE_STUDIO_PRICE_ID) map[env.STRIPE_STUDIO_PRICE_ID] = "studio";
-  if (env.STRIPE_AGENCY_PRICE_ID) map[env.STRIPE_AGENCY_PRICE_ID] = "agency";
-  return map[priceId] ?? null;
+function resolvePriceId(
+  priceId: string,
+): { plan: string; interval: BillingInterval } | null {
+  for (const slug of PAID_PLAN_SLUGS) {
+    const cfg = PLAN_STRIPE[slug];
+    if (env[cfg.monthlyPriceIdEnv] === priceId) {
+      return { plan: slug, interval: "monthly" };
+    }
+    if (env[cfg.annualPriceIdEnv] === priceId) {
+      return { plan: slug, interval: "annual" };
+    }
+  }
+  return null;
 }
 
 /** Look up the Supabase user ID for a given Stripe customer ID. */
@@ -86,19 +94,30 @@ function extractSubscriptionPeriodEnd(sub: unknown): number | null {
  */
 async function resolveSubscription(
   subscriptionId: string,
-): Promise<{ plan: string; credits: number; renewsAt: string } | null> {
+): Promise<{
+  plan: string;
+  interval: BillingInterval;
+  quota: number;
+  renewsAt: string;
+} | null> {
   const sub = await stripe.subscriptions.retrieve(subscriptionId, {
     expand: ["items.data.price"],
   });
-  const priceId = sub.items.data[0]?.price.id;
-  const plan = priceId ? priceIdToPlan(priceId) : null;
-  if (!plan) return null;
-  const credits = PLAN_MONTHLY_QUOTA[plan] ?? 0;
+  // Pricing v2: subscriptions carry one flat-price item. Any metered item
+  // would only show up in a future overage pivot; ignore it defensively so
+  // a stray metered line never wins.
+  const flatItem = sub.items.data.find(
+    (i) => i.price.recurring?.usage_type !== "metered",
+  );
+  const priceId = flatItem?.price.id;
+  const resolved = priceId ? resolvePriceId(priceId) : null;
+  if (!resolved) return null;
+  const quota = PLAN_MONTHLY_QUOTA[resolved.plan] ?? 0;
   const periodEnd = extractSubscriptionPeriodEnd(sub);
   const renewsAt = periodEnd
     ? new Date(periodEnd * 1000).toISOString()
-    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // fallback: +30 days
-  return { plan, credits, renewsAt };
+    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  return { plan: resolved.plan, interval: resolved.interval, quota, renewsAt };
 }
 
 /**
@@ -316,12 +335,40 @@ async function dispatchStripeEvent(event: Stripe.Event): Promise<void> {
         return;
       }
 
-      await refillQuota(userId, resolved.plan, resolved.credits, resolved.renewsAt);
+      // Annual subscribers get their first monthly slice granted on the
+      // initial invoice (billing_reason === "subscription_create"). The
+      // daily cron handles subsequent monthly slices. Annual renewal
+      // invoices (billing_reason === "subscription_cycle") MUST NOT
+      // refill — that would double-grant the year's photos in one shot.
+      const billingReason = (
+        event.data.object as { billing_reason?: string }
+      ).billing_reason;
+      const isAnnualRenewal =
+        resolved.interval === "annual" && billingReason !== "subscription_create";
+      const grant = isAnnualRenewal ? 0 : resolved.quota;
+
+      if (grant > 0) {
+        await refillQuota(userId, resolved.plan, grant, resolved.renewsAt);
+      } else {
+        // Still keep plan + renewal date in sync without resetting balance.
+        await supabaseAdmin
+          .from("profiles")
+          .update({
+            plan: resolved.plan,
+            plan_renews_at: resolved.renewsAt,
+            plan_billing_interval: resolved.interval,
+          })
+          .eq("id", userId);
+      }
 
       safeCapture({
         distinctId: userId,
         event: "subscription_renewed",
-        properties: { plan: resolved.plan, credits_granted: resolved.credits },
+        properties: {
+          plan: resolved.plan,
+          interval: resolved.interval,
+          quota_granted: grant,
+        },
       });
       return;
     }
@@ -363,15 +410,23 @@ async function dispatchStripeEvent(event: Stripe.Event): Promise<void> {
       const isActive = obj.status === "active" || obj.status === "trialing";
       const periodEnd = extractSubscriptionPeriodEnd(obj);
 
-      // Determine the plan from subscription items.
-      const priceId = obj.items?.data[0]?.price?.id;
-      const plan = priceId ? (priceIdToPlan(priceId) ?? (isActive ? "pro" : "free")) : (isActive ? "pro" : "free");
+      // Resolve plan + interval from the flat (non-metered) item.
+      const flatItem = obj.items?.data.find(
+        (i) => i.price?.recurring?.usage_type !== "metered",
+      );
+      const priceId = flatItem?.price?.id;
+      const resolved = priceId ? resolvePriceId(priceId) : null;
+      const plan = resolved?.plan ?? (isActive ? "pro" : "free");
+      const interval: BillingInterval = resolved?.interval ?? "monthly";
 
       await supabaseAdmin
         .from("profiles")
         .update({
           plan: isActive ? plan : "free",
-          plan_renews_at: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+          plan_renews_at: periodEnd
+            ? new Date(periodEnd * 1000).toISOString()
+            : null,
+          plan_billing_interval: isActive ? interval : "monthly",
         })
         .eq("stripe_customer_id", customerId);
       return;

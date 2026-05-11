@@ -80,20 +80,24 @@ vi.mock("@/lib/stripe/server", () => ({
 
 vi.mock("@/lib/env", () => ({
   env: {
-    STRIPE_STARTER_PRICE_ID: "price_starter",
-    STRIPE_PRO_PRICE_ID: "price_pro",
-    STRIPE_STUDIO_PRICE_ID: "price_studio",
-    STRIPE_AGENCY_PRICE_ID: "price_agency",
+    STRIPE_STARTER_PRICE_ID_MONTHLY: "price_starter_m",
+    STRIPE_STARTER_PRICE_ID_ANNUAL: "price_starter_y",
+    STRIPE_PRO_PRICE_ID_MONTHLY: "price_pro_m",
+    STRIPE_PRO_PRICE_ID_ANNUAL: "price_pro_y",
+    STRIPE_STUDIO_PRICE_ID_MONTHLY: "price_studio_m",
+    STRIPE_STUDIO_PRICE_ID_ANNUAL: "price_studio_y",
+    STRIPE_AGENCY_PRICE_ID_MONTHLY: "price_agency_m",
+    STRIPE_AGENCY_PRICE_ID_ANNUAL: "price_agency_y",
   },
 }));
 
 vi.mock("@/lib/ai/models", () => ({
   PLAN_MONTHLY_QUOTA: {
     free: 0,
-    starter: 50,
-    pro: 200,
-    studio: 1000,
-    agency: 5000,
+    starter: 25,
+    pro: 75,
+    studio: 250,
+    agency: 1500,
   },
 }));
 
@@ -115,7 +119,7 @@ beforeEach(() => {
     items: {
       data: [
         {
-          price: { id: "price_pro" },
+          price: { id: "price_pro_m", recurring: { usage_type: "licensed" } },
           current_period_end: 1800000000,
         },
       ],
@@ -223,7 +227,7 @@ describe("handleStripeEvent", () => {
     expect(updateProfile).toHaveBeenCalledWith(expect.objectContaining({ plan: "free" }));
   });
 
-  it("grants credits on invoice.payment_succeeded (Dahlia API: parent.subscription_details.subscription)", async () => {
+  it("grants quota on invoice.payment_succeeded (Dahlia API: parent.subscription_details.subscription)", async () => {
     await handleStripeEvent({
       id: "evt_3",
       type: "invoice.payment_succeeded",
@@ -241,12 +245,12 @@ describe("handleStripeEvent", () => {
     expect(rpcRefill).toHaveBeenCalledWith(
       "user-uuid",
       "pro",
-      200,
+      75,
       expect.any(String),
     );
   });
 
-  it("still grants credits when invoice uses legacy top-level subscription field", async () => {
+  it("still grants quota when invoice uses legacy top-level subscription field", async () => {
     await handleStripeEvent({
       id: "evt_3_legacy",
       type: "invoice.payment_succeeded",
@@ -261,7 +265,7 @@ describe("handleStripeEvent", () => {
     expect(rpcRefill).toHaveBeenCalledWith(
       "user-uuid",
       "pro",
-      200,
+      75,
       expect.any(String),
     );
   });
@@ -273,7 +277,7 @@ describe("handleStripeEvent", () => {
       items: {
         data: [
           {
-            price: { id: "price_pro" },
+            price: { id: "price_pro_m", recurring: { usage_type: "licensed" } },
             current_period_end: 1800000000,
           },
         ],
@@ -294,23 +298,22 @@ describe("handleStripeEvent", () => {
       },
     } as never);
     const isoExpected = new Date(1800000000 * 1000).toISOString();
-    expect(rpcRefill).toHaveBeenCalledWith("user-uuid", "pro", 200, isoExpected);
+    expect(rpcRefill).toHaveBeenCalledWith("user-uuid", "pro", 75, isoExpected);
   });
 
   it.each([
-    { priceId: "price_starter", plan: "starter", credits: 50 },
-    { priceId: "price_pro",     plan: "pro",     credits: 200 },
-    { priceId: "price_studio",  plan: "studio",  credits: 1000 },
-    { priceId: "price_agency",  plan: "agency",  credits: 5000 },
-  ])("maps $priceId to $plan with $credits credits", async ({ priceId, plan, credits }) => {
-    // uses Dahlia event shape
+    { priceId: "price_starter_m", plan: "starter", quota: 25 },
+    { priceId: "price_pro_m",     plan: "pro",     quota: 75 },
+    { priceId: "price_studio_m",  plan: "studio",  quota: 250 },
+    { priceId: "price_agency_m",  plan: "agency",  quota: 1500 },
+  ])("maps $priceId to $plan with $quota quota (monthly)", async ({ priceId, plan, quota }) => {
     subscriptionRetrieve.mockResolvedValueOnce({
       id: "sub_Y",
       status: "active",
       items: {
         data: [
           {
-            price: { id: priceId },
+            price: { id: priceId, recurring: { usage_type: "licensed" } },
             current_period_end: 1800000000,
           },
         ],
@@ -333,8 +336,80 @@ describe("handleStripeEvent", () => {
     expect(rpcRefill).toHaveBeenCalledWith(
       "user-uuid",
       plan,
-      credits,
+      quota,
       expect.any(String),
+    );
+  });
+
+  it("annual first invoice (subscription_create) grants the monthly slice", async () => {
+    subscriptionRetrieve.mockResolvedValueOnce({
+      id: "sub_Y",
+      status: "active",
+      items: {
+        data: [
+          {
+            price: { id: "price_pro_y", recurring: { usage_type: "licensed" } },
+            current_period_end: 1800000000,
+          },
+        ],
+      },
+    });
+    await handleStripeEvent({
+      id: "evt_annual_first",
+      type: "invoice.payment_succeeded",
+      data: {
+        object: {
+          customer: "cus_X",
+          parent: {
+            type: "subscription_details",
+            subscription_details: { subscription: "sub_Y" },
+          },
+          billing_reason: "subscription_create",
+        },
+      },
+    } as never);
+    expect(rpcRefill).toHaveBeenCalledWith(
+      "user-uuid",
+      "pro",
+      75,
+      expect.any(String),
+    );
+  });
+
+  it("annual renewal invoice (subscription_cycle) does NOT refill but syncs plan", async () => {
+    subscriptionRetrieve.mockResolvedValueOnce({
+      id: "sub_Y",
+      status: "active",
+      items: {
+        data: [
+          {
+            price: { id: "price_pro_y", recurring: { usage_type: "licensed" } },
+            current_period_end: 1900000000,
+          },
+        ],
+      },
+    });
+    await handleStripeEvent({
+      id: "evt_annual_renewal",
+      type: "invoice.payment_succeeded",
+      data: {
+        object: {
+          customer: "cus_X",
+          parent: {
+            type: "subscription_details",
+            subscription_details: { subscription: "sub_Y" },
+          },
+          billing_reason: "subscription_cycle",
+        },
+      },
+    } as never);
+    expect(rpcRefill).not.toHaveBeenCalled();
+    expect(updateProfile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        plan: "pro",
+        plan_billing_interval: "annual",
+        plan_renews_at: new Date(1900000000 * 1000).toISOString(),
+      }),
     );
   });
 
@@ -397,7 +472,7 @@ describe("handleStripeEvent", () => {
           items: {
             data: [
               {
-                price: { id: "price_pro" },
+                price: { id: "price_pro_m", recurring: { usage_type: "licensed" } },
                 current_period_end: 1800000000,
               },
             ],
