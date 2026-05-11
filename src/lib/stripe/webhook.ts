@@ -4,8 +4,8 @@ import { sql } from "drizzle-orm";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe/server";
 import { db } from "@/lib/db";
-import { refillCredits } from "@/lib/db/credits";
-import { PLAN_MONTHLY_CREDITS } from "@/lib/ai/models";
+import { refillQuota } from "@/lib/db/quota";
+import { PLAN_MONTHLY_QUOTA } from "@/lib/ai/models";
 import { env } from "@/lib/env";
 import { serverTrack } from "@/lib/analytics-server";
 import { recordEvent } from "@/lib/etsy-outreach/events";
@@ -91,7 +91,7 @@ async function resolveSubscription(
   const priceId = sub.items.data[0]?.price.id;
   const plan = priceId ? priceIdToPlan(priceId) : null;
   if (!plan) return null;
-  const credits = PLAN_MONTHLY_CREDITS[plan] ?? 0;
+  const credits = PLAN_MONTHLY_QUOTA[plan] ?? 0;
   const periodEnd = extractSubscriptionPeriodEnd(sub);
   const renewsAt = periodEnd
     ? new Date(periodEnd * 1000).toISOString()
@@ -314,7 +314,7 @@ async function dispatchStripeEvent(event: Stripe.Event): Promise<void> {
         return;
       }
 
-      await refillCredits(userId, resolved.plan, resolved.credits, resolved.renewsAt);
+      await refillQuota(userId, resolved.plan, resolved.credits, resolved.renewsAt);
 
       safeCapture({
         distinctId: userId,

@@ -43,8 +43,8 @@ vi.mock("@/lib/supabase/admin", () => ({
   },
 }));
 
-vi.mock("@/lib/db/credits", () => ({
-  refillCredits: (...a: unknown[]) => rpcRefill(...a),
+vi.mock("@/lib/db/quota", () => ({
+  refillQuota: (...a: unknown[]) => rpcRefill(...a),
 }));
 
 const markBatchPaidMock = vi.fn();
@@ -88,7 +88,7 @@ vi.mock("@/lib/env", () => ({
 }));
 
 vi.mock("@/lib/ai/models", () => ({
-  PLAN_MONTHLY_CREDITS: {
+  PLAN_MONTHLY_QUOTA: {
     free: 0,
     starter: 50,
     pro: 200,

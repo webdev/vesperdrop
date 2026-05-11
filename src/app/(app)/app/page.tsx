@@ -5,7 +5,7 @@ import { sceneify } from "@/lib/sceneify/client";
 import { RunForm } from "@/components/app/run-form";
 import { MockGenToggle } from "@/components/dev/mock-gen-toggle";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getCreditsBalance } from "@/lib/db/credits";
+import { getQuotaBalance } from "@/lib/db/quota";
 import { isAdminEmail } from "@/lib/admin";
 import { isNonProdEnv } from "@/lib/env.client";
 
@@ -31,7 +31,7 @@ export default async function Page({
 
   const [presets, credits] = await Promise.all([
     sceneify().listPublicPresets(),
-    getCreditsBalance(user.id),
+    getQuotaBalance(user.id),
   ]);
 
   const scenes: Scene[] = presets.map((p) => ({

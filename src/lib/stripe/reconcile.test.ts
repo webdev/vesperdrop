@@ -38,7 +38,7 @@ vi.mock("@/lib/env", () => ({
 }));
 
 vi.mock("@/lib/ai/models", () => ({
-  PLAN_MONTHLY_CREDITS: {
+  PLAN_MONTHLY_QUOTA: {
     free: 0,
     starter: 50,
     pro: 200,

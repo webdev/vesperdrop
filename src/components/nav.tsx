@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Container, type ContainerWidth } from "@/components/ui/container";
 import { NavLink } from "@/components/ui/nav-link";
 import { firstNameFrom } from "@/lib/user-display";
-import { getCreditsBalance } from "@/lib/db/credits";
+import { getQuotaBalance } from "@/lib/db/quota";
 import { isAdminEmail } from "@/lib/admin";
 
 type NavProps = {
@@ -17,7 +17,7 @@ export async function Nav({ width = "app" }: NavProps = {}) {
   } = await supabase.auth.getUser();
   const isSignedIn = !!user;
   const firstName = user ? firstNameFrom(user) : null;
-  const credits = user ? await getCreditsBalance(user.id) : null;
+  const credits = user ? await getQuotaBalance(user.id) : null;
   const email = user?.email ?? "";
   const isAdmin = isAdminEmail(email);
 

@@ -29,7 +29,7 @@ export const QUALITY_CREDIT_COST: Record<"preview" | "hd", number> = {
 };
 
 /** Monthly credit allocation per subscription plan (refilled by Stripe webhook) */
-export const PLAN_MONTHLY_CREDITS: Record<string, number> = {
+export const PLAN_MONTHLY_QUOTA: Record<string, number> = {
   free: 0,       // no monthly refill; signs up with 1 credit
   starter: 50,
   pro: 200,

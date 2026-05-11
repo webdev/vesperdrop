@@ -5,7 +5,7 @@ import { PLAN_CATALOG, type PlanSlug } from "@/lib/plans";
 
 interface Props {
   plan: PlanSlug;
-  creditsRemaining: number;
+  quotaUnitsRemaining: number;
   stripeCustomerId: string | null;
   fallbackRenewsAt: string | null;
 }
@@ -38,7 +38,7 @@ async function fetchLiveSubState(customerId: string | null): Promise<LiveSubStat
 
 export async function PlanSummaryCard({
   plan,
-  creditsRemaining,
+  quotaUnitsRemaining,
   stripeCustomerId,
   fallbackRenewsAt,
 }: Props) {
@@ -82,10 +82,10 @@ export async function PlanSummaryCard({
               Credits
             </p>
             <p className="mt-3 font-serif text-[clamp(2.25rem,3.5vw,3rem)] leading-none tracking-[-0.02em] tabular-nums text-ink">
-              {creditsRemaining.toLocaleString()}
+              {quotaUnitsRemaining.toLocaleString()}
             </p>
             <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-4">
-              {creditsRemaining === 1 ? "credit remaining" : "credits remaining"}
+              {quotaUnitsRemaining === 1 ? "credit remaining" : "credits remaining"}
             </p>
           </div>
         </div>

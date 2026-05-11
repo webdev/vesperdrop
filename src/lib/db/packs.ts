@@ -19,7 +19,7 @@ export interface CreatePackInput {
   platform: SceneifyPackPlatform;
   sceneifyPackId: string;
   shots: PendingShotInsert[];
-  creditsSpent: number;
+  quotaUnitsSpent: number;
 }
 
 export async function createPackWithShots(input: CreatePackInput) {
@@ -33,7 +33,7 @@ export async function createPackWithShots(input: CreatePackInput) {
         platform: input.platform,
         sceneifyPackId: input.sceneifyPackId,
         shotCount: input.shots.length,
-        creditsSpent: input.creditsSpent,
+        quotaUnitsSpent: input.quotaUnitsSpent,
         status: "pending",
       })
       .returning();

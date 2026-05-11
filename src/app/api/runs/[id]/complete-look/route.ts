@@ -5,7 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { db } from "@/lib/db";
 import { generations } from "@/lib/db/schema";
-import { tryDeductCredits, addCredits } from "@/lib/db/credits";
+import { tryConsumeQuota, addQuota } from "@/lib/db/quota";
 import {
   createPackWithShots,
   findExistingPack,
@@ -109,7 +109,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const cost = packCreditCost(platform);
   if (!isAdmin) {
-    const ok = await tryDeductCredits(user.id, cost);
+    const ok = await tryConsumeQuota(user.id, cost);
     if (!ok) {
       return NextResponse.json(
         {
@@ -132,7 +132,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   } catch (err) {
     // Refund the credits we just debited — Sceneify never accepted the work.
     // Admins skipped the deduction, so nothing to refund.
-    if (!isAdmin) await addCredits(user.id, cost);
+    if (!isAdmin) await addQuota(user.id, cost);
     const message = err instanceof Error ? err.message : String(err);
     console.error("complete-look POST: sceneify call failed", message);
     return NextResponse.json(
@@ -154,7 +154,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       role: s.role,
       shotIndex: s.shotIndex,
     })),
-    creditsSpent: cost,
+    quotaUnitsSpent: cost,
   });
 
   return NextResponse.json({

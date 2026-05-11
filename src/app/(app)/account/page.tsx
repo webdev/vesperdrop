@@ -22,7 +22,7 @@ export default async function Page({
 
   const { data: profile } = await supabaseAdmin
     .from("profiles")
-    .select("plan, stripe_customer_id, plan_renews_at, credits_balance")
+    .select("plan, stripe_customer_id, plan_renews_at, quota_units_balance")
     .eq("id", user.id)
     .single();
 
@@ -57,7 +57,7 @@ export default async function Page({
         </div>
         <PlanSummaryCard
           plan={plan}
-          creditsRemaining={profile?.credits_balance ?? 0}
+          quotaUnitsRemaining={profile?.quota_units_balance ?? 0}
           stripeCustomerId={profile?.stripe_customer_id ?? null}
           fallbackRenewsAt={profile?.plan_renews_at ?? null}
         />

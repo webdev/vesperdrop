@@ -3,7 +3,7 @@ import type Stripe from "stripe";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe/server";
 import { env } from "@/lib/env";
-import { PLAN_MONTHLY_CREDITS } from "@/lib/ai/models";
+import { PLAN_MONTHLY_QUOTA } from "@/lib/ai/models";
 
 export type ReconcileResult = {
   scanned: number;
@@ -43,7 +43,7 @@ function pickPrimary(
   for (const sub of subs) {
     const priceId = sub.items.data[0]?.price?.id;
     const plan = priceId ? priceIdToPlan(priceId) : null;
-    const credits = plan ? (PLAN_MONTHLY_CREDITS[plan] ?? 0) : 0;
+    const credits = plan ? (PLAN_MONTHLY_QUOTA[plan] ?? 0) : 0;
     if (
       !best ||
       credits > best.credits ||

@@ -35,23 +35,23 @@ export async function incrementUsage(
   );
 }
 
-export async function tryDeductCredits(
+export async function tryConsumeQuota(
   userId: string,
   amount: number,
 ): Promise<boolean> {
   const result = await db.execute<{ ok: boolean }>(
-    sql`select public.try_deduct_credits(${userId}::uuid, ${amount}) as ok`,
+    sql`select public.try_consume_quota(${userId}::uuid, ${amount}) as ok`,
   );
   return Boolean(result[0]?.ok);
 }
 
-export async function refillCredits(
+export async function refillQuota(
   userId: string,
   plan: string,
-  credits: number,
+  quotaUnits: number,
   renewsAt: string | null,
 ): Promise<void> {
   await db.execute(
-    sql`select public.refill_credits(${userId}::uuid, ${plan}, ${credits}, ${renewsAt}::timestamptz)`,
+    sql`select public.refill_quota(${userId}::uuid, ${plan}, ${quotaUnits}, ${renewsAt}::timestamptz)`,
   );
 }

@@ -10,7 +10,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createRun } from "@/lib/db/runs";
 import { insertPendingGenerations } from "@/lib/db/generations";
 import { tryTakeToken } from "@/lib/db/rate-limit";
-import { tryDeductCredits } from "@/lib/db/credits";
+import { tryConsumeQuota } from "@/lib/db/quota";
 import { processRun } from "@/lib/workflows/process-run";
 import { env } from "@/lib/env";
 import { serverTrack } from "@/lib/analytics-server";
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
 
   const { data: profile } = await supabaseAdmin
     .from("profiles")
-    .select("plan, credits_balance")
+    .select("plan, quota_units_balance")
     .eq("id", user.id)
     .single();
 
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
 
   // Free plan with 0 credits can't generate (except they get 1 free credit on signup)
   if (isFreePlan && !mockMode && !isAdmin) {
-    const creditsAvailable = profile?.credits_balance ?? 0;
+    const creditsAvailable = profile?.quota_units_balance ?? 0;
     if (creditsAvailable < total) {
       serverTrack({
         distinctId: user.id,
@@ -96,7 +96,7 @@ export async function POST(req: Request) {
 
   // Deduct credits (only for free plan; paid plans are unlimited by credits; admins bypass)
   if (isFreePlan && !mockMode && !isAdmin) {
-    const ok = await tryDeductCredits(user.id, total);
+    const ok = await tryConsumeQuota(user.id, total);
     if (!ok) {
       serverTrack({
         distinctId: user.id,

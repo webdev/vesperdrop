@@ -154,7 +154,7 @@ async function markWatermarked(row: { id: string }): Promise<void> {
   await updateGeneration(row.id, { watermarked: true });
 }
 
-async function refundFailedCredits(userId: string, runId: string): Promise<void> {
+async function refundFailedQuota(userId: string, runId: string): Promise<void> {
   "use step";
   const { data, error: selectErr } = await supabaseAdmin
     .from("generations")
@@ -165,10 +165,10 @@ async function refundFailedCredits(userId: string, runId: string): Promise<void>
   const count = data?.length ?? 0;
   if (count > 0) {
     // Refill by adding back failed credits (use the rpc but pass minimal params)
-    const { error } = await supabaseAdmin.rpc("refill_credits", {
+    const { error } = await supabaseAdmin.rpc("refill_quota", {
       p_user_id: userId,
       p_plan: "free", // dummy value, not used in the refund context
-      p_credits: count,
+      p_quota: count,
       p_renews_at: null,
     });
     if (error) {
@@ -201,5 +201,5 @@ export async function processRun(
     await Promise.all(succeeded.map((row) => markWatermarked(row)));
   }
 
-  await refundFailedCredits(userId, runId);
+  await refundFailedQuota(userId, runId);
 }

@@ -24,7 +24,7 @@ export const profiles = pgTable("profiles", {
     .notNull()
     .default("free"),
   planRenewsAt: timestamp("plan_renews_at", { withTimezone: true }),
-  creditsBalance: integer("credits_balance").notNull().default(1),
+  quotaUnitsBalance: integer("quota_units_balance").notNull().default(1),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .default(sql`now()`),
@@ -165,7 +165,7 @@ export const completeLookPacks = pgTable(
     }).notNull(),
     sceneifyPackId: text("sceneify_pack_id").notNull(),
     shotCount: integer("shot_count").notNull(),
-    creditsSpent: integer("credits_spent").notNull(),
+    quotaUnitsSpent: integer("quota_units_spent").notNull(),
     status: text("status", {
       enum: ["pending", "running", "succeeded", "partial", "failed"],
     })
