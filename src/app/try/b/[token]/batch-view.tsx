@@ -74,24 +74,35 @@ export function BatchView({
       track("try_tile_download_clicked", { slug });
       const gen = generations.find((g) => g.sceneSlug === slug);
       if (!gen) return;
+
+      // Hero post-claim: real download of the raw HD URL.
       if (claimed && gen.isFreePreview) {
-        // Hero post-claim: HD raw. Falls back to the watermarked
-        // outputUrl if rawUrl wasn't captured (older batches).
         void triggerDownload(
           gen.rawUrl ?? gen.outputUrl,
           `${gen.sceneName.toLowerCase().replace(/\s+/g, "-")}.png`,
         );
         return;
       }
-      // Pre-claim hero, or any soft-locked tile: scroll the claim
-      // form into view so the user knows what to do next.
+
+      // Locked tile (not the free preview): kick off the $9.99 Stripe
+      // checkout — that's how the user pays for this image. Whether or
+      // not they've claimed the batch, payment is the gating step.
+      if (!gen.isFreePreview) {
+        if (unlockSubmitting) return;
+        setUnlockSubmitting(true);
+        window.location.href = `/api/stripe/unlock-checkout?batchToken=${token}`;
+        return;
+      }
+
+      // Hero pre-claim: scroll the OTP form into view so the user
+      // knows what to do next.
       const el = document.querySelector(
         '[data-testid="otp-email-input"]',
       ) as HTMLElement | null;
       el?.scrollIntoView({ behavior: "smooth", block: "center" });
       el?.focus();
     },
-    [claimed, generations, triggerDownload],
+    [claimed, generations, triggerDownload, token, unlockSubmitting],
   );
 
   const handleUnlock = useCallback(() => {
@@ -161,10 +172,18 @@ export function BatchView({
         gen={lightboxGen || null}
         claimed={claimed}
         onClose={() => setLightboxSlug(null)}
-        onDownload={() =>
-          lightboxGen && handleDownload(lightboxGen.sceneSlug)
-        }
-        onUnlock={handleUnlock}
+        onDownload={() => {
+          if (!lightboxGen) return;
+          // Close the lightbox so the OTP-scroll behavior (pre-claim
+          // path) is visible behind it. Post-claim this is harmless;
+          // the actual download fires asynchronously via blob fetch.
+          setLightboxSlug(null);
+          handleDownload(lightboxGen.sceneSlug);
+        }}
+        onUnlock={() => {
+          setLightboxSlug(null);
+          handleUnlock();
+        }}
       />
     </>
   );
@@ -211,7 +230,11 @@ function Lightbox({
   const shouldShowRaw = claimed && gen.isFreePreview && gen.rawUrl;
   const imageUrl = shouldShowRaw ? (gen.rawUrl as string) : gen.outputUrl;
   const showUnlockCta = !gen.isFreePreview; // locked tiles in the set
-  const showDownloadCta = claimed && gen.isFreePreview;
+  // Hero post-claim: real download. Hero pre-claim: same handler,
+  // which scrolls the OTP form into view. Either way the lightbox
+  // closes so the user sees the action surface.
+  const showDownloadCta = gen.isFreePreview;
+  const downloadLabel = claimed ? "Download HD" : "Claim to download HD";
 
   return (
     <AnimatePresence>

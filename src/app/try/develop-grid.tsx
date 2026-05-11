@@ -440,11 +440,13 @@ function Tile({
 
       {editorial && isDone ? (
         <>
-          {/* Visible Download CTA in the top-right. Suppressed when
-              onPreviewClick is wired (BatchView on /try/b/[token]) so
-              the tile reads as a pure click-to-enlarge target there;
-              downloads happen from inside the lightbox instead. */}
-          {onDownloadClick && !onPreviewClick ? (
+          {/* Visible Download CTA in the top-right of each tile. Image
+              body click opens the lightbox (when onPreviewClick is
+              set); this pill is the explicit "I want this image"
+              action — it fires the payment / claim workflow via
+              onDownloadClick. stopPropagation keeps it isolated from
+              the lightbox click. */}
+          {onDownloadClick ? (
             <motion.button
               type="button"
               key="download-cta"
@@ -571,7 +573,7 @@ function Tile({
               )
             ) : null}
 
-            {tile.isFreePreview && freePreviewUnlocked && onDownloadClick && !onPreviewClick ? (
+            {tile.isFreePreview && freePreviewUnlocked && onDownloadClick ? (
               <motion.button
                 type="button"
                 key="hd-badge"
