@@ -3,6 +3,10 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { updateGeneration } from "@/lib/db/generations";
 import { generateViaSceneify } from "@/lib/ai/sceneify";
 import { env } from "@/lib/env";
+import { reportOverage } from "@/lib/billing/overage";
+import { recordOverage } from "@/lib/db/overage-ledger";
+import { markRunFailed } from "@/lib/billing/quota";
+import { PLAN_QUOTA, type PlanSlug } from "@/lib/plans";
 
 type SourceUpload = {
   blobUrl: string;
@@ -39,9 +43,60 @@ async function mapUploadToUrl(
   return upload.blobUrl;
 }
 
+async function reportOverageForGeneration(
+  generationId: string,
+  runId: string,
+  userId: string,
+): Promise<void> {
+  "use step";
+  const { data: gen } = await supabaseAdmin
+    .from("generations")
+    .select("was_overage")
+    .eq("id", generationId)
+    .single();
+  if (!gen?.was_overage) return;
+
+  const { data: profileRow } = await supabaseAdmin
+    .from("profiles")
+    .select("plan, stripe_customer_id, plan_renews_at")
+    .eq("id", userId)
+    .single();
+  const stripeCustomerId = profileRow?.stripe_customer_id;
+  if (!stripeCustomerId || !profileRow) return;
+
+  const cents =
+    PLAN_QUOTA[profileRow.plan as PlanSlug]?.overageCentsPerPhoto ?? 0;
+  if (cents <= 0) return;
+
+  const invoiceItemId = await reportOverage({
+    customerId: stripeCustomerId,
+    generationId,
+    cents,
+    description: "Overage photo",
+  });
+  const cycleAnchor = profileRow.plan_renews_at
+    ? new Date(profileRow.plan_renews_at)
+    : new Date();
+  await recordOverage({
+    userId,
+    runId,
+    generationId,
+    cents,
+    stripeInvoiceItemId: invoiceItemId,
+    cycleAnchor,
+  });
+}
+
+async function markRunFailedStep(userId: string): Promise<void> {
+  "use step";
+  await markRunFailed(userId);
+}
+
 async function generateOne(
   row: { id: string; sceneify_source_id: string; preset_id: string },
   sourceUploads: SourceUpload[],
+  runId: string,
+  userId: string,
 ): Promise<void> {
   "use step";
   await updateGeneration(row.id, { status: "running" });
@@ -71,12 +126,15 @@ async function generateOne(
       focalPoint: result.focalPoint ?? null,
       faceBox: result.faceBox ?? null,
     });
+
+    await reportOverageForGeneration(row.id, runId, userId);
   } catch (e) {
     await updateGeneration(row.id, {
       status: "failed",
       error: e instanceof Error ? e.message : String(e),
       completedAt: new Date().toISOString(),
     });
+    await markRunFailedStep(userId);
   }
 }
 
@@ -194,7 +252,9 @@ export async function processRun(
     return;
   }
 
-  await Promise.all(pending.map((row) => generateOne(row, sourceUploads)));
+  await Promise.all(
+    pending.map((row) => generateOne(row, sourceUploads, runId, userId)),
+  );
 
   if (await shouldWatermarkForUser(userId)) {
     const succeeded = await listSucceededUnwatermarked(runId);

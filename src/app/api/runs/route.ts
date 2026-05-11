@@ -10,7 +10,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createRun } from "@/lib/db/runs";
 import { insertPendingGenerations } from "@/lib/db/generations";
 import { tryTakeToken } from "@/lib/db/rate-limit";
-import { tryConsumeQuota } from "@/lib/db/quota";
+import { consumeQuota } from "@/lib/billing/quota";
 import { processRun } from "@/lib/workflows/process-run";
 import { env } from "@/lib/env";
 import { serverTrack } from "@/lib/analytics-server";
@@ -63,12 +63,11 @@ export async function POST(req: Request) {
 
   const { data: profile } = await supabaseAdmin
     .from("profiles")
-    .select("plan, quota_units_balance")
+    .select("plan")
     .eq("id", user.id)
     .single();
 
   const plan = profile?.plan ?? "free";
-  const isFreePlan = plan === "free";
 
   // Mock-gen branch: admin-only, cookie-gated, env-gated. Skips Sceneify entirely
   // and skips credit deduction so the toggle doesn't drain the user's balance
@@ -78,35 +77,28 @@ export async function POST(req: Request) {
   const wantsMock = mockEnabled && cookieStore.get("vd_mock_gen")?.value === "1";
   const mockMode = wantsMock && isAdminEmail(user.email ?? null);
 
-  // Free plan with 0 credits can't generate (except they get 1 free credit on signup)
-  if (isFreePlan && !mockMode && !isAdmin) {
-    const creditsAvailable = profile?.quota_units_balance ?? 0;
-    if (creditsAvailable < total) {
-      serverTrack({
-        distinctId: user.id,
-        event: "run_credits_insufficient",
-        properties: { plan, credits_available: creditsAvailable, credits_needed: total },
-      });
-      return NextResponse.json(
-        { error: "Insufficient credits. Upgrade to Pro or purchase credit packs." },
-        { status: 402 },
-      );
-    }
-  }
+  // withinCap flags, indexed by generation order (source-major, preset-minor).
+  // Each entry: true = within plan quota, false = paid overage (free is rejected).
+  const withinCapFlags: boolean[] = new Array(total).fill(true);
 
-  // Deduct credits (only for free plan; paid plans are unlimited by credits; admins bypass)
-  if (isFreePlan && !mockMode && !isAdmin) {
-    const ok = await tryConsumeQuota(user.id, total);
-    if (!ok) {
-      serverTrack({
-        distinctId: user.id,
-        event: "run_credits_insufficient",
-        properties: { plan, credits_available: 0, credits_needed: total },
-      });
-      return NextResponse.json(
-        { error: "Insufficient credits. Upgrade to Pro or purchase credit packs." },
-        { status: 402 },
-      );
+  if (!mockMode && !isAdmin) {
+    for (let i = 0; i < total; i += 1) {
+      const result = await consumeQuota(user.id, "");
+      if (!result.ok) {
+        serverTrack({
+          distinctId: user.id,
+          event: "run_quota_exhausted",
+          properties: { plan, reason: result.reason },
+        });
+        return NextResponse.json(
+          {
+            error:
+              "You're out of photos for this cycle. Upgrade to keep generating.",
+          },
+          { status: 402 },
+        );
+      }
+      withinCapFlags[i] = result.withinCap;
     }
   }
 
@@ -136,13 +128,27 @@ export async function POST(req: Request) {
     presetCount: presetIds.length,
   });
 
-  const rows: Array<{ runId: string; userId: string; sceneifySourceId: string; presetId: string }> = [];
+  const rows: Array<{
+    runId: string;
+    userId: string;
+    sceneifySourceId: string;
+    presetId: string;
+    wasOverage: boolean;
+  }> = [];
+  let flagIdx = 0;
   for (const upload of sourceUploads) {
     for (const presetId of presetIds) {
       // Persist the blob URL itself so the sidebar source thumb and
        // /api/images/{id}?type=source can resolve without needing the
        // ephemeral sourceUploads array (which only exists during the workflow).
-       rows.push({ runId, userId: user.id, sceneifySourceId: upload.blobUrl, presetId });
+       rows.push({
+         runId,
+         userId: user.id,
+         sceneifySourceId: upload.blobUrl,
+         presetId,
+         wasOverage: !withinCapFlags[flagIdx],
+       });
+       flagIdx += 1;
     }
   }
   await insertPendingGenerations(rows);

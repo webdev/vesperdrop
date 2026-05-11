@@ -8,6 +8,7 @@ interface Props {
   quotaUnitsRemaining: number;
   stripeCustomerId: string | null;
   fallbackRenewsAt: string | null;
+  accruedOverageCents?: number;
 }
 
 interface LiveSubState {
@@ -41,6 +42,7 @@ export async function PlanSummaryCard({
   quotaUnitsRemaining,
   stripeCustomerId,
   fallbackRenewsAt,
+  accruedOverageCents = 0,
 }: Props) {
   const record = PLAN_CATALOG[plan];
   const live = await fetchLiveSubState(stripeCustomerId);
@@ -87,6 +89,16 @@ export async function PlanSummaryCard({
             <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-4">
               {quotaUnitsRemaining === 1 ? "credit remaining" : "credits remaining"}
             </p>
+            {accruedOverageCents > 0 && (
+              <div className="mt-3 flex items-baseline justify-between gap-4">
+                <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+                  Accrued overage this cycle
+                </span>
+                <span className="font-mono text-[12px] tabular-nums text-ink">
+                  ${(accruedOverageCents / 100).toFixed(2)}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

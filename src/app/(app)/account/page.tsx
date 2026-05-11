@@ -6,6 +6,7 @@ import { PlanSummaryCard } from "@/components/app/plan-summary-card";
 import { PlanGrid } from "@/components/app/plan-grid";
 import { PageShell } from "@/components/ui/page-shell";
 import { PAID_PLAN_SLUGS, PLAN_CATALOG, type PlanSlug } from "@/lib/plans";
+import { getAccruedOverageCents } from "@/lib/db/overage-ledger";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,11 @@ export default async function Page({
   const { upgraded } = await searchParams;
   const plan: PlanSlug = (profile?.plan as PlanSlug | undefined) ?? "free";
   const tiers = PAID_PLAN_SLUGS.map((slug) => PLAN_CATALOG[slug]);
+
+  const cycleAnchor = profile?.plan_renews_at
+    ? new Date(profile.plan_renews_at)
+    : new Date(0);
+  const accruedOverageCents = await getAccruedOverageCents(user.id, cycleAnchor);
 
   return (
     <PageShell rhythm="loose">
@@ -60,6 +66,7 @@ export default async function Page({
           quotaUnitsRemaining={profile?.quota_units_balance ?? 0}
           stripeCustomerId={profile?.stripe_customer_id ?? null}
           fallbackRenewsAt={profile?.plan_renews_at ?? null}
+          accruedOverageCents={accruedOverageCents}
         />
       </section>
 
