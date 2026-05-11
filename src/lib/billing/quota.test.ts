@@ -22,7 +22,9 @@ describe("consumeQuota", () => {
     const mod = await import("@/lib/db/quota");
     (mod.tryConsumeQuota as ReturnType<typeof vi.fn>).mockResolvedValue(true);
     const { supabaseAdmin } = await import("@/lib/supabase/admin");
-    (supabaseAdmin.single as ReturnType<typeof vi.fn>).mockResolvedValue({
+    (
+      (supabaseAdmin as unknown as { single: ReturnType<typeof vi.fn> }).single
+    ).mockResolvedValue({
       data: { plan: "pro", last_failed_run_at: null },
       error: null,
     });
@@ -34,7 +36,9 @@ describe("consumeQuota", () => {
     const mod = await import("@/lib/db/quota");
     (mod.tryConsumeQuota as ReturnType<typeof vi.fn>).mockResolvedValue(false);
     const { supabaseAdmin } = await import("@/lib/supabase/admin");
-    (supabaseAdmin.single as ReturnType<typeof vi.fn>).mockResolvedValue({
+    (
+      (supabaseAdmin as unknown as { single: ReturnType<typeof vi.fn> }).single
+    ).mockResolvedValue({
       data: { plan: "pro", last_failed_run_at: null },
       error: null,
     });
@@ -46,7 +50,9 @@ describe("consumeQuota", () => {
     const mod = await import("@/lib/db/quota");
     (mod.tryConsumeQuota as ReturnType<typeof vi.fn>).mockResolvedValue(false);
     const { supabaseAdmin } = await import("@/lib/supabase/admin");
-    (supabaseAdmin.single as ReturnType<typeof vi.fn>).mockResolvedValue({
+    (
+      (supabaseAdmin as unknown as { single: ReturnType<typeof vi.fn> }).single
+    ).mockResolvedValue({
       data: { plan: "free", last_failed_run_at: null },
       error: null,
     });
@@ -58,7 +64,9 @@ describe("consumeQuota", () => {
     const mod = await import("@/lib/db/quota");
     const { supabaseAdmin } = await import("@/lib/supabase/admin");
     const recent = new Date(Date.now() - 60_000).toISOString();
-    (supabaseAdmin.single as ReturnType<typeof vi.fn>).mockResolvedValue({
+    (
+      (supabaseAdmin as unknown as { single: ReturnType<typeof vi.fn> }).single
+    ).mockResolvedValue({
       data: { plan: "pro", last_failed_run_at: recent },
       error: null,
     });
