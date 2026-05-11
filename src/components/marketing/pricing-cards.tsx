@@ -61,10 +61,9 @@ function Notes() {
 
 function Footer() {
   return (
-    <div className="flex flex-col items-center justify-between gap-4 rounded-xl border border-dashed border-line px-6 py-5 sm:flex-row">
-      <p className="text-[14px] font-medium text-ink">Billing by Stripe</p>
-      <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-        Secure, cancel any time, no hidden fees
+    <div className="rounded-xl border border-dashed border-line px-6 py-5 text-center">
+      <p className="text-[13px] text-ink-3">
+        Billing by Stripe. Secure, cancel any time, no hidden fees.
       </p>
     </div>
   );

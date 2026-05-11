@@ -99,7 +99,7 @@ export function HeroPair({
           {pro.ctaLabel} <span aria-hidden>→</span>
         </a>
         <p className="mt-3 text-center font-mono text-[10px] uppercase tracking-[0.12em] text-cream/55">
-          {proPerPhoto}, {pro.overageDisplay}
+          {pro.perPhotoMonthlyDisplay}, {pro.overageDisplay}
         </p>
       </div>
     </div>
