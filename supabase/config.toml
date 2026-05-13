@@ -267,6 +267,10 @@ otp_expiry = 3600
 subject = "Confirm your Vesperdrop account"
 content_path = "./supabase/templates/confirmation.html"
 
+[auth.email.template.magic_link]
+subject = "Your Vesperdrop sign-in code"
+content_path = "./supabase/templates/magic_link.html"
+
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]
 # enabled = true
