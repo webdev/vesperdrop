@@ -516,47 +516,10 @@ function Tile({
 
       {editorial && isDone ? (
         <>
-          {/* Visible Download CTA in the top-right of each tile. Image
-              body click opens the lightbox (when onPreviewClick is
-              set); this pill is the explicit "I want this image"
-              action — it fires the payment / claim workflow via
-              onDownloadClick. stopPropagation keeps it isolated from
-              the lightbox click. Hidden in paidAll mode where the
-              bottom-left "Download HD" pill is the unified action. */}
-          {onDownloadClick && !paidAll ? (
-            <motion.button
-              type="button"
-              key="download-cta"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDownloadClick(tile.sceneSlug);
-              }}
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, ease: [0.2, 0.8, 0.2, 1] }}
-              className="absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-ink/85 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-cream backdrop-blur-sm transition-colors hover:bg-ink"
-              style={{ zIndex: 42 }}
-              aria-label={`Download ${tile.sceneName}`}
-              data-testid="tile-download-cta"
-            >
-              <svg
-                width="11"
-                height="11"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden
-              >
-                <path d="M12 3v12" />
-                <path d="M6 9l6 6 6-6" />
-                <path d="M5 21h14" />
-              </svg>
-              Download
-            </motion.button>
-          ) : null}
+          {/* Top-right Download pill removed — the bottom-left
+              "Download HD" / "Hero shot" / "Preview" badges are the
+              single per-tile action surface so there's only one CTA
+              per image. */}
 
           {/* Diagonal repeating VESPERDROP watermark + Preview label.
               When the free preview unlocks, both fade out and a small
