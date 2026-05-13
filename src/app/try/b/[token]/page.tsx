@@ -1,15 +1,22 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { eq } from "drizzle-orm";
 import { Nav } from "@/components/nav";
 import { Container } from "@/components/ui/container";
 import { stripe } from "@/lib/stripe/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { db } from "@/lib/db";
+import { generations as generationsTable } from "@/lib/db/schema";
 import {
   attachBatchToUser,
   getUnlockBatchByToken,
   markBatchPaid,
 } from "@/lib/db/unlock-batches";
 import { BatchView } from "./batch-view";
+
+// 32-hex token format. Anything else is clearly a malformed link and
+// can short-circuit to 404 before hitting the DB.
+const TOKEN_REGEX = /^[0-9a-f]{32}$/i;
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -43,8 +50,22 @@ export default async function Page({
   const { token } = await params;
   const { session_id } = await searchParams;
 
+  // Malformed tokens go straight to 404.
+  if (!TOKEN_REGEX.test(token)) notFound();
+
   const batch = await getUnlockBatchByToken(token);
-  if (!batch) notFound();
+  if (!batch) {
+    // Two reasons a batch can be missing for a well-formed token:
+    //   1. The user refreshed mid-generation, before finalize-batch
+    //      persisted the row. TryFlow mints the URL token client-side
+    //      as soon as DevelopStep mounts, so the URL exists before the
+    //      DB row does.
+    //   2. The token is genuinely unknown (typo, expired, etc.).
+    // Either way we bounce back to /try so the user starts a fresh
+    // batch rather than seeing a 404 dead-end. They lose any in-flight
+    // generation, which is the cost of the refresh.
+    redirect("/try");
+  }
 
   let isPaid = batch.status === "paid";
 
@@ -96,15 +117,34 @@ export default async function Page({
   const initialClaimed =
     batch.userId !== null && batch.userId === (user?.id ?? null);
 
+  // The product photo URL is stored on each generation row's
+  // sceneify_source_id column (finalize-batch writes the visitor's
+  // uploaded URL there). Pull it from the batch's run so the studio
+  // frame's left rail can render the product thumbnail. Falls back to
+  // undefined for legacy batches without a runId — the rail gracefully
+  // degrades to a "No product" placeholder.
+  let sourceUrl: string | undefined;
+  if (batch.runId) {
+    const [row] = await db
+      .select({ sceneifySourceId: generationsTable.sceneifySourceId })
+      .from(generationsTable)
+      .where(eq(generationsTable.runId, batch.runId))
+      .limit(1);
+    if (row?.sceneifySourceId && /^https?:/.test(row.sceneifySourceId)) {
+      sourceUrl = row.sceneifySourceId;
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-paper text-ink">
       <Nav width="app" />
-      <Container as="main" width="app" className="flex-1 py-10 md:py-16">
+      <Container as="main" width="app" className="flex-1 pt-6 pb-8 md:pt-10 md:pb-12">
         <BatchView
           token={token}
           generations={batch.generations}
           initialClaimed={initialClaimed}
           initialPaid={isPaid}
+          sourceUrl={sourceUrl}
         />
       </Container>
     </div>

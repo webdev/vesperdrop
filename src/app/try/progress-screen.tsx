@@ -6,6 +6,14 @@ import { track } from "@/lib/analytics";
 import type { PresetMeta } from "@/lib/progress/strings";
 import type { FocalPoint, FaceBox } from "@/lib/ai/sceneify";
 import { DevelopGrid, type DevelopGridVariant, type TileResult } from "./develop-grid";
+import { StudioDevelopFrame } from "./studio-frame";
+
+type StudioRenderArgs = {
+  /** Optional override for the rail product image (falls back to userPhotoUrl). */
+  sourceUrl?: string;
+  sourceName?: string;
+  sceneNames: string[];
+};
 
 type Props = {
   file: File;
@@ -31,6 +39,13 @@ type Props = {
   onUnlockClick?: () => void;
   editorial?: boolean;
   freePreviewUnlocked?: boolean;
+  /**
+   * When set, renders the "In the studio." StudioDevelopFrame instead of
+   * the legacy DevelopGrid. The streaming hook still runs unchanged — only
+   * the presentation swaps. Used by the develop step's pending state to
+   * deliver the editorial multi-image layout.
+   */
+  studio?: StudioRenderArgs;
 };
 
 export function ProgressScreen({
@@ -47,6 +62,7 @@ export function ProgressScreen({
   onUnlockClick,
   editorial = false,
   freePreviewUnlocked = false,
+  studio,
 }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const stableSlugs = useMemo(() => sceneSlugs, []); // contract: stable for lifetime
@@ -162,17 +178,31 @@ export function ProgressScreen({
     };
   });
 
+  const allDone =
+    liveResults.length > 0 &&
+    liveResults.every((r) => r.status === "succeeded");
+
   return (
     <>
-      <DevelopGrid
-        results={liveResults}
-        variant={variant}
-        sourceUrl={userPhotoUrl}
-        onDownloadClick={onDownloadClick}
-        onUnlockClick={onUnlockClick}
-        editorial={editorial}
-        freePreviewUnlocked={freePreviewUnlocked}
-      />
+      {studio ? (
+        <StudioDevelopFrame
+          results={liveResults}
+          sourceUrl={studio.sourceUrl ?? userPhotoUrl}
+          sourceName={studio.sourceName}
+          sceneNames={studio.sceneNames}
+          allDone={allDone}
+        />
+      ) : (
+        <DevelopGrid
+          results={liveResults}
+          variant={variant}
+          sourceUrl={userPhotoUrl}
+          onDownloadClick={onDownloadClick}
+          onUnlockClick={onUnlockClick}
+          editorial={editorial}
+          freePreviewUnlocked={freePreviewUnlocked}
+        />
+      )}
       {stableSlugs.map((slug) => (
         <StreamTelemetry
           key={`tel-${slug}`}

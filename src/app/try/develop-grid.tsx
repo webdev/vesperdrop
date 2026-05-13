@@ -36,6 +36,38 @@ import { pickLine, type PhaseId, type PresetMeta } from "@/lib/progress/strings"
 import type { ExtractedAttributes } from "@/lib/ai/extract-attributes";
 import type { FocalPoint, FaceBox } from "@/lib/ai/sceneify";
 
+// Map server error codes from /api/try/generate to user-facing copy.
+// The unauth funnel grants 3 free renders per device: 1 with a free HD
+// download (the "Hero shot") + 2 watermarked previews unlockable for
+// $9.99. `credit_limit_reached` (HTTP 402) fires when all 3 of those
+// renders are spent. `quota_exhausted` (HTTP 402) fires for authed
+// visitors who've burned through their plan's credits. Anything else
+// is a transient generation failure — surface the underlying message
+// verbatim so the user (and us) can tell signal from noise.
+function failureHeadline(code?: string): string {
+  switch (code) {
+    case "credit_limit_reached":
+      return "Out of free renders";
+    case "quota_exhausted":
+      return "Out of credits";
+    default:
+      return "Generation failed";
+  }
+}
+
+function failureBody(code: string | undefined, message?: string): string {
+  switch (code) {
+    case "credit_limit_reached":
+      return "You've used your 3 free renders on this device. Sign up to keep generating.";
+    case "quota_exhausted":
+      return "You've used every credit on your plan. Upgrade to keep generating.";
+    default:
+      return message
+        ? `${message}. Try a different scene or refresh to retry.`
+        : "We couldn't develop this shot. Try a different scene or refresh to retry.";
+  }
+}
+
 export type TileResult = {
   sceneSlug: string;
   sceneName: string;
@@ -318,7 +350,7 @@ function Tile({
     <div
       className={
         editorial
-          ? "relative h-[clamp(360px,62vh,720px)] w-full overflow-hidden bg-zinc-900"
+          ? "relative h-[clamp(440px,66vh,780px)] w-full overflow-hidden bg-zinc-900"
           : "relative aspect-[4/5] overflow-hidden border border-zinc-200 bg-zinc-900"
       }
       style={{ cursor: tileClickable ? "pointer" : "default" }}
@@ -394,7 +426,42 @@ function Tile({
       ) : null}
 
       {isFailed && !isLockedView ? (
-        <div className="pointer-events-none absolute inset-0 bg-zinc-900" style={{ zIndex: 20 }} />
+        <>
+          <div
+            className="pointer-events-none absolute inset-0 bg-zinc-900"
+            style={{ zIndex: 20 }}
+          />
+          <div
+            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center"
+            style={{ zIndex: 41 }}
+          >
+            <span
+              aria-hidden
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500/20 text-orange-400"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 8v4" />
+                <path d="M12 16h.01" />
+              </svg>
+            </span>
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-orange-300">
+              {failureHeadline(tile.errorCode)}
+            </p>
+            <p className="max-w-[28ch] text-[12px] leading-[1.4] text-cream/80">
+              {failureBody(tile.errorCode, tile.error)}
+            </p>
+          </div>
+        </>
       ) : null}
 
       {editorial ? null : (
@@ -669,7 +736,7 @@ function Tile({
       <div className="min-h-[18px] font-mono text-[10px]">
         {isFailed ? (
           <span className="tracking-[0.16em] text-orange-500 uppercase">
-            RESHOOT NEEDED
+            {failureHeadline(tile.errorCode)}
           </span>
         ) : liveMode ? (
           <span className="inline-flex items-center gap-1.5 text-zinc-700">

@@ -104,12 +104,25 @@ export async function POST(req: Request) {
   const cookieStore = await cookies();
   const isMockMode = process.env.E2E_SCENEIFY_MOCK === "1";
 
+  // Decide up-front whether this request will be served by the mock
+  // branch below. The mock branch skips Sceneify entirely, so when it's
+  // going to serve we also bypass the credit gate — otherwise repeat
+  // dev iterations burn through the 3-credit anon allowance and start
+  // returning 402 even though no real generation cost is incurred.
+  const mockEnabled = process.env.VERCEL_ENV !== "production";
+  const wantsMock = mockEnabled && cookieStore.get("vd_mock_gen")?.value === "1";
+  const isLocalDev =
+    process.env.NODE_ENV !== "production" && !process.env.VERCEL_ENV;
+  const mockBypassAdmin = wantsMock && isLocalDev;
+  const isAdmin = wantsMock ? isAdminEmail(userEmail) : false;
+  const willServeMock = wantsMock && (isAdmin || mockBypassAdmin);
+
   // Credit gate — replaces the old per-IP hourly bucket which was
   // trivially defeated by VPN rotators and punished office NAT users.
   // Authed:   1 quota_unit per generation (atomic RPC).
   // Unauth:   1 anon_credit per generation, keyed on cookie+DB row.
   // Mock:     skipped entirely so devs can iterate freely.
-  if (!isMockMode) {
+  if (!isMockMode && !willServeMock) {
     if (isAuthed && userData.user) {
       const ok = await tryConsumeQuota(userData.user.id, 1);
       if (!ok) {
@@ -158,16 +171,14 @@ export async function POST(req: Request) {
   const origin = new URL(req.url).origin;
   const key = `try-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-  // Mock branch — admin-only, cookie-gated, env-gated. Skips Blob upload, VLM,
-  // Sceneify, and watermarking. Streams the same ready/tick/phase cadence + a
-  // synthetic done event. Used for UX iteration without burning Sceneify or
-  // Gemini cost. Disabled in production so a leaked cookie can't trigger mock
-  // there. VERCEL_ENV is unset in pure local `pnpm dev`, so the check passes
-  // and the mock works locally too.
-  const mockEnabled = process.env.VERCEL_ENV !== "production";
-  const wantsMock = mockEnabled && cookieStore.get("vd_mock_gen")?.value === "1";
-  const isAdmin = wantsMock ? isAdminEmail(userEmail) : false;
-  if (wantsMock && isAdmin) {
+  // Mock branch — cookie-gated, env-gated, decided above as
+  // `willServeMock`. Skips Blob upload, VLM, Sceneify, and watermarking.
+  // Streams the same ready/tick/phase cadence + a synthetic done event.
+  // Disabled in production so a leaked cookie can't trigger mock there;
+  // preview/staging require admin so a leaked cookie can't bypass real
+  // generation costs; local `pnpm dev` drops the admin requirement so
+  // any visitor — including unauth flow testers — can iterate freely.
+  if (willServeMock) {
     return new Response(buildMockStream(slug), {
       headers: {
         "content-type": "text/event-stream",

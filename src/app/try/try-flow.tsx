@@ -34,6 +34,8 @@ import { AuthModal } from "./auth-modal";
 import { OtpAuthFlow } from "@/components/app/otp-auth-flow";
 import { motion } from "framer-motion";
 import { EditorialClaimRail, TrustRow } from "./editorial-rail";
+import { StudioDevelopFrame } from "./studio-frame";
+import { Lightbox } from "./lightbox";
 
 const PENDING_BATCH_KEY = "vd_pending_batch";
 const TRY_INTENT_KEY = "vd_try_intent";
@@ -60,12 +62,26 @@ type PendingBatch = {
 
 const SAMPLE_SRC = "/marketing/before-after/cami_before.png";
 const SAMPLE_NAME = "CAM-BRN-S_SAMPLE.JPG";
-// Authed users can pick up to 5 scenes per batch. Unauth visitors get
-// 3 picks: the first is a free watermarked preview, the other two are
-// locked behind the $9.99 unlock CTA. All 3 are real generations whose
-// raw URLs become available post-payment.
-const MAX_TRY_SCENES = 5;
-const MAX_TRY_SCENES_UNAUTH = 3;
+
+// Match the server's 32-hex token format (`randomBytes(16).toString("hex")`)
+// using Web Crypto so the URL can flip to /try/b/<token> the instant
+// DevelopStep mounts — before any network round-trip to mint the row.
+function mintClientBatchToken(): string {
+  const bytes = new Uint8Array(16);
+  if (typeof globalThis.crypto?.getRandomValues === "function") {
+    globalThis.crypto.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+  }
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+// Both authed and unauth visitors can pick up to 6 scenes per batch.
+// For unauth visitors the first scene is the free watermarked preview;
+// the rest are locked behind the $9.99 unlock CTA. All scenes are real
+// generations whose raw URLs become available post-payment. Cap matches
+// the editorial Studio frame's 3x2 grid (StudioDevelopFrame).
+const MAX_TRY_SCENES = 6;
+const MAX_TRY_SCENES_UNAUTH = 6;
 
 type Photo = { url: string; name: string; isObjectUrl: boolean; file: File | null };
 
@@ -278,7 +294,7 @@ export function TryFlow({
           /try flow. */}
       <WizardSteps current={step} />
 
-      <Container as="main" width="app" className="flex-1 py-10 md:py-16">
+      <Container as="main" width="app" className="flex-1 pt-6 pb-8 md:pt-10 md:pb-12">
         {step === "upload" ? (
           <UploadStep
             photo={photo}
@@ -652,13 +668,33 @@ function DevelopStep({
   const [hydratedFile, setHydratedFile] = useState<File | null>(null);
   const claimRanRef = useRef(false);
 
-  // Unauth claim state. The batch is persisted as soon as all 3
-  // generations succeed (so we have a stable token to attach on OTP
-  // verify); `claimed` flips to true after attach-batch resolves and
-  // gates the visual unlock on the free preview tile.
-  const [batchToken, setBatchToken] = useState<string | null>(null);
+  // Unauth claim state.
+  //
+  // `batchToken` is a 32-hex string that doubles as the URL token AND
+  // (eventually) the unlock_batches primary key. We mint it client-side
+  // at DevelopStep mount so the URL can flip to /try/b/<token> the
+  // moment generation starts. `batchPersisted` flips true once
+  // /api/try/finalize-batch lands — that's when Stripe checkout and
+  // OTP claim can safely reference the token.
+  //
+  // `claimed` flips to true after attach-batch resolves and gates the
+  // visual unlock on the free preview tile.
+  const [batchToken] = useState<string>(() => mintClientBatchToken());
+  const [batchPersisted, setBatchPersisted] = useState(false);
   const [claimed, setClaimed] = useState(false);
   const finalizeRanRef = useRef(false);
+
+  // Promote the URL to /try/b/<token> the moment the develop step
+  // mounts for an unauth visitor. This is the canonical URL for the
+  // batch's full lifecycle — refreshes that arrive mid-generation
+  // (before finalize-batch persists the row) gracefully fall back to
+  // /try?step=upload (handled by /try/b/[token]/page.tsx → notFound).
+  useEffect(() => {
+    if (isAuthed) return;
+    if (typeof window === "undefined") return;
+    if (window.location.pathname.startsWith(`/try/b/${batchToken}`)) return;
+    window.history.replaceState({}, "", `/try/b/${batchToken}`);
+  }, [isAuthed, batchToken]);
 
   useEffect(() => {
     if (!photo) return;
@@ -761,14 +797,14 @@ function DevelopStep({
     })();
   }, [isAuthed, developDone, photo, generationResults, serverSourceUrl]);
 
-  // Unauth: as soon as every generation lands, persist the batch and
-  // mint a token. We do this BEFORE the user enters their email so the
-  // OTP claim path has a token to attach on success — no race between
-  // "verifyOtp resolved" and "finalize-batch resolved".
+  // Unauth: as soon as every generation lands, persist the batch using
+  // the client-minted token. We pass `token` so finalize-batch uses it
+  // as the primary key instead of minting a fresh one — the URL the
+  // user has been looking at since DevelopStep mounted stays valid.
   useEffect(() => {
     if (isAuthed) return;
     if (finalizeRanRef.current) return;
-    if (batchToken) return;
+    if (batchPersisted) return;
     const succeeded = generationResults.filter(
       (r) => r.status === "succeeded" && r.outputUrl,
     );
@@ -781,6 +817,7 @@ function DevelopStep({
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
+            token: batchToken,
             // sourceUrl lands on each generation row's
             // sceneify_source_id column (mirrors /api/try/claim).
             // Falls back server-side to outputUrl[0] if absent so
@@ -801,23 +838,12 @@ function DevelopStep({
           finalizeRanRef.current = false;
           return;
         }
-        const data = (await res.json()) as { token?: string };
-        if (data.token) {
-          setBatchToken(data.token);
-          // Promote the persisted batch into a real URL. replaceState
-          // (vs pushState) keeps the back button pointed at wherever
-          // the user came from — they don't get trapped cycling
-          // between /try?step=upload, /try?step=scenes, etc.
-          // Refreshes + bookmarks resolve through /try/b/[token].
-          if (typeof window !== "undefined") {
-            window.history.replaceState({}, "", `/try/b/${data.token}`);
-          }
-        }
+        setBatchPersisted(true);
       } catch {
         finalizeRanRef.current = false;
       }
     })();
-  }, [isAuthed, generationResults, batchToken, serverSourceUrl]);
+  }, [isAuthed, generationResults, batchToken, batchPersisted, serverSourceUrl]);
 
   const displayResults: TileResult[] = generationResults;
 
@@ -889,31 +915,28 @@ function DevelopStep({
   }, [openAuthModal]);
 
   // Unlock CTA — fired by locked tile clicks AND the offer card.
-  // Persists the batch to mint a token, then redirects to Stripe Checkout.
-  // Until the batch finishes generating we open AuthModal as a soft fallback
-  // so the click feels responsive instead of dead.
+  // The batch row is created by finalize-batch when generation finishes;
+  // before that the Stripe checkout would have nothing to load, so we
+  // no-op until `batchPersisted` flips. The unlock button in the
+  // StudioDevelopFrame is gated on the same signal.
   const [unlockSubmitting, setUnlockSubmitting] = useState(false);
   const handleUnlockClick = useCallback(() => {
     track("try_unlock_clicked");
     if (unlockSubmitting) return;
-    if (!batchToken) {
-      // The auto-finalize effect hasn't landed yet — silently no-op.
-      // The CTA only shows when batchToken is set, so this is defense
-      // in depth.
-      return;
-    }
+    if (!batchPersisted) return;
     setUnlockSubmitting(true);
     window.location.href = `/api/stripe/unlock-checkout?batchToken=${batchToken}`;
-  }, [unlockSubmitting, batchToken]);
+  }, [unlockSubmitting, batchToken, batchPersisted]);
 
   // Called by OtpAuthFlow once verifyOtp resolves with a session. We
   // attach the anonymous batch to the now-authenticated user so the
   // post-payment unlock page (and library) can find it by user_id.
   // Errors from attach-batch are swallowed — the visual unlock should
   // still proceed; the batch lookup falls back to token-based access.
+  // Attach is only meaningful after finalize-batch persists the row.
   const handleClaimSuccess = useCallback(async () => {
     track("try_studio_claimed");
-    if (batchToken) {
+    if (batchPersisted) {
       try {
         await fetch("/api/try/attach-batch", {
           method: "POST",
@@ -923,7 +946,7 @@ function DevelopStep({
       } catch {}
     }
     setClaimed(true);
-  }, [batchToken]);
+  }, [batchToken, batchPersisted]);
 
   // Originally pushed to /app/library, which threw the user out of the
   // generations page they just signed up *from*. Now we mirror the
@@ -939,12 +962,12 @@ function DevelopStep({
 
   return (
     <div className={`relative ${developDone && isAuthed ? "pb-40 md:pb-44" : ""}`}>
-      <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
+      <div className="mb-10 flex flex-col items-start justify-between gap-4 md:mb-14 md:flex-row md:items-end">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
             Developing · N°03
           </p>
-          <h1 className="mt-4 font-serif text-[clamp(2.5rem,5.5vw,4rem)] leading-[0.98] tracking-[-0.02em] text-ink">
+          <h1 className="mt-5 font-serif text-[clamp(2.5rem,5.5vw,4rem)] leading-[1.04] tracking-[-0.02em] text-ink md:mt-6">
             In the{" "}
             <em className="not-italic font-serif italic text-terracotta-dark">
               studio
@@ -982,7 +1005,7 @@ function DevelopStep({
           handleUnlockClick={handleUnlockClick}
           unlockSubmitting={unlockSubmitting}
           claimed={claimed}
-          batchReady={batchToken !== null}
+          batchReady={batchPersisted}
           onClaimSuccess={handleClaimSuccess}
         />
       )}
@@ -1044,134 +1067,122 @@ function UnauthEditorialStage({
     !anyPending &&
     generationResults.length > 0 &&
     generationResults.every((r) => r.status === "succeeded");
-  // Editorial grid composition adapts to tile count so 1 or 2 scenes
-  // don't render as "giant boxes in a void". 3 keeps the cinematic
-  // hero-with-peeks; 2 splits 55/45 hero+supporting; 1 centers the
-  // hero with breathing room. Counts > 3 keep the 3-col rhythm and
-  // wrap remainder below.
-  const tileCount = generationResults.length || picked.length;
-  const stageGridClass =
-    tileCount <= 1
-      ? "grid grid-cols-1 items-stretch gap-3 sm:max-w-[min(80vw,820px)] sm:mx-auto"
-      : tileCount === 2
-        ? // DevelopGrid's editorialOrder hardcodes index 0 → sm:order-2
-          // (right slot) and index 1 → sm:order-1 (left slot). So with
-          // 2 tiles the hero is on the right — keep the larger column
-          // on the right to match.
-          "grid grid-cols-1 items-stretch gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] sm:gap-4 sm:max-w-[min(92vw,1280px)] sm:mx-auto"
-        : "grid grid-cols-1 items-stretch gap-3 sm:grid-cols-[1fr_2fr_1fr] sm:gap-3";
+
+  const sceneNames = picked
+    .map((slug) => sceneById[slug]?.name)
+    .filter((n): n is string => Boolean(n));
+
+  // Click-to-enlarge lightbox for resolved tiles. Same component used by
+  // /try/b/[token] so the preview interaction is identical across the
+  // live and persisted flows.
+  const [lightboxSlug, setLightboxSlug] = useState<string | null>(null);
+  const lightboxTile =
+    lightboxSlug && generationResults.find((r) => r.sceneSlug === lightboxSlug);
+
   // The claim + upsell rail only appears once the batch is persisted
   // (so we have a token to attach on OTP success). Before that, even
   // if the images are visible, the email entry would authenticate
   // without an attached batch.
   return (
     <>
-      {/* Compact developing-state meta strip. Visible only while at
-          least one tile is pending; gives the user a tactile sense of
-          "something is being crafted" instead of waiting next to a
-          dark void. Source thumb + scene count + a rotating preview
-          phase string. Hidden once all tiles complete (the editorial
-          claim rail takes over). */}
-      {anyPending && photo ? (
-        <DevelopingMetaStrip
-          sourceUrl={photo.url}
-          sceneNames={picked
-            .map((slug) => sceneById[slug]?.name)
-            .filter((n): n is string => Boolean(n))}
-        />
-      ) : null}
-      {/* Full-bleed stage: extends past the page container to the viewport
-          edges so the side tiles can peek into the page margins. The
-          `-mx-[calc(50vw-50%)] w-screen` trick anchors the stage to the
-          viewport without leaving the React tree. During pending we
-          paint a soft radial atmosphere behind the stage so the tiles
-          read as floating in a warm cream-lit room rather than against
-          a flat page. */}
-      <div className="relative -mx-[calc(50vw-50%)] w-screen">
-        {anyPending ? (
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 -z-10"
-            style={{
-              background:
-                "radial-gradient(60% 50% at 50% 38%, oklch(0.95 0.018 70 / 0.7) 0%, transparent 70%), radial-gradient(120% 80% at 50% 100%, oklch(0.87 0.025 65 / 0.55) 0%, transparent 70%)",
-            }}
-          />
-        ) : null}
-        <div className={stageGridClass}>
-          {anyPending && photo && effectiveFile && sceneById[picked[0]] ? (
-            <ProgressScreen
-              file={effectiveFile}
-              sceneSlugs={picked}
-              userPhotoUrl={photo.url}
-              primaryPreset={{
-                slug: sceneById[picked[0]].slug,
-                name: sceneById[picked[0]].name,
-                mood: sceneById[picked[0]].mood,
-                palette: sceneById[picked[0]].palette,
-                category: sceneById[picked[0]].category,
-              }}
-              presetMetaBySlug={Object.fromEntries(
-                picked.map((slug) => [
-                  slug,
-                  {
-                    slug: sceneById[slug]?.slug ?? slug,
-                    name: sceneById[slug]?.name ?? slug,
-                    mood: sceneById[slug]?.mood ?? "",
-                    palette: sceneById[slug]?.palette ?? [],
-                    category: sceneById[slug]?.category ?? "",
-                  },
-                ]),
-              )}
-              variant={variant}
-              initialResults={generationResults}
-              onSourceUrl={(url) => setServerSourceUrl(url)}
-              onDownloadClick={handleDownloadClick}
-              onUnlockClick={handleUnlockClick}
-              editorial
-              freePreviewUnlocked={claimed}
-              onSettled={(out) => {
-                setGenerationResults((prev) =>
-                  prev.map((r) => {
-                    const hit = out.find((o) => o.slug === r.sceneSlug);
-                    if (!hit) return r;
-                    if (hit.outputUrl) {
-                      return {
-                        ...r,
-                        status: "succeeded",
-                        outputUrl: hit.outputUrl,
-                        rawUrl: hit.rawUrl,
-                        focalPoint: hit.focalPoint ?? r.focalPoint ?? null,
-                        faceBox: hit.faceBox ?? r.faceBox ?? null,
-                      };
-                    }
-                    return {
-                      ...r,
-                      status: "failed",
-                      error: hit.error ?? "failed",
-                      errorCode: hit.errorCode,
-                    };
-                  }),
-                );
-                for (const item of out) {
-                  if (item.outputUrl) track("try_generate_succeeded", { slug: item.slug });
-                  else track("try_generate_failed", { slug: item.slug, error: item.error ?? "failed" });
-                }
-              }}
-            />
-          ) : (
-            <DevelopGrid
-              results={generationResults}
-              variant={variant}
-              sourceUrl={photo?.url}
-              onDownloadClick={handleDownloadClick}
-              onUnlockClick={handleUnlockClick}
-              editorial
-              freePreviewUnlocked={claimed}
-            />
+      {anyPending && photo && effectiveFile && sceneById[picked[0]] ? (
+        // Streaming half of the lifecycle: ProgressScreen drives the
+        // generation hook and renders the "In the studio." frame with the
+        // default StudioGrid (dark editorial cards with rotating status
+        // text). Once every tile resolves we hand off to the persisted
+        // composition below — the shell stays the same, only the tile
+        // system swaps so we get watermark + download CTAs.
+        <ProgressScreen
+          file={effectiveFile}
+          sceneSlugs={picked}
+          userPhotoUrl={photo.url}
+          primaryPreset={{
+            slug: sceneById[picked[0]].slug,
+            name: sceneById[picked[0]].name,
+            mood: sceneById[picked[0]].mood,
+            palette: sceneById[picked[0]].palette,
+            category: sceneById[picked[0]].category,
+          }}
+          presetMetaBySlug={Object.fromEntries(
+            picked.map((slug) => [
+              slug,
+              {
+                slug: sceneById[slug]?.slug ?? slug,
+                name: sceneById[slug]?.name ?? slug,
+                mood: sceneById[slug]?.mood ?? "",
+                palette: sceneById[slug]?.palette ?? [],
+                category: sceneById[slug]?.category ?? "",
+              },
+            ]),
           )}
-        </div>
-      </div>
+          variant={variant}
+          initialResults={generationResults}
+          onSourceUrl={(url) => setServerSourceUrl(url)}
+          onUnlockClick={handleUnlockClick}
+          studio={{
+            sourceUrl: photo.url,
+            sourceName: photo.name,
+            sceneNames,
+          }}
+          onSettled={(out) => {
+            setGenerationResults((prev) =>
+              prev.map((r) => {
+                const hit = out.find((o) => o.slug === r.sceneSlug);
+                if (!hit) return r;
+                if (hit.outputUrl) {
+                  return {
+                    ...r,
+                    status: "succeeded",
+                    outputUrl: hit.outputUrl,
+                    rawUrl: hit.rawUrl,
+                    focalPoint: hit.focalPoint ?? r.focalPoint ?? null,
+                    faceBox: hit.faceBox ?? r.faceBox ?? null,
+                  };
+                }
+                return {
+                  ...r,
+                  status: "failed",
+                  error: hit.error ?? "failed",
+                  errorCode: hit.errorCode,
+                };
+              }),
+            );
+            for (const item of out) {
+              if (item.outputUrl) track("try_generate_succeeded", { slug: item.slug });
+              else track("try_generate_failed", { slug: item.slug, error: item.error ?? "failed" });
+            }
+          }}
+        />
+      ) : (
+        // Persisted half of the lifecycle (and the source-File hydration
+        // fallback). Same StudioDevelopFrame shell as during streaming —
+        // left rail, adaptive grid slot, right/inline offer — but with
+        // DevelopGrid inside so the tiles get the editorial watermark
+        // and per-tile download/unlock interactions. Visually matches
+        // /try/b/[token] exactly so a refresh mid-state doesn't change
+        // the page.
+        <StudioDevelopFrame
+          results={generationResults}
+          sourceUrl={photo?.url}
+          sourceName={photo?.name}
+          sceneNames={sceneNames}
+          allDone
+          renderGrid={({ results, count }) => (
+            <div className={studioGridShapeClass(count)}>
+              <DevelopGrid
+                results={results}
+                variant={variant}
+                sourceUrl={photo?.url}
+                onDownloadClick={handleDownloadClick}
+                onUnlockClick={handleUnlockClick}
+                onPreviewClick={setLightboxSlug}
+                editorial
+                freePreviewUnlocked={claimed}
+              />
+            </div>
+          )}
+        />
+      )}
 
       {allSucceeded && batchReady ? (
         <>
@@ -1185,88 +1196,52 @@ function UnauthEditorialStage({
           <TrustRow />
         </>
       ) : null}
+
+      <Lightbox
+        image={
+          lightboxTile && lightboxTile.outputUrl
+            ? {
+                sceneName: lightboxTile.sceneName,
+                outputUrl: lightboxTile.outputUrl,
+                rawUrl: lightboxTile.rawUrl ?? null,
+                isFreePreview: lightboxTile.isFreePreview,
+              }
+            : null
+        }
+        claimed={claimed}
+        onClose={() => setLightboxSlug(null)}
+        onDownload={() => {
+          if (!lightboxTile) return;
+          setLightboxSlug(null);
+          handleDownloadClick(lightboxTile.sceneSlug);
+        }}
+        onUnlock={() => {
+          setLightboxSlug(null);
+          handleUnlockClick();
+        }}
+      />
     </>
   );
 }
 
-// Compact "we're crafting this" strip rendered above the editorial
-// stage while any tile is still pending. Source thumb + scene names +
-// rotating editorial copy. Hidden as soon as the batch completes
-// (the claim rail takes over the bottom of the page). Kept minimal
-// so it doesn't compete with the tiles themselves for attention.
-function DevelopingMetaStrip({
-  sourceUrl,
-  sceneNames,
-}: {
-  sourceUrl: string;
-  sceneNames: string[];
-}) {
-  const phrases = useMemo(
-    () => [
-      "Reading shape and texture",
-      "Picking reference frames",
-      "Composing in the studio",
-      "Tuning shadow to read true",
-      "Layering light and tone",
-      "Aligning to the mood",
-    ],
-    [],
-  );
-  const [phraseIdx, setPhraseIdx] = useState(0);
-  useEffect(() => {
-    const id = window.setInterval(
-      () => setPhraseIdx((i) => (i + 1) % phrases.length),
-      2400,
-    );
-    return () => window.clearInterval(id);
-  }, [phrases.length]);
-
-  const count = sceneNames.length;
-  const looksLabel = count === 1 ? "1 look" : `${count} looks`;
-  // Cap displayed scene names — two is plenty, the rest get "+N more".
-  const visibleScenes = sceneNames.slice(0, 2);
-  const remaining = sceneNames.length - visibleScenes.length;
-
-  return (
-    <div className="mb-8 flex items-center justify-center md:mb-10">
-      <div className="flex items-center gap-4 rounded-full border border-line-soft/80 bg-paper/90 px-4 py-2 shadow-[0_8px_24px_-16px_rgba(40,30,20,0.25)] backdrop-blur-sm">
-        <span className="relative inline-flex h-9 w-9 shrink-0 overflow-hidden rounded-full border border-line-soft bg-cream">
-          <img
-            src={sourceUrl}
-            alt=""
-            aria-hidden
-            draggable={false}
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-        </span>
-        <div className="flex min-w-0 flex-col gap-0.5 leading-tight">
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-4">
-            Developing · {looksLabel}
-            {visibleScenes.length > 0 ? (
-              <>
-                <span className="mx-1.5 opacity-60">·</span>
-                <span className="text-ink-3">{visibleScenes.join(" · ")}</span>
-                {remaining > 0 ? (
-                  <span className="ml-1 opacity-70">+{remaining}</span>
-                ) : null}
-              </>
-            ) : null}
-          </span>
-          <span
-            key={phraseIdx}
-            className="font-serif text-[14px] italic leading-tight text-ink motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-500"
-          >
-            {phrases[phraseIdx]}…
-          </span>
-        </div>
-      </div>
-    </div>
-  );
+// Mirror of `StudioGrid`'s per-count container shapes inside the
+// StudioDevelopFrame middle slot. Kept in sync with BatchView's copy so
+// the developing state and the persisted /try/b/[token] state share the
+// exact same column rhythm — one design, count-adaptive.
+function studioGridShapeClass(count: number): string {
+  if (count <= 1) return "grid grid-cols-1 gap-4";
+  if (count === 2) {
+    return "grid grid-cols-1 gap-3 sm:grid-cols-[1.55fr_1fr] sm:gap-4";
+  }
+  if (count === 3) return "grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4";
+  return "grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-3";
 }
 
-// Tiny utility-style component to keep the JSX above legible. The
-// authed flow keeps the original 2-column layout (source thumb + grid)
-// and the bottom SavedBar — only the unauth path moves to editorial.
+// Authed develop layout. While generation is pending, the StudioDevelopFrame
+// (with left rail / responsive grid / right offer rail / bottom strip) renders
+// inside the standard Container. Once results land we drop back to the simple
+// 2-column layout (source thumb + DevelopGrid) so the user can download HD
+// images and the SavedBar can mount.
 function AuthedDevelopLayout({
   photo,
   picked,
@@ -1292,6 +1267,77 @@ function AuthedDevelopLayout({
   handleDownloadClick: (slug: string) => void;
   handleLockedClick: () => void;
 }) {
+  const anyPending = generationResults.some((r) => r.status === "pending");
+  const sceneNames = picked
+    .map((slug) => sceneById[slug]?.name)
+    .filter((n): n is string => Boolean(n));
+
+  if (anyPending && photo && effectiveFile && sceneById[picked[0]]) {
+    return (
+      <ProgressScreen
+        file={effectiveFile}
+        sceneSlugs={picked}
+        userPhotoUrl={photo.url}
+        primaryPreset={{
+          slug: sceneById[picked[0]].slug,
+          name: sceneById[picked[0]].name,
+          mood: sceneById[picked[0]].mood,
+          palette: sceneById[picked[0]].palette,
+          category: sceneById[picked[0]].category,
+        }}
+        presetMetaBySlug={Object.fromEntries(
+          picked.map((slug) => [
+            slug,
+            {
+              slug: sceneById[slug]?.slug ?? slug,
+              name: sceneById[slug]?.name ?? slug,
+              mood: sceneById[slug]?.mood ?? "",
+              palette: sceneById[slug]?.palette ?? [],
+              category: sceneById[slug]?.category ?? "",
+            },
+          ]),
+        )}
+        variant={variant}
+        initialResults={generationResults}
+        onSourceUrl={(url) => setServerSourceUrl(url)}
+        onDownloadClick={handleDownloadClick}
+        studio={{
+          sourceUrl: photo.url,
+          sourceName: photo.name,
+          sceneNames,
+        }}
+        onSettled={(out) => {
+          setGenerationResults((prev) =>
+            prev.map((r) => {
+              const hit = out.find((o) => o.slug === r.sceneSlug);
+              if (!hit) return r;
+              if (hit.outputUrl) {
+                return {
+                  ...r,
+                  status: "succeeded",
+                  outputUrl: hit.outputUrl,
+                  rawUrl: hit.rawUrl,
+                  focalPoint: hit.focalPoint ?? r.focalPoint ?? null,
+                  faceBox: hit.faceBox ?? r.faceBox ?? null,
+                };
+              }
+              return {
+                ...r,
+                status: "failed",
+                error: hit.error ?? "failed",
+                errorCode: hit.errorCode,
+              };
+            }),
+          );
+          for (const item of out) {
+            if (item.outputUrl) track("try_generate_succeeded", { slug: item.slug });
+            else track("try_generate_failed", { slug: item.slug, error: item.error ?? "failed" });
+          }
+        }}
+      />
+    );
+  }
+
   return (
     <div className="mb-10 grid grid-cols-1 items-start gap-8 md:grid-cols-[260px_1fr] md:gap-12">
       <div>
@@ -1330,72 +1376,13 @@ function AuthedDevelopLayout({
       </div>
 
       <div>
-        {generationResults.some((r) => r.status === "pending") && photo && effectiveFile && sceneById[picked[0]] ? (
-          <ProgressScreen
-            file={effectiveFile}
-            sceneSlugs={picked}
-            userPhotoUrl={photo.url}
-            primaryPreset={{
-              slug: sceneById[picked[0]].slug,
-              name: sceneById[picked[0]].name,
-              mood: sceneById[picked[0]].mood,
-              palette: sceneById[picked[0]].palette,
-              category: sceneById[picked[0]].category,
-            }}
-            presetMetaBySlug={Object.fromEntries(
-              picked.map((slug) => [
-                slug,
-                {
-                  slug: sceneById[slug]?.slug ?? slug,
-                  name: sceneById[slug]?.name ?? slug,
-                  mood: sceneById[slug]?.mood ?? "",
-                  palette: sceneById[slug]?.palette ?? [],
-                  category: sceneById[slug]?.category ?? "",
-                },
-              ]),
-            )}
-            variant={variant}
-            initialResults={generationResults}
-            onSourceUrl={(url) => setServerSourceUrl(url)}
-            onDownloadClick={handleDownloadClick}
-            onSettled={(out) => {
-              setGenerationResults((prev) =>
-                prev.map((r) => {
-                  const hit = out.find((o) => o.slug === r.sceneSlug);
-                  if (!hit) return r;
-                  if (hit.outputUrl) {
-                    return {
-                      ...r,
-                      status: "succeeded",
-                      outputUrl: hit.outputUrl,
-                      rawUrl: hit.rawUrl,
-                      focalPoint: hit.focalPoint ?? r.focalPoint ?? null,
-                      faceBox: hit.faceBox ?? r.faceBox ?? null,
-                    };
-                  }
-                  return {
-                    ...r,
-                    status: "failed",
-                    error: hit.error ?? "failed",
-                    errorCode: hit.errorCode,
-                  };
-                }),
-              );
-              for (const item of out) {
-                if (item.outputUrl) track("try_generate_succeeded", { slug: item.slug });
-                else track("try_generate_failed", { slug: item.slug, error: item.error ?? "failed" });
-              }
-            }}
-          />
-        ) : (
-          <DevelopGrid
-            results={displayResults}
-            variant={variant}
-            sourceUrl={photo?.url}
-            onDownloadClick={handleDownloadClick}
-            onLockedClick={handleLockedClick}
-          />
-        )}
+        <DevelopGrid
+          results={displayResults}
+          variant={variant}
+          sourceUrl={photo?.url}
+          onDownloadClick={handleDownloadClick}
+          onLockedClick={handleLockedClick}
+        />
       </div>
     </div>
   );

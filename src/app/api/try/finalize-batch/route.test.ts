@@ -117,16 +117,89 @@ describe("POST /api/try/finalize-batch", () => {
     expect(inserts).toHaveLength(0);
   });
 
-  it("returns 400 when not exactly 3 generations", async () => {
+  it("returns 400 when generations array is empty", async () => {
     const res = await POST(
       jsonReq({
-        generations: validGenerations().slice(0, 2),
+        generations: [],
         sourceUrl: "https://blob.example/src.jpg",
       }),
     );
     expect(res.status).toBe(400);
+    expect(inserts).toHaveLength(0);
+  });
+
+  it("returns 400 when generations array exceeds the 6-tile cap", async () => {
+    const dupes = Array.from({ length: 7 }, (_, i) => ({
+      ...validGenerations()[0],
+      sceneSlug: `slug-${i}`,
+      isFreePreview: i === 0,
+    }));
+    const res = await POST(
+      jsonReq({
+        generations: dupes,
+        sourceUrl: "https://blob.example/src.jpg",
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect(inserts).toHaveLength(0);
+  });
+
+  it("accepts 1-scene batches (1 free preview only)", async () => {
+    const res = await POST(
+      jsonReq({
+        generations: validGenerations().slice(0, 1),
+        sourceUrl: "https://blob.example/src.jpg",
+      }),
+    );
+    expect(res.status).toBe(201);
     const body = await res.json();
-    expect(body.error).toMatch(/3 generations/);
+    expect(body.token).toBe("fixed-test-token-32-hex-chars");
+    const gensValues = inserts[1].values as Array<Record<string, unknown>>;
+    expect(gensValues).toHaveLength(1);
+  });
+
+  it("accepts 6-scene batches", async () => {
+    const sixGens = Array.from({ length: 6 }, (_, i) => ({
+      ...validGenerations()[0],
+      sceneSlug: `slug-${i}`,
+      isFreePreview: i === 0,
+    }));
+    const res = await POST(
+      jsonReq({
+        generations: sixGens,
+        sourceUrl: "https://blob.example/src.jpg",
+      }),
+    );
+    expect(res.status).toBe(201);
+    const gensValues = inserts[1].values as Array<Record<string, unknown>>;
+    expect(gensValues).toHaveLength(6);
+  });
+
+  it("accepts a client-minted 32-hex token and uses it as the batch primary key", async () => {
+    const supplied = "abcdef0123456789abcdef0123456789";
+    const res = await POST(
+      jsonReq({
+        generations: validGenerations(),
+        sourceUrl: "https://blob.example/src.jpg",
+        token: supplied,
+      }),
+    );
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.token).toBe(supplied);
+    const batchValues = inserts[2].values as Record<string, unknown>;
+    expect(batchValues.token).toBe(supplied);
+  });
+
+  it("rejects a malformed token", async () => {
+    const res = await POST(
+      jsonReq({
+        generations: validGenerations(),
+        sourceUrl: "https://blob.example/src.jpg",
+        token: "not-a-32-hex-string",
+      }),
+    );
+    expect(res.status).toBe(400);
     expect(inserts).toHaveLength(0);
   });
 

@@ -30,22 +30,25 @@ export function EditorialClaimRail({
   unlockSubmitting: boolean;
 }) {
   // Layout decision: pre-claim, the page is purely a free-preview
-  // reveal + claim CTA. The $9.99 upsell only appears once the
-  // visitor has authenticated via OTP — that's when they own one
-  // HD image and the "complete the set" framing becomes natural.
+  // reveal + claim CTA. The $9.99 upsell appears once the visitor has
+  // authenticated via OTP AND the batch has at least one tile beyond
+  // the free hero — index 0 is the free preview, everything past it is
+  // unlockable. With only 1 tile total there's nothing to upsell, so
+  // we drop the column and let ClaimColumn stand on its own.
+  const showUpsell = claimed && generations.length > 1;
   return (
     <motion.div
       layout
       transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
       className={
-        claimed
+        showUpsell
           ? "mt-12 grid grid-cols-1 items-start gap-10 md:mt-16 md:grid-cols-[1.1fr_auto_0.95fr] md:gap-12"
           : "mt-12 md:mt-16"
       }
     >
       <ClaimColumn claimed={claimed} onClaimSuccess={onClaimSuccess} />
 
-      {claimed ? (
+      {showUpsell ? (
         <>
           <div
             aria-hidden
@@ -217,6 +220,12 @@ function UpsellColumn({
   disabled: boolean;
   claimed: boolean;
 }) {
+  // Tile 0 is the free hero preview; everything past it is unlockable.
+  // The label needs to read correctly whether there's 1 locked tile
+  // (count === 2) or several — hardcoded "2 additional HD images" was
+  // wrong for the count !== 3 cases the gate now allows through.
+  const lockedCount = Math.max(0, generations.length - 1);
+  const lockedNoun = lockedCount === 1 ? "image" : "images";
   return (
     <div className="flex flex-col items-start gap-5 md:items-end md:text-right">
       <div className="flex w-full items-stretch gap-5 md:flex-row-reverse">
@@ -233,7 +242,7 @@ function UpsellColumn({
 
       <ul className="flex flex-col gap-1 text-[14px] text-ink-2 md:items-end">
         {[
-          "2 additional HD images",
+          `${lockedCount} additional HD ${lockedNoun}`,
           "No watermark",
           "Commercial use license",
           "Instant download",
@@ -268,7 +277,9 @@ function UpsellColumn({
         data-testid="inline-unlock-cta"
         className="group inline-flex items-center gap-2 rounded-full border border-terracotta px-6 py-3 font-mono text-[12px] uppercase tracking-[0.14em] text-terracotta-dark transition-colors hover:bg-terracotta-wash disabled:cursor-not-allowed disabled:opacity-60"
       >
-        Unlock remaining 2 images
+        {lockedCount === 1
+          ? "Unlock remaining image"
+          : `Unlock remaining ${lockedCount} images`}
         <span
           aria-hidden
           className="transition-transform group-hover:translate-x-0.5"

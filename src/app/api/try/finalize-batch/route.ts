@@ -8,6 +8,12 @@ import type { UnlockBatchGeneration } from "@/lib/db/schema";
 
 export const runtime = "nodejs";
 
+// 32-hex unlock-batch token format (16 bytes → 32 chars). Frontend mints
+// a client-side token at the start of generation so the URL can flip to
+// /try/b/<token> immediately; finalize-batch uses it as-is. We validate
+// it to keep arbitrary strings from landing in the primary key.
+const TOKEN_REGEX = /^[0-9a-f]{32}$/i;
+
 // Normalized 0..1 focal coordinates emitted by Sceneify alongside the
 // generation. We don't compute or re-derive them server-side; we just
 // pass them through to the row + JSONB so the render layer has them.
@@ -52,6 +58,11 @@ const bodySchema = z.object({
   // /api/try/claim path). Optional only for back-compat with older
   // clients; new clients should always send it.
   sourceUrl: z.string().url().optional(),
+  // Optional client-minted token. When supplied the frontend has
+  // already replaceState'd the URL to /try/b/<token> at the start of
+  // generation; we reuse it so the URL doesn't change again at the
+  // end. Omitting it preserves the legacy behavior (server mints).
+  token: z.string().regex(TOKEN_REGEX).optional(),
 });
 
 /**
@@ -83,14 +94,11 @@ export async function POST(req: Request) {
     );
   }
 
-  const { generations: gens, sourceUrl } = parsed.data;
+  const { generations: gens, sourceUrl, token: clientToken } = parsed.data;
 
-  if (gens.length !== 3) {
-    return NextResponse.json(
-      { error: "expected exactly 3 generations" },
-      { status: 400 },
-    );
-  }
+  // The unauth flow lets visitors pick 1–6 scenes (StudioDevelopFrame
+  // adapts its layout per count). Index 0 is always the free preview;
+  // any other index marked as free preview is rejected.
   if (!gens[0].isFreePreview) {
     return NextResponse.json(
       { error: "first generation must be the free preview" },
@@ -154,7 +162,7 @@ export async function POST(req: Request) {
       })),
     );
 
-    const t = newToken();
+    const t = clientToken ?? newToken();
     await tx.insert(unlockBatches).values({
       token: t,
       generations: stored,

@@ -1,11 +1,12 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useCallback, useState } from "react";
 import { track } from "@/lib/analytics";
 import { DevelopGrid, type TileResult } from "../../develop-grid";
 import { EditorialClaimRail, TrustRow } from "../../editorial-rail";
+import { StudioDevelopFrame } from "../../studio-frame";
+import { Lightbox } from "../../lightbox";
 import type { UnlockBatchGeneration } from "@/lib/db/schema";
 
 export function BatchView({
@@ -13,11 +14,13 @@ export function BatchView({
   generations,
   initialClaimed,
   initialPaid,
+  sourceUrl,
 }: {
   token: string;
   generations: UnlockBatchGeneration[];
   initialClaimed: boolean;
   initialPaid: boolean;
+  sourceUrl?: string;
 }) {
   const [claimed, setClaimed] = useState(initialClaimed);
   const [paid] = useState(initialPaid);
@@ -144,12 +147,12 @@ export function BatchView({
 
   return (
     <>
-      <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
+      <div className="mb-10 flex flex-col items-start justify-between gap-4 md:mb-14 md:flex-row md:items-end">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
             {paid ? "Your studio · Complete" : "Your studio · Saved"}
           </p>
-          <h1 className="mt-4 font-serif text-[clamp(2.5rem,5.5vw,4rem)] leading-[0.98] tracking-[-0.02em] text-ink">
+          <h1 className="mt-5 font-serif text-[clamp(2.5rem,5.5vw,4rem)] leading-[1.04] tracking-[-0.02em] text-ink md:mt-6">
             In the{" "}
             <em className="not-italic font-serif italic text-terracotta-dark">
               studio
@@ -177,25 +180,42 @@ export function BatchView({
         ) : null}
       </div>
 
-      {/* Same full-bleed editorial stage as /try post-success. */}
-      <div className="relative -mx-[calc(50vw-50%)] w-screen">
-        <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-[1fr_2fr_1fr] sm:gap-3">
-          <DevelopGrid
-            results={tileResults}
-            variant="darkroom"
-            editorial
-            // Post-payment all tiles are unlocked; pre-payment only
-            // the free hero unlocks on claim. Threading `paid` through
-            // as a global free-preview-unlocked flag is the cleanest
-            // way to suppress every watermark + Preview label.
-            freePreviewUnlocked={paid || claimed}
-            paidAll={paid}
-            onDownloadClick={handleDownload}
-            onUnlockClick={handleUnlock}
-            onPreviewClick={setLightboxSlug}
-          />
-        </div>
-      </div>
+      {/* Single canonical post-generation shell: left rail (product +
+          selected scenes + status) → middle grid → right rail / inline
+          offer. Same StudioDevelopFrame used by /try during developing,
+          so the persisted view at /try/b/[token] reads as one design,
+          adapting only to the number of generations. DevelopGrid renders
+          inside the middle slot to keep the existing watermark, download,
+          unlock, and lightbox interactions. */}
+      <StudioDevelopFrame
+        results={tileResults}
+        sourceUrl={sourceUrl}
+        sceneNames={generations.map((g) => g.sceneName)}
+        allDone
+        renderGrid={({ results, count }) => (
+          // Editorial DevelopGrid returns a fragment of `sm:order-N`
+          // tile wrappers — the parent owns the grid container. We
+          // mirror StudioGrid's per-count shapes (1 / 2 / 3 / 4–6) so
+          // the post-generation view sits inside the exact same column
+          // rhythm as the developing state.
+          <div className={studioGridShapeClass(count)}>
+            <DevelopGrid
+              results={results}
+              variant="darkroom"
+              editorial
+              // Post-payment all tiles are unlocked; pre-payment only
+              // the free hero unlocks on claim. Threading `paid` through
+              // as a global free-preview-unlocked flag is the cleanest
+              // way to suppress every watermark + Preview label.
+              freePreviewUnlocked={paid || claimed}
+              paidAll={paid}
+              onDownloadClick={handleDownload}
+              onUnlockClick={handleUnlock}
+              onPreviewClick={setLightboxSlug}
+            />
+          </div>
+        )}
+      />
 
       {paid ? null : (
         <EditorialClaimRail
@@ -209,7 +229,16 @@ export function BatchView({
       <TrustRow />
 
       <Lightbox
-        gen={lightboxGen || null}
+        image={
+          lightboxGen
+            ? {
+                sceneName: lightboxGen.sceneName,
+                outputUrl: lightboxGen.outputUrl,
+                rawUrl: lightboxGen.rawUrl,
+                isFreePreview: lightboxGen.isFreePreview,
+              }
+            : null
+        }
         claimed={claimed}
         onClose={() => setLightboxSlug(null)}
         onDownload={() => {
@@ -229,159 +258,16 @@ export function BatchView({
   );
 }
 
-// Full-screen click-to-enlarge overlay. Image rendered at viewport
-// scale with object-contain (no crop, no chrome) so the user sees the
-// composition properly. Watermark is the same baked-in one as the
-// tile; rendering the rawUrl is gated on (claimed && isFreePreview).
-function Lightbox({
-  gen,
-  claimed,
-  onClose,
-  onDownload,
-  onUnlock,
-}: {
-  gen: UnlockBatchGeneration | null;
-  claimed: boolean;
-  onClose: () => void;
-  onDownload: () => void;
-  onUnlock: () => void;
-}) {
-  // ESC to dismiss. Plus lock body scroll while the overlay is open
-  // so the page beneath doesn't move when the user trackpads.
-  useEffect(() => {
-    if (!gen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [gen, onClose]);
-
-  if (!gen) return null;
-
-  // Hero post-claim shows the un-watermarked rawUrl. Everything else
-  // shows the watermarked outputUrl — the user still sees the lighting,
-  // composition, and quality, just with the diagonal mark.
-  const shouldShowRaw = claimed && gen.isFreePreview && gen.rawUrl;
-  const imageUrl = shouldShowRaw ? (gen.rawUrl as string) : gen.outputUrl;
-  const showUnlockCta = !gen.isFreePreview; // locked tiles in the set
-  // Hero post-claim: real download. Hero pre-claim: same handler,
-  // which scrolls the OTP form into view. Either way the lightbox
-  // closes so the user sees the action surface.
-  const showDownloadCta = gen.isFreePreview;
-  const downloadLabel = claimed ? "Download HD" : "Claim to download HD";
-
-  return (
-    <AnimatePresence>
-      <motion.div
-        key="lightbox-backdrop"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/90 backdrop-blur-sm"
-        onClick={onClose}
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Enlarged view of ${gen.sceneName}`}
-      >
-        <motion.div
-          key="lightbox-content"
-          initial={{ opacity: 0, scale: 0.96 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.96 }}
-          transition={{ duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
-          className="relative flex max-h-[92vh] max-w-[92vw] flex-col items-center gap-4"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <img
-            src={imageUrl}
-            alt={gen.sceneName}
-            className="max-h-[80vh] max-w-[92vw] object-contain"
-            draggable={false}
-          />
-
-          <div className="flex items-center gap-3">
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-cream/70">
-              {gen.sceneName}
-              {shouldShowRaw ? " · HD" : " · Preview"}
-            </p>
-            {showDownloadCta ? (
-              <button
-                type="button"
-                onClick={onDownload}
-                className="inline-flex items-center gap-1.5 rounded-full bg-terracotta px-4 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-cream transition-colors hover:bg-terracotta-dark"
-              >
-                <svg
-                  width="11"
-                  height="11"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden
-                >
-                  <path d="M12 3v12" />
-                  <path d="M6 9l6 6 6-6" />
-                  <path d="M5 21h14" />
-                </svg>
-                Download HD
-              </button>
-            ) : null}
-            {showUnlockCta ? (
-              <button
-                type="button"
-                onClick={onUnlock}
-                className="inline-flex items-center gap-1.5 rounded-full bg-terracotta px-4 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-cream transition-colors hover:bg-terracotta-dark"
-              >
-                <svg
-                  width="11"
-                  height="11"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden
-                >
-                  <rect x="4" y="11" width="16" height="10" rx="1.5" />
-                  <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-                </svg>
-                Unlock for $9.99
-              </button>
-            ) : null}
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close preview"
-            className="absolute -top-2 right-0 inline-flex h-9 w-9 items-center justify-center rounded-full bg-cream/15 text-cream backdrop-blur-sm transition-colors hover:bg-cream/25 md:-top-12 md:right-0"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden
-            >
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
-          </button>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
-  );
+// Mirror of `StudioGrid`'s per-count container shapes — kept in sync so
+// the developing state and the persisted /try/b/[token] state share the
+// same column rhythm. Anything beyond 6 tiles falls into the 3-col grid
+// (StudioDevelopFrame already caps the visible set at MAX_VISIBLE_CARDS).
+function studioGridShapeClass(count: number): string {
+  if (count <= 1) return "grid grid-cols-1 gap-4";
+  if (count === 2) {
+    return "grid grid-cols-1 gap-3 sm:grid-cols-[1.55fr_1fr] sm:gap-4";
+  }
+  if (count === 3) return "grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4";
+  return "grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-3";
 }
+
