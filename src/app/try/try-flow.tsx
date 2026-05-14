@@ -34,7 +34,10 @@ import { AuthModal } from "./auth-modal";
 import { OtpAuthFlow } from "@/components/app/otp-auth-flow";
 import { motion } from "framer-motion";
 import { EditorialClaimRail, TrustRow } from "./editorial-rail";
-import { StudioDevelopFrame } from "./studio-frame";
+import {
+  AdaptiveStudioLayout,
+  SingleImageHeroLayout,
+} from "./adaptive-studio-layout";
 import { Lightbox } from "./lightbox";
 
 const PENDING_BATCH_KEY = "vd_pending_batch";
@@ -80,8 +83,12 @@ function mintClientBatchToken(): string {
 // the rest are locked behind the $9.99 unlock CTA. All scenes are real
 // generations whose raw URLs become available post-payment. Cap matches
 // the editorial Studio frame's 3x2 grid (StudioDevelopFrame).
+// Authed visitors can pick up to 6 scenes per batch; unauth visitors
+// are capped at 3 — that's the free-tier ceiling, where index 0 is the
+// free hero preview and indexes 1–2 are unlockable for $9.99 (or both
+// as a $14.99 bundle in State C). See CLAUDE.md → Free-tier funnel.
 const MAX_TRY_SCENES = 6;
-const MAX_TRY_SCENES_UNAUTH = 6;
+const MAX_TRY_SCENES_UNAUTH = 3;
 
 type Photo = { url: string; name: string; isObjectUrl: boolean; file: File | null };
 
@@ -1153,34 +1160,38 @@ function UnauthEditorialStage({
             }
           }}
         />
+      ) : generationResults.length === 1 && generationResults[0] ? (
+        // Persisted single-image batch — dedicated showcase composition.
+        // No upsell sidebar; one cinematic hero dominates with editorial
+        // overlays. Matches /try/b/[token] for 1-image batches so a
+        // refresh mid-state stays consistent.
+        <SingleImageHeroLayout
+          tile={generationResults[0]}
+          sourceUrl={photo?.url}
+          sceneNames={sceneNames}
+          unlocked={claimed}
+          createdAt={new Date().toISOString()}
+          onDownloadClick={handleDownloadClick}
+          onPreviewClick={setLightboxSlug}
+        />
       ) : (
         // Persisted half of the lifecycle (and the source-File hydration
-        // fallback). Same StudioDevelopFrame shell as during streaming —
-        // left rail, adaptive grid slot, right/inline offer — but with
-        // DevelopGrid inside so the tiles get the editorial watermark
-        // and per-tile download/unlock interactions. Visually matches
-        // /try/b/[token] exactly so a refresh mid-state doesn't change
-        // the page.
-        <StudioDevelopFrame
+        // fallback). The adaptive monetization layout takes over once
+        // every tile lands — count-aware composition for 2- and 3-tile
+        // batches with hero + locked previews + the wine premium upsell.
+        // Visually matches /try/b/[token] so a refresh mid-state doesn't
+        // change the page.
+        <AdaptiveStudioLayout
           results={generationResults}
           sourceUrl={photo?.url}
-          sourceName={photo?.name}
           sceneNames={sceneNames}
-          allDone
-          renderGrid={({ results, count }) => (
-            <div className={studioGridShapeClass(count)}>
-              <DevelopGrid
-                results={results}
-                variant={variant}
-                sourceUrl={photo?.url}
-                onDownloadClick={handleDownloadClick}
-                onUnlockClick={handleUnlockClick}
-                onPreviewClick={setLightboxSlug}
-                editorial
-                freePreviewUnlocked={claimed}
-              />
-            </div>
-          )}
+          claimed={claimed}
+          paid={false}
+          unlockReady={batchReady}
+          unlockSubmitting={unlockSubmitting}
+          onDownloadClick={handleDownloadClick}
+          onUnlockClick={handleUnlockClick}
+          onPreviewClick={setLightboxSlug}
         />
       )}
 
@@ -1222,19 +1233,6 @@ function UnauthEditorialStage({
       />
     </>
   );
-}
-
-// Mirror of `StudioGrid`'s per-count container shapes inside the
-// StudioDevelopFrame middle slot. Kept in sync with BatchView's copy so
-// the developing state and the persisted /try/b/[token] state share the
-// exact same column rhythm — one design, count-adaptive.
-function studioGridShapeClass(count: number): string {
-  if (count <= 1) return "grid grid-cols-1 gap-4";
-  if (count === 2) {
-    return "grid grid-cols-1 gap-3 sm:grid-cols-[1.55fr_1fr] sm:gap-4";
-  }
-  if (count === 3) return "grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4";
-  return "grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-3";
 }
 
 // Authed develop layout. While generation is pending, the StudioDevelopFrame

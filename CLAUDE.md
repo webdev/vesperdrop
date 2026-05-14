@@ -307,6 +307,47 @@ Every page must pass:
 
 ---
 
+# 15a. Free-tier Funnel (LOCKED)
+
+These are the canonical rules for the unauth /try flow. Do NOT change
+ratios or pricing without explicit instruction — they're tied to the
+homepage hero copy, the AdaptiveStudioLayout states, and the Stripe
+SKU plumbing.
+
+## Scene cap
+
+- **Unauth visitors: max 3 scenes per batch.**
+  - Index 0 → free hero preview (no watermark post-claim, downloadable HD)
+  - Indexes 1, 2 → watermarked previews unlockable for payment
+- Authed visitors: up to 6 scenes per batch.
+- Enforced client-side in `try-flow.tsx` (`MAX_TRY_SCENES_UNAUTH = 3`)
+  AND server-side in `/api/try/finalize-batch` (`maxScenes = userId ? 6 : 3`).
+  Both layers required — never rely on the client cap alone.
+
+## Pricing (locked across all surfaces)
+
+- **$9.99** — single unlock per locked image (State A & B).
+- **$9.99** — State C bundle unlock (both locked images, framed as
+  "save $4.99 vs was $14.98" — same price as a single unlock). The
+  Stripe SKU is the existing $9.99 unlock; no separate bundle SKU.
+- **$39/mo** — Pro unlimited plan.
+- Anywhere these prices appear (StateA/B/C upsell cards, homepage hero,
+  emails), pull from `PRICE_PER_SHOT` / `PRICE_BUNDLE` / `PRICE_BUNDLE_WAS`
+  / `PRICE_BUNDLE_SAVINGS` / `PRICE_PRO_MONTHLY` in
+  `src/app/try/adaptive-studio-layout.tsx`. Never hardcode.
+
+## State copy (locked)
+
+- "Complete the studio" — used in BOTH State B and State C upsell cards.
+  "Complete the studio set" / "studio set" is deprecated.
+- "Free hero shot" / "Free hero" — used for the index-0 tile in
+  AdaptiveStudioLayout. "Free hero shot on signup" is the only
+  microcopy that mentions the signup gate.
+- "Out of free renders" — error headline when `credit_limit_reached`
+  fires. Never "Free batch used", never "3 free previews used".
+
+---
+
 # 16. Final Constraint
 
 Claude must prioritize:

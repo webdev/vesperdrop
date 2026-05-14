@@ -96,9 +96,8 @@ export async function POST(req: Request) {
 
   const { generations: gens, sourceUrl, token: clientToken } = parsed.data;
 
-  // The unauth flow lets visitors pick 1–6 scenes (StudioDevelopFrame
-  // adapts its layout per count). Index 0 is always the free preview;
-  // any other index marked as free preview is rejected.
+  // Index 0 is always the free preview; any other index marked as free
+  // preview is rejected.
   if (!gens[0].isFreePreview) {
     return NextResponse.json(
       { error: "first generation must be the free preview" },
@@ -116,6 +115,19 @@ export async function POST(req: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   const userId = user?.id ?? null;
+
+  // Free-tier cap: unauth visitors are limited to 3 scenes per batch
+  // (1 free hero + 2 unlockable for $9.99 / $14.99 bundle). Authed
+  // visitors can run the full 6. Belt-and-suspenders for the client
+  // cap in try-flow.tsx — a tampered client can't oversubscribe the
+  // free tier here.
+  const maxScenes = userId ? 6 : 3;
+  if (gens.length > maxScenes) {
+    return NextResponse.json(
+      { error: `at most ${maxScenes} scenes per batch` },
+      { status: 400 },
+    );
+  }
 
   // The DB row stores the source URL on each generation; fall back
   // to the first output URL if the client didn't pass one (rare —

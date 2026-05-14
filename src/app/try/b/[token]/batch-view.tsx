@@ -3,9 +3,13 @@
 
 import { useCallback, useState } from "react";
 import { track } from "@/lib/analytics";
-import { DevelopGrid, type TileResult } from "../../develop-grid";
+import { type TileResult } from "../../develop-grid";
 import { EditorialClaimRail, TrustRow } from "../../editorial-rail";
-import { StudioDevelopFrame } from "../../studio-frame";
+import {
+  AdaptiveStudioLayout,
+  SingleImageHeroLayout,
+  StudioCompleteLayout,
+} from "../../adaptive-studio-layout";
 import { Lightbox } from "../../lightbox";
 import type { UnlockBatchGeneration } from "@/lib/db/schema";
 
@@ -15,12 +19,14 @@ export function BatchView({
   initialClaimed,
   initialPaid,
   sourceUrl,
+  createdAt,
 }: {
   token: string;
   generations: UnlockBatchGeneration[];
   initialClaimed: boolean;
   initialPaid: boolean;
   sourceUrl?: string;
+  createdAt: string;
 }) {
   const [claimed, setClaimed] = useState(initialClaimed);
   const [paid] = useState(initialPaid);
@@ -147,7 +153,7 @@ export function BatchView({
 
   return (
     <>
-      <div className="mb-10 flex flex-col items-start justify-between gap-4 md:mb-14 md:flex-row md:items-end">
+      <div className="mb-8 flex flex-col items-start justify-between gap-5 md:mb-10 md:flex-row md:items-end">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
             {paid ? "Your studio · Complete" : "Your studio · Saved"}
@@ -159,63 +165,111 @@ export function BatchView({
             </em>
             .
           </h1>
+          {paid ? (
+            <p className="mt-4 max-w-[44ch] font-serif text-[15.5px] leading-[1.5] text-ink-3">
+              Your editorial set is ready.
+              <br />
+              {tileResults.length} campaign asset
+              {tileResults.length === 1 ? "" : "s"} generated.
+            </p>
+          ) : null}
         </div>
         {paid ? (
-          <div className="inline-flex items-center gap-2 rounded-full bg-terracotta-wash px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-terracotta-dark">
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 12 12"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden
+          // Quiet action stack — status pill above, Download All pill
+          // below. No giant buttons, no boxes; both pills sit in the
+          // header so the gallery below can stay imagery-led.
+          <div className="flex flex-col items-start gap-2.5 md:items-end">
+            <div className="inline-flex items-center gap-2 rounded-full bg-terracotta-wash px-4 py-2 font-mono text-[10.5px] uppercase tracking-[0.18em] text-terracotta-dark">
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 12 12"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="M2.5 6.5l2.5 2.5 4.5-5" />
+              </svg>
+              {tileResults.length} campaign asset
+              {tileResults.length === 1 ? "" : "s"} ready
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                for (const r of tileResults) handleDownload(r.sceneSlug);
+              }}
+              data-testid="studio-complete-download-all"
+              className="inline-flex items-center gap-2 rounded-full border border-line bg-paper px-4 py-2 font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink transition-[border-color,background-color,transform] hover:-translate-y-0.5 hover:border-ink-3 hover:bg-surface"
             >
-              <path d="M2.5 6.5l2.5 2.5 4.5-5" />
-            </svg>
-            Studio set unlocked
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="M12 3v12" />
+                <path d="M6 9l6 6 6-6" />
+                <path d="M5 21h14" />
+              </svg>
+              Download all assets
+            </button>
           </div>
         ) : null}
       </div>
 
-      {/* Single canonical post-generation shell: left rail (product +
-          selected scenes + status) → middle grid → right rail / inline
-          offer. Same StudioDevelopFrame used by /try during developing,
-          so the persisted view at /try/b/[token] reads as one design,
-          adapting only to the number of generations. DevelopGrid renders
-          inside the middle slot to keep the existing watermark, download,
-          unlock, and lightbox interactions. */}
-      <StudioDevelopFrame
-        results={tileResults}
-        sourceUrl={sourceUrl}
-        sceneNames={generations.map((g) => g.sceneName)}
-        allDone
-        renderGrid={({ results, count }) => (
-          // Editorial DevelopGrid returns a fragment of `sm:order-N`
-          // tile wrappers — the parent owns the grid container. We
-          // mirror StudioGrid's per-count shapes (1 / 2 / 3 / 4–6) so
-          // the post-generation view sits inside the exact same column
-          // rhythm as the developing state.
-          <div className={studioGridShapeClass(count)}>
-            <DevelopGrid
-              results={results}
-              variant="darkroom"
-              editorial
-              // Post-payment all tiles are unlocked; pre-payment only
-              // the free hero unlocks on claim. Threading `paid` through
-              // as a global free-preview-unlocked flag is the cleanest
-              // way to suppress every watermark + Preview label.
-              freePreviewUnlocked={paid || claimed}
-              paidAll={paid}
-              onDownloadClick={handleDownload}
-              onUnlockClick={handleUnlock}
-              onPreviewClick={setLightboxSlug}
-            />
-          </div>
-        )}
-      />
+      {tileResults.length === 1 && tileResults[0] ? (
+        // Single-image showcase. No upsell sidebar, no empty right
+        // column — one cinematic hero dominates with editorial overlays.
+        // Applies in BOTH paid and !paid states (the watermark / claim
+        // gate is handled inside SingleImageHero via `unlocked`).
+        <SingleImageHeroLayout
+          tile={tileResults[0]}
+          sourceUrl={sourceUrl}
+          sceneNames={generations.map((g) => g.sceneName)}
+          unlocked={paid || claimed}
+          createdAt={createdAt}
+          onDownloadClick={handleDownload}
+          onPreviewClick={setLightboxSlug}
+        />
+      ) : paid ? (
+        // Post-payment editorial spread: lightweight notes column +
+        // asymmetric gallery. Download All + status pill live in the
+        // header above, not inside the gallery — keeps the imagery
+        // dominant and the chrome minimal.
+        <StudioCompleteLayout
+          results={tileResults}
+          sourceUrl={sourceUrl}
+          sceneNames={generations.map((g) => g.sceneName)}
+          createdAt={createdAt}
+          onPreviewClick={setLightboxSlug}
+        />
+      ) : (
+        // Pre-payment monetization layout for 2- and 3-image batches.
+        // Free hero is always the leftmost tile; locked previews are
+        // blurred until paid; right rail carries the upsell ($9.99
+        // single for 2, $14.99 bundle for 3). Single-image batches are
+        // handled above with the dedicated showcase composition.
+        <AdaptiveStudioLayout
+          results={tileResults}
+          sourceUrl={sourceUrl}
+          sceneNames={generations.map((g) => g.sceneName)}
+          claimed={claimed}
+          paid={paid}
+          unlockReady
+          unlockSubmitting={unlockSubmitting}
+          onDownloadClick={handleDownload}
+          onUnlockClick={handleUnlock}
+          onPreviewClick={setLightboxSlug}
+        />
+      )}
 
       {paid ? null : (
         <EditorialClaimRail
@@ -226,7 +280,7 @@ export function BatchView({
           unlockSubmitting={unlockSubmitting}
         />
       )}
-      <TrustRow />
+      {paid ? null : <TrustRow />}
 
       <Lightbox
         image={
@@ -256,18 +310,5 @@ export function BatchView({
       />
     </>
   );
-}
-
-// Mirror of `StudioGrid`'s per-count container shapes — kept in sync so
-// the developing state and the persisted /try/b/[token] state share the
-// same column rhythm. Anything beyond 6 tiles falls into the 3-col grid
-// (StudioDevelopFrame already caps the visible set at MAX_VISIBLE_CARDS).
-function studioGridShapeClass(count: number): string {
-  if (count <= 1) return "grid grid-cols-1 gap-4";
-  if (count === 2) {
-    return "grid grid-cols-1 gap-3 sm:grid-cols-[1.55fr_1fr] sm:gap-4";
-  }
-  if (count === 3) return "grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4";
-  return "grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-3";
 }
 

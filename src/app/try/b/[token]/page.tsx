@@ -145,6 +145,7 @@ export default async function Page({
           initialClaimed={initialClaimed}
           initialPaid={isPaid}
           sourceUrl={sourceUrl}
+          createdAt={batch.createdAt.toISOString()}
         />
       </Container>
     </div>

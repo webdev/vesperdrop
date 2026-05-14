@@ -158,7 +158,12 @@ describe("POST /api/try/finalize-batch", () => {
     expect(gensValues).toHaveLength(1);
   });
 
-  it("accepts 6-scene batches", async () => {
+  it("accepts 6-scene batches for authed users", async () => {
+    // Authed users get the full 6-scene cap. Unauth visitors are
+    // limited to 3 (see the "rejects > 3 scenes for unauth visitors"
+    // case below) — the server-side guard mirrors the client cap in
+    // try-flow.tsx and protects against a tampered client posting more.
+    getUser.mockResolvedValue({ data: { user: { id: "user-123" } } });
     const sixGens = Array.from({ length: 6 }, (_, i) => ({
       ...validGenerations()[0],
       sceneSlug: `slug-${i}`,
@@ -173,6 +178,23 @@ describe("POST /api/try/finalize-batch", () => {
     expect(res.status).toBe(201);
     const gensValues = inserts[1].values as Array<Record<string, unknown>>;
     expect(gensValues).toHaveLength(6);
+  });
+
+  it("rejects > 3 scenes for unauth visitors", async () => {
+    // No auth → max 3 scenes. Belt-and-suspenders for the client cap.
+    const fourGens = Array.from({ length: 4 }, (_, i) => ({
+      ...validGenerations()[0],
+      sceneSlug: `slug-${i}`,
+      isFreePreview: i === 0,
+    }));
+    const res = await POST(
+      jsonReq({
+        generations: fourGens,
+        sourceUrl: "https://blob.example/src.jpg",
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect(inserts).toHaveLength(0);
   });
 
   it("accepts a client-minted 32-hex token and uses it as the batch primary key", async () => {
