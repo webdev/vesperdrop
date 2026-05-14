@@ -332,7 +332,7 @@ function LockedPreviewCard({
       }}
       data-testid="adaptive-locked-card"
       data-locked={!unlocked}
-      className={`group relative block w-full cursor-pointer overflow-hidden rounded-3xl bg-ink text-left shadow-card transition-shadow hover:shadow-card-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta ${aspect}`}
+      className={`group relative block w-full cursor-pointer overflow-hidden rounded-3xl bg-ink text-left shadow-[0_10px_30px_-14px_rgba(20,15,10,0.4)] transition-[transform,box-shadow] duration-[600ms] ease-out hover:-translate-y-0.5 hover:shadow-[0_20px_46px_-18px_rgba(20,15,10,0.55)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta ${aspect}`}
       aria-label={
         unlocked
           ? `Preview ${tile.sceneName}`
@@ -340,41 +340,70 @@ function LockedPreviewCard({
       }
     >
       {imageUrl ? (
+        // Locked: light blur (~3px) so silhouette + lighting + scene
+        // composition stay legible — the teaser tells the user there's
+        // a real premium image behind the lock, not an empty placeholder.
+        // Hover peels 1px off the blur for the "peek behind the curtain"
+        // effect.
         <img
           src={imageUrl}
           alt={tile.sceneName}
           draggable={false}
-          className="absolute inset-0 h-full w-full object-cover transition-[filter,transform] duration-700 ease-out"
+          className="absolute inset-0 h-full w-full object-cover transition-[filter,transform] duration-[700ms] ease-out group-hover:[filter:blur(2px)_saturate(0.98)_brightness(0.98)]"
           style={{
             objectPosition: tile.focalPoint
               ? `${Math.round(tile.focalPoint.x * 100)}% ${Math.round(tile.focalPoint.y * 100)}%`
               : "center",
             filter: unlocked
               ? "none"
-              : "blur(22px) saturate(0.92) brightness(0.85)",
-            transform: unlocked ? "none" : "scale(1.08)",
+              : "blur(3px) saturate(0.95) brightness(0.92)",
+            // Slight upscale hides the blur halo at the edges. Hover
+            // adds a tiny extra lift via the wrapper's translate-y.
+            transform: unlocked ? "none" : "scale(1.04)",
           }}
         />
       ) : null}
 
-      {/* Warm cinematic vignette */}
+      {/* Translucent darkening overlay — rgba(15,12,10,0.32) per spec.
+          Sits above the blurred image so the lock icon + caption stay
+          readable against varied photography. */}
+      {!unlocked ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(15,12,10,0.38) 0%, rgba(15,12,10,0.26) 100%)",
+          }}
+        />
+      ) : (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(80% 60% at 50% 40%, rgba(15,12,10,0.10) 0%, rgba(15,12,10,0.55) 100%)",
+          }}
+        />
+      )}
+
+      {/* Soft corner vignette for premium depth, both states */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
-          background:
-            "radial-gradient(80% 60% at 50% 40%, rgba(15,12,10,0.10) 0%, rgba(15,12,10,0.55) 100%)",
+          boxShadow: "inset 0 0 90px rgba(15,12,10,0.35)",
         }}
       />
 
-      {/* Subtle diagonal texture lines (only when locked) */}
+      {/* Subtle diagonal noise — only locked, very low opacity */}
       {!unlocked ? (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-[0.06] mix-blend-overlay"
+          className="pointer-events-none absolute inset-0 opacity-[0.05] mix-blend-overlay"
           style={{
             backgroundImage:
-              "repeating-linear-gradient(135deg, rgba(255,255,255,0.6) 0 1px, transparent 1px 14px)",
+              "repeating-linear-gradient(135deg, rgba(255,255,255,0.55) 0 1px, transparent 1px 14px)",
           }}
         />
       ) : null}
@@ -398,17 +427,21 @@ function LockedPreviewCard({
           </button>
         </div>
       ) : (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-cream">
+        // Centered lock + caption stack. The lock sits in a soft
+        // translucent circle (frosted, not heavy SaaS chrome). Text is
+        // small + spaced wide so it reads as editorial label rather
+        // than a system message.
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 text-cream">
           <span
             aria-hidden
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-ink/70 backdrop-blur-sm"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-ink/55 ring-1 ring-cream/15 backdrop-blur-md transition-transform duration-[600ms] ease-out group-hover:-translate-y-0.5"
           >
-            <LockIcon size={18} />
+            <LockIcon size={16} />
           </span>
-          <p className="font-mono text-[10px] uppercase tracking-[0.24em]">
+          <p className="font-mono text-[10.5px] uppercase tracking-[0.26em] text-cream">
             Preview
           </p>
-          <p className="font-mono text-[10px] tracking-[0.14em] text-cream/70">
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-cream/65">
             Locked
           </p>
         </div>
