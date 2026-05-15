@@ -233,6 +233,27 @@ Claude must:
 - Persist before returning results
 - No orphan records
 
+## Third-party webhooks (LOCKED)
+
+The Vercel Domains panel auto-redirects apex `vesperdrop.com` → `www.vesperdrop.com`
+with HTTP 308. Stripe, Resend, GitHub, and most webhook senders do NOT follow
+redirects — a 308 response is treated as delivery failure. Symptom: silent
+webhook outage with no errors in our server logs (the handler is never
+invoked).
+
+Rules:
+- **Always register webhook URLs against `https://www.vesperdrop.com/...`,
+  never the apex.** Applies to Stripe, Resend, GitHub, Slack, and any
+  future third-party caller.
+- When debugging "events stopped firing on date X," first query
+  `stripe_events` (or the equivalent idempotency log) for the last
+  recorded `processed_at`. If it predates the reported outage and the
+  handler code is unchanged, suspect a host/redirect mismatch before
+  touching code.
+- If you ever change the canonical host (apex ↔ www) in Vercel Domains,
+  audit every external webhook receiver and update the registered URL
+  in the same change.
+
 ---
 
 # 11. Implementation Rules
