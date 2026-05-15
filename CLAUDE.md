@@ -307,6 +307,32 @@ Every page must pass:
 
 ---
 
+# 15-Admin. Admin Entitlement (LOCKED)
+
+**Admins get every paid feature, full stop.** Anywhere we gate a feature
+on `plan !== "free"` or `isPaidPlanSlug(plan)`, the same condition must
+also pass when `isAdminEmail(user.email)` is true — independent of what
+`profiles.plan` says.
+
+- Allowlist lives in `src/lib/admin.ts` (`ADMIN_EMAILS`). Current
+  entries: `gblazer@gmail.com`, `info@slavablazer.com`. To add an
+  admin, edit that file and ship — there is no DB-backed admin role.
+- Concrete behaviors admins must NEVER hit:
+  - `Downloads are a paid perk` upsell modal
+    (`UpgradeRequiredDialog`) — 402 from `/api/images/[id]?download=1`.
+  - Watermark on served images (`/api/images/[id]` watermark branch).
+  - Quota-exhausted blocks if an admin is on the free plan with a
+    drained `quota_units_balance` — admins are unmetered.
+- When adding any new paid-only feature, write the gate as
+  `isAdmin || isPaidPlanSlug(plan)` (or equivalent). Reviewing a PR
+  with a bare `plan !== "free"` check on a paid surface → blocker.
+- Drift between Stripe and `profiles.plan` (webhook miss, etc.) will
+  still block a real paid customer. Admins are the safety net while
+  drift is being investigated, but the underlying webhook bug is the
+  real fix.
+
+---
+
 # 15a. Free-tier Funnel (LOCKED)
 
 These are the canonical rules for the unauth /try flow. Do NOT change
