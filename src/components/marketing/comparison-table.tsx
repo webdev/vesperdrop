@@ -33,6 +33,12 @@ export function ComparisonTable({ rows }: { rows: ComparisonRow[] }) {
           const onTrack = () => {
             if (!isContact) {
               track("pricing_plan_clicked", { plan: slug, billing: interval });
+              track("checkout_started", {
+                kind: "subscription",
+                plan: slug,
+                interval: interval === "annual" ? "annual" : "monthly",
+                location: "comparison",
+              });
             }
           };
           return (

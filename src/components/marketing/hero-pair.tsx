@@ -93,7 +93,15 @@ export function HeroPair({
         </ul>
         <a
           href={`/api/stripe/checkout?plan=pro&interval=${interval}`}
-          onClick={() => track("pricing_plan_clicked", { plan: "pro", billing: interval })}
+          onClick={() => {
+            track("pricing_plan_clicked", { plan: "pro", billing: interval });
+            track("checkout_started", {
+              kind: "subscription",
+              plan: "pro",
+              interval: interval === "annual" ? "annual" : "monthly",
+              location: "hero",
+            });
+          }}
           className="mt-8 inline-flex items-center justify-center gap-2 rounded-full bg-terracotta px-6 py-3 font-mono text-[12px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark"
         >
           {pro.ctaLabel} <span aria-hidden>→</span>

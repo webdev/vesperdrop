@@ -44,6 +44,36 @@ export type AnalyticsEvent =
   | { name: "user_signed_up"; props: { method: "email" | "google" | "facebook" | "apple" } }
   | { name: "user_signed_in"; props: { method: "email" | "google" | "facebook" | "apple" } }
   | { name: "run_complete"; props: { run_id: string; succeeded: number; failed: number; total: number } }
+  | {
+      name: "image_generated";
+      props: {
+        run_id: string;
+        generation_id: string;
+        preset_id: string;
+        quality: "preview" | "hd";
+        watermarked: boolean;
+        duration_ms: number | null;
+      };
+    }
+  | {
+      name: "image_failed";
+      props: {
+        run_id: string;
+        generation_id: string;
+        preset_id: string;
+        error: string;
+      };
+    }
+  | {
+      name: "checkout_started";
+      props: {
+        kind: "subscription" | "plan_switch" | "billing_portal" | "unlock";
+        plan?: string;
+        interval?: "monthly" | "annual";
+        location: "pricing" | "comparison" | "account_grid" | "account_summary" | "hero" | "try" | "batch";
+      };
+    }
+  | { name: "billing_portal_opened"; props: { location: "account_summary" | "account_grid" } }
   | { name: "try_batch_started"; props: { batchId: string; slugs: string[] } }
   | { name: "try_batch_completed"; props: { batchId: string; doneCount: number; errorCount: number; totalMs: number } }
   | { name: "try_batch_abandoned"; props: { batchId: string; elapsedMs: number } }

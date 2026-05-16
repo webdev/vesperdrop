@@ -129,9 +129,14 @@ function ctaFor({
       return (
         <a
           href={`/api/stripe/checkout?plan=${tier.slug}`}
-          onClick={() =>
-            track("plan_choose_clicked", { plan: tier.slug, location: "account" })
-          }
+          onClick={() => {
+            track("plan_choose_clicked", { plan: tier.slug, location: "account" });
+            track("checkout_started", {
+              kind: "subscription",
+              plan: tier.slug,
+              location: "account_grid",
+            });
+          }}
           className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-terracotta px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark"
         >
           Choose {tier.label} <span aria-hidden>→</span>
@@ -141,9 +146,14 @@ function ctaFor({
     return (
       <a
         href={`/api/stripe/checkout?plan=${tier.slug}`}
-        onClick={() =>
-          track("plan_choose_clicked", { plan: tier.slug, location: "account" })
-        }
+        onClick={() => {
+          track("plan_choose_clicked", { plan: tier.slug, location: "account" });
+          track("checkout_started", {
+            kind: "subscription",
+            plan: tier.slug,
+            location: "account_grid",
+          });
+        }}
         className="inline-flex w-full items-center justify-center rounded-full border border-line bg-paper-soft px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink transition-colors hover:bg-paper-2"
       >
         Choose {tier.label}
@@ -155,9 +165,14 @@ function ctaFor({
     return (
       <a
         href={`/api/stripe/portal?to=${tier.slug}`}
-        onClick={() =>
-          track("plan_switch_clicked", { plan: tier.slug, location: "account" })
-        }
+        onClick={() => {
+          track("plan_switch_clicked", { plan: tier.slug, location: "account" });
+          track("checkout_started", {
+            kind: "plan_switch",
+            plan: tier.slug,
+            location: "account_grid",
+          });
+        }}
         className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-terracotta px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark"
       >
         Switch to {tier.label} <span aria-hidden>→</span>
@@ -167,9 +182,14 @@ function ctaFor({
   return (
     <a
       href={`/api/stripe/portal?to=${tier.slug}`}
-      onClick={() =>
-        track("plan_switch_clicked", { plan: tier.slug, location: "account" })
-      }
+      onClick={() => {
+        track("plan_switch_clicked", { plan: tier.slug, location: "account" });
+        track("checkout_started", {
+          kind: "plan_switch",
+          plan: tier.slug,
+          location: "account_grid",
+        });
+      }}
       className="inline-flex w-full items-center justify-center rounded-full border border-line bg-paper-soft px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink transition-colors hover:bg-paper-2"
     >
       Switch to {tier.label}

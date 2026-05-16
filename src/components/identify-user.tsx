@@ -3,9 +3,15 @@
 import { useEffect } from "react";
 import { identify } from "@/lib/analytics";
 
-export function IdentifyUser({ id, email }: { id: string; email: string }) {
+interface Props {
+  id: string;
+  email: string;
+  plan?: string;
+}
+
+export function IdentifyUser({ id, email, plan }: Props) {
   useEffect(() => {
-    identify(id, { email });
-  }, [id, email]);
+    identify(id, { email, ...(plan ? { plan } : {}) });
+  }, [id, email, plan]);
   return null;
 }

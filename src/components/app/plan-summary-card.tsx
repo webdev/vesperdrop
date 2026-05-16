@@ -1,7 +1,7 @@
 import "server-only";
-import Link from "next/link";
 import { stripe } from "@/lib/stripe/server";
 import { PLAN_CATALOG, type PlanSlug } from "@/lib/plans";
+import { PlanSummaryActions } from "./plan-summary-actions";
 
 interface Props {
   plan: PlanSlug;
@@ -103,21 +103,10 @@ export async function PlanSummaryCard({
         </div>
 
         <div className="flex shrink-0 items-center gap-3">
-          {stripeCustomerId ? (
-            <Link
-              href="/api/stripe/portal"
-              className="inline-flex items-center gap-2 rounded-full border border-line bg-paper-soft px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink transition-colors hover:bg-paper-2"
-            >
-              Manage subscription
-            </Link>
-          ) : isFree ? (
-            <a
-              href="/api/stripe/checkout?plan=pro"
-              className="inline-flex items-center gap-2 rounded-full bg-terracotta px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark"
-            >
-              Upgrade to Pro <span aria-hidden>→</span>
-            </a>
-          ) : null}
+          <PlanSummaryActions
+            hasStripeCustomer={Boolean(stripeCustomerId)}
+            isFree={isFree}
+          />
         </div>
       </div>
     </div>

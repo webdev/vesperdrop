@@ -114,6 +114,7 @@ export function BatchView({
       if (!gen.isFreePreview) {
         if (unlockSubmitting) return;
         setUnlockSubmitting(true);
+        track("checkout_started", { kind: "unlock", location: "batch" });
         window.location.href = `/api/stripe/unlock-checkout?batchToken=${token}`;
         return;
       }
@@ -133,6 +134,7 @@ export function BatchView({
     track("try_unlock_clicked");
     if (unlockSubmitting) return;
     setUnlockSubmitting(true);
+    track("checkout_started", { kind: "unlock", location: "batch" });
     window.location.href = `/api/stripe/unlock-checkout?batchToken=${token}`;
   }, [unlockSubmitting, token]);
 

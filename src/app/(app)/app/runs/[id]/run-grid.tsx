@@ -119,8 +119,36 @@ export function RunGrid({
   const [lightboxId, setLightboxId] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const completedTracked = useRef(false);
+  const perGenTracked = useRef<Set<string>>(new Set());
 
   useEffect(() => {
+    for (const g of gens) {
+      if (g.status !== "succeeded" && g.status !== "failed") continue;
+      if (perGenTracked.current.has(g.id)) continue;
+      perGenTracked.current.add(g.id);
+      if (g.status === "succeeded") {
+        const created = g.createdAt ? Date.parse(g.createdAt) : NaN;
+        const done = g.completedAt ? Date.parse(g.completedAt) : NaN;
+        const duration =
+          Number.isFinite(created) && Number.isFinite(done) ? done - created : null;
+        track("image_generated", {
+          run_id: runId,
+          generation_id: g.id,
+          preset_id: g.presetId,
+          quality: g.quality,
+          watermarked: g.watermarked,
+          duration_ms: duration,
+        });
+      } else {
+        track("image_failed", {
+          run_id: runId,
+          generation_id: g.id,
+          preset_id: g.presetId,
+          error: g.error ?? "unknown",
+        });
+      }
+    }
+
     const allDone = gens.every(
       (g) => g.status === "succeeded" || g.status === "failed",
     );

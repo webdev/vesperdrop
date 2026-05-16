@@ -961,6 +961,7 @@ function DevelopStep({
     if (unlockSubmitting) return;
     if (!batchPersisted) return;
     setUnlockSubmitting(true);
+    track("checkout_started", { kind: "unlock", location: "try" });
     window.location.href = `/api/stripe/unlock-checkout?batchToken=${batchToken}`;
   }, [unlockSubmitting, batchToken, batchPersisted]);
 
