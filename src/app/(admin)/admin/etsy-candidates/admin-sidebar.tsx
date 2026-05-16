@@ -10,6 +10,7 @@ type Item = {
 };
 
 const ITEMS: Item[] = [
+  { label: "Users", href: "/admin/users" },
   { label: "Etsy", href: "/admin/etsy-candidates" },
   { label: "Previews", href: "/admin/previews" },
 ];
