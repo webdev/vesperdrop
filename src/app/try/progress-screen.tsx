@@ -46,6 +46,10 @@ type Props = {
    * deliver the editorial multi-image layout.
    */
   studio?: StudioRenderArgs;
+  /** Casting race for the whole batch — passed to every stream so all
+   *  tiles share one model identity. Vesperdrop picks this once at
+   *  DevelopStep mount; sceneify filters its reference pool by it. */
+  castingRace?: string;
 };
 
 export function ProgressScreen({
@@ -63,6 +67,7 @@ export function ProgressScreen({
   editorial = false,
   freePreviewUnlocked = false,
   studio,
+  castingRace,
 }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const stableSlugs = useMemo(() => sceneSlugs, []); // contract: stable for lifetime
@@ -70,6 +75,7 @@ export function ProgressScreen({
     file,
     sceneSlugs: stableSlugs,
     primaryPreset,
+    castingRace,
   });
 
   const [batchId] = useState<string>(() => crypto.randomUUID());

@@ -35,6 +35,13 @@ type Args = {
   file: File;
   sceneSlug: string;
   enabled?: boolean;
+  /** Casting race forwarded as the `castingRace` FormData field on the
+   *  /api/try/generate POST. The parent (`useProgressBatch`) picks ONE
+   *  value per batch and passes the same string to every stream so all
+   *  tiles in a batch render with the same model identity. Sceneify
+   *  filters its reference pool by this token; unknown / empty values
+   *  fall through to the default sampler. */
+  castingRace?: string;
 };
 
 // Auto-retry policy for retryable errors. Generation failures bubble
@@ -67,6 +74,7 @@ export function useProgressStream({
   file,
   sceneSlug,
   enabled = true,
+  castingRace,
 }: Args): StreamHandle {
   const [state, setState] = useState<StreamState>(initial);
   const abortRef = useRef<AbortController | null>(null);
@@ -97,6 +105,7 @@ export function useProgressStream({
     const form = new FormData();
     form.append("file", file, file.name);
     form.append("sceneSlug", sceneSlug);
+    if (castingRace) form.append("castingRace", castingRace);
 
     (async () => {
       try {
@@ -194,7 +203,7 @@ export function useProgressStream({
         }
       }
     })();
-  }, [file, sceneSlug]);
+  }, [file, sceneSlug, castingRace]);
 
   useEffect(() => {
     if (!enabled) return;

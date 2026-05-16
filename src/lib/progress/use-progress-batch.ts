@@ -33,13 +33,19 @@ export function useProgressBatch(args: {
   file: File;
   sceneSlugs: string[];
   primaryPreset: PresetMeta;
+  /** Casting race applied to EVERY stream in this batch — sceneify
+   *  uses it to anchor the same model identity across all tiles. The
+   *  caller picks one value at batch-mount time and never changes it
+   *  for the lifetime of this hook (`sceneSlugs` already has the same
+   *  stability contract). */
+  castingRace?: string;
 }): BatchView {
-  const { file, sceneSlugs, primaryPreset } = args;
+  const { file, sceneSlugs, primaryPreset, castingRace } = args;
 
   const handles = sceneSlugs.map((slug) => ({
     slug,
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    handle: useProgressStream({ file, sceneSlug: slug }),
+    handle: useProgressStream({ file, sceneSlug: slug, castingRace }),
   }));
   const streams: Record<string, StreamHandle> = Object.fromEntries(
     handles.map(({ slug, handle }) => [slug, handle]),

@@ -36,6 +36,38 @@ const PRIORITY_SCORE: Record<SceneifyPriority, number> = {
   outreach: 0,
 };
 
+/**
+ * Casting target for the generated model. Mirrors sceneify's
+ * src/lib/db/schema.ts → ModelRace / ModelGender / ModelAgeRange.
+ * Pick a value per BATCH (not per tile) so all shots in a batch read
+ * as the same person — sceneify filters its reference pool by these
+ * tokens and prepends an explicit demographic directive to the prompt.
+ */
+export type SceneifyCastingRace =
+  | "white"
+  | "black"
+  | "east_asian"
+  | "south_asian"
+  | "southeast_asian"
+  | "latino"
+  | "middle_eastern"
+  | "mixed";
+
+export type SceneifyCastingGender = "female" | "male" | "nonbinary";
+
+export type SceneifyCastingAgeRange =
+  | "teen"
+  | "20s"
+  | "30s"
+  | "40s"
+  | "50s_plus";
+
+export type SceneifyCasting = {
+  race?: SceneifyCastingRace;
+  gender?: SceneifyCastingGender;
+  ageRange?: SceneifyCastingAgeRange;
+};
+
 export type SceneifyGenerateInput = {
   sourceUrl: string;
   sourceFilename?: string;
@@ -48,6 +80,7 @@ export type SceneifyGenerateInput = {
   shotFraming?: string;
   callerRef?: string;
   priority?: SceneifyPriority;
+  casting?: SceneifyCasting;
 };
 
 export type FocalPoint = {

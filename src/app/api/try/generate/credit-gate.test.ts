@@ -137,7 +137,13 @@ describe("/api/try/generate credit gating", () => {
   });
 
   it("reuses an existing anon ledger row without re-setting the cookie", async () => {
-    cookieGet.mockReturnValueOnce({ value: "anon-existing" });
+    // Route reads two cookies before the credit gate: `vd_mock_gen`
+    // (the local-dev mock toggle, must miss in this scenario) and
+    // `vd_try_anon` (the ledger we're testing). Use a name-aware mock
+    // so the order of reads in the route doesn't matter.
+    cookieGet.mockImplementation((name: unknown) =>
+      name === "vd_try_anon" ? { value: "anon-existing" } : undefined,
+    );
     getOrCreateAnonCredit.mockResolvedValueOnce({
       anonId: "anon-existing",
       created: false,

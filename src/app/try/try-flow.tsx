@@ -78,6 +78,29 @@ function mintClientBatchToken(): string {
   }
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
+
+// Vocabulary mirrors sceneify's ModelRace enum
+// (src/lib/db/schema.ts in sceneify and SceneifyCastingRace in
+// src/lib/ai/sceneify.ts here). One race per batch, applied to every
+// tile so the 3 generated shots read as the same person. Uniform over
+// the full set — sceneify gracefully falls back to its default sampler
+// for presets that have no references tagged for the chosen race, so
+// missing coverage degrades quality but never errors.
+const CASTING_RACES = [
+  "white",
+  "black",
+  "east_asian",
+  "south_asian",
+  "southeast_asian",
+  "latino",
+  "middle_eastern",
+  "mixed",
+] as const;
+
+function pickRandomCastingRace(): string {
+  const i = Math.floor(Math.random() * CASTING_RACES.length);
+  return CASTING_RACES[i];
+}
 // Both authed and unauth visitors can pick up to 6 scenes per batch.
 // For unauth visitors the first scene is the free watermarked preview;
 // the rest are locked behind the $9.99 unlock CTA. All scenes are real
@@ -687,6 +710,12 @@ function DevelopStep({
   // `claimed` flips to true after attach-batch resolves and gates the
   // visual unlock on the free preview tile.
   const [batchToken] = useState<string>(() => mintClientBatchToken());
+  // Random casting race for the whole batch — picked once and held for
+  // the lifetime of DevelopStep so all N tiles render with the same
+  // model identity. Uniform across sceneify's race vocabulary; tiles
+  // for presets that lack tagged references just hit the fallback path
+  // (unfiltered pool + explicit directive). See CLAUDE.md → Casting.
+  const [batchCastingRace] = useState<string>(() => pickRandomCastingRace());
   const [batchPersisted, setBatchPersisted] = useState(false);
   const [claimed, setClaimed] = useState(false);
   const finalizeRanRef = useRef(false);
@@ -997,6 +1026,7 @@ function DevelopStep({
           variant={variant}
           handleDownloadClick={handleDownloadClick}
           handleLockedClick={handleLockedClick}
+          castingRace={batchCastingRace}
         />
       ) : (
         <UnauthEditorialStage
@@ -1014,6 +1044,7 @@ function DevelopStep({
           claimed={claimed}
           batchReady={batchPersisted}
           onClaimSuccess={handleClaimSuccess}
+          castingRace={batchCastingRace}
         />
       )}
 
@@ -1053,6 +1084,7 @@ function UnauthEditorialStage({
   claimed,
   batchReady,
   onClaimSuccess,
+  castingRace,
 }: {
   photo: Photo | null;
   picked: string[];
@@ -1068,6 +1100,7 @@ function UnauthEditorialStage({
   claimed: boolean;
   batchReady: boolean;
   onClaimSuccess: (args: { email: string; userId: string }) => void | Promise<void>;
+  castingRace: string;
 }) {
   const anyPending = generationResults.some((r) => r.status === "pending");
   const allSucceeded =
@@ -1124,6 +1157,7 @@ function UnauthEditorialStage({
           )}
           variant={variant}
           initialResults={generationResults}
+          castingRace={castingRace}
           onSourceUrl={(url) => setServerSourceUrl(url)}
           onUnlockClick={handleUnlockClick}
           studio={{
@@ -1252,6 +1286,7 @@ function AuthedDevelopLayout({
   variant,
   handleDownloadClick,
   handleLockedClick,
+  castingRace,
 }: {
   photo: Photo | null;
   picked: string[];
@@ -1264,6 +1299,7 @@ function AuthedDevelopLayout({
   variant: DevelopGridVariant;
   handleDownloadClick: (slug: string) => void;
   handleLockedClick: () => void;
+  castingRace: string;
 }) {
   const anyPending = generationResults.some((r) => r.status === "pending");
   const sceneNames = picked
@@ -1297,6 +1333,7 @@ function AuthedDevelopLayout({
         )}
         variant={variant}
         initialResults={generationResults}
+        castingRace={castingRace}
         onSourceUrl={(url) => setServerSourceUrl(url)}
         onDownloadClick={handleDownloadClick}
         studio={{

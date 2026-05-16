@@ -158,13 +158,41 @@ export async function POST(req: Request) {
   const form = await req.formData();
   const file = form.get("file");
   const sceneSlug = form.get("sceneSlug");
+  const castingRaceField = form.get("castingRace");
 
+  // Casting race is forwarded as a single FormData field, validated
+  // against the sceneify vocabulary. The client picks ONE race per
+  // batch (not per tile) and sends the same value on each tile's call
+  // so the 3 shots in a batch render with a consistent model identity.
+  // Unknown / missing values are accepted as "no casting target" rather
+  // than rejected — sceneify falls back to its default sampler.
+  const CASTING_RACES = [
+    "white",
+    "black",
+    "east_asian",
+    "south_asian",
+    "southeast_asian",
+    "latino",
+    "middle_eastern",
+    "mixed",
+  ] as const;
   const parsed = z
-    .object({ file: z.instanceof(File), sceneSlug: z.string().min(1).max(100) })
-    .safeParse({ file, sceneSlug });
+    .object({
+      file: z.instanceof(File),
+      sceneSlug: z.string().min(1).max(100),
+      castingRace: z.enum(CASTING_RACES).optional(),
+    })
+    .safeParse({
+      file,
+      sceneSlug,
+      castingRace:
+        typeof castingRaceField === "string" && castingRaceField.length > 0
+          ? castingRaceField
+          : undefined,
+    });
   if (!parsed.success) return jsonError("invalid input", 400);
 
-  const { file: photo, sceneSlug: slug } = parsed.data;
+  const { file: photo, sceneSlug: slug, castingRace } = parsed.data;
   if (!photo.type.startsWith("image/")) return jsonError("expected an image", 400);
   if (photo.size > 40 * 1024 * 1024) return jsonError("image too large (max 40MB)", 400);
 
@@ -245,6 +273,7 @@ export async function POST(req: Request) {
           model: "gpt-image-2",
           quality: "medium",
           callerRef: `try-${key}`,
+          casting: castingRace ? { race: castingRace } : undefined,
         });
 
         await attributesPromise;
