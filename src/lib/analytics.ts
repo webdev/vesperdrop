@@ -25,8 +25,27 @@ export type AnalyticsEvent =
   | { name: "try_signup_gate_seen"; props?: never }
   | { name: "try_signup_clicked"; props?: { intent?: "default" | "download" | "unlock"; slug?: string } }
   | { name: "try_tile_download_clicked"; props: { slug: string } }
+  // Fired AFTER the blob fetch + save completes successfully. Pairs with
+  // `try_tile_download_clicked` (intent) to give a true save-rate metric
+  // — clicked-but-bounced (auth modal, Stripe redirect, fetch error)
+  // never reaches this event.
+  | {
+      name: "try_tile_download_completed";
+      props: { slug: string; size_bytes: number };
+    }
   | { name: "try_locked_tile_clicked"; props?: never }
   | { name: "try_unlock_clicked"; props?: never }
+  // Fired the moment we redirect to Stripe Checkout. `kind` is the SKU
+  // family (one-time unlock vs subscription); `location` is the surface
+  // (batch view, scenes upsell, pricing card, etc.). Pairs with
+  // `checkout_success` for a Stripe-side conversion rate.
+  | {
+      name: "checkout_started";
+      props: {
+        kind: "unlock" | "subscription" | "pack";
+        location: "batch" | "try" | "pricing" | "account";
+      };
+    }
   | { name: "auth_otp_send_requested"; props: { surface: string } }
   | { name: "auth_otp_verified"; props: { surface: string } }
   | { name: "auth_otp_resend"; props: { surface: string } }

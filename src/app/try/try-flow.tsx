@@ -892,7 +892,7 @@ function DevelopStep({
   // browser opens them in a new tab. Fetch as blob + object URL so
   // we get a same-origin URL that honors `download`.
   const triggerDirectDownload = useCallback(
-    async (url: string, filename: string) => {
+    async (slug: string, url: string, filename: string) => {
       try {
         const res = await fetch(url, { cache: "no-store" });
         if (!res.ok) throw new Error(`fetch ${res.status}`);
@@ -905,6 +905,12 @@ function DevelopStep({
         a.click();
         a.remove();
         setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+        // Completion half of the (clicked → completed) pair. Fires only
+        // on a real blob save, never on the new-tab fallback below.
+        track("try_tile_download_completed", {
+          slug,
+          size_bytes: blob.size,
+        });
       } catch (err) {
         console.error("[try-flow] download failed", err);
         window.open(url, "_blank", "noopener,noreferrer");
@@ -932,6 +938,7 @@ function DevelopStep({
             tile.isFreePreview === true && claimed && Boolean(tile.rawUrl);
           const url = isHeroUnlocked ? (tile.rawUrl as string) : tile.outputUrl;
           void triggerDirectDownload(
+            slug,
             url,
             `${tile.sceneName.toLowerCase().replace(/\s+/g, "-")}.png`,
           );

@@ -58,7 +58,7 @@ export function BatchView({
   // same-origin from the browser's perspective and bypasses the
   // disposition rule entirely.
   const triggerDownload = useCallback(
-    async (url: string, filename: string) => {
+    async (slug: string, url: string, filename: string) => {
       try {
         const res = await fetch(url, { cache: "no-store" });
         if (!res.ok) throw new Error(`fetch ${res.status}`);
@@ -73,9 +73,18 @@ export function BatchView({
         // Revoke after a tick so the click has time to start the
         // download in some browsers.
         setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+        // Fire ONLY on successful save. The clicked event already
+        // fired upstream in handleDownload — this is the completion
+        // half of the pair (intent → save).
+        track("try_tile_download_completed", {
+          slug,
+          size_bytes: blob.size,
+        });
       } catch (err) {
         // Last-resort fallback: open in a new tab so the user can
-        // right-click → Save image as.
+        // right-click → Save image as. NB: do NOT fire
+        // try_tile_download_completed here — the user didn't actually
+        // save the file; the tab opening is best-effort.
         console.error("[batch-view] download failed", err);
         window.open(url, "_blank", "noopener,noreferrer");
       }
@@ -92,6 +101,7 @@ export function BatchView({
       // Post-payment: every tile is entitled to its raw HD download.
       if (paid && gen.rawUrl) {
         void triggerDownload(
+          slug,
           gen.rawUrl,
           `${gen.sceneName.toLowerCase().replace(/\s+/g, "-")}.png`,
         );
@@ -102,6 +112,7 @@ export function BatchView({
       // free-preview tile.
       if (claimed && gen.isFreePreview) {
         void triggerDownload(
+          slug,
           gen.rawUrl ?? gen.outputUrl,
           `${gen.sceneName.toLowerCase().replace(/\s+/g, "-")}.png`,
         );

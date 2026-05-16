@@ -153,25 +153,11 @@ describe("DevelopGrid editorial — tile click → onPreviewClick", () => {
     ]);
   });
 
-  it("Download pill click fires onDownloadClick but NOT onPreviewClick", async () => {
-    const onPreviewClick = vi.fn();
-    const onDownloadClick = vi.fn();
-
-    render(
-      <DevelopGrid
-        results={[makeTile({}, 0)]}
-        editorial
-        onPreviewClick={onPreviewClick}
-        onDownloadClick={onDownloadClick}
-      />,
-    );
-
-    const downloadCta = await screen.findByTestId("tile-download-cta");
-    fireEvent.click(downloadCta);
-
-    expect(onDownloadClick).toHaveBeenCalledWith("scene-0");
-    expect(onPreviewClick).not.toHaveBeenCalled();
-  });
+  // The "Download pill click fires onDownloadClick" test was removed
+  // when the top-right `tile-download-cta` pill was dropped (commit
+  // aa9f1e3 — "drop redundant top-right Download pill on editorial
+  // tiles"). The bottom-left HD badge (and the lightbox CTA on the
+  // /try/b/[token] view) are the only per-tile download surfaces now.
 
   it("falls back to onDownloadClick when onPreviewClick is NOT provided (the /try in-flow case)", async () => {
     // try-flow.tsx doesn't pass onPreviewClick; clicking the body
