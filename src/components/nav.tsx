@@ -110,7 +110,7 @@ export async function Nav({ width = "app" }: NavProps = {}) {
             <>
               <Link
                 href="/sign-in"
-                className="hidden py-1 text-[14px] text-ink-3 transition-colors hover:text-ink md:inline"
+                className="py-1 text-[13px] text-ink-3 transition-colors hover:text-ink md:text-[14px]"
               >
                 Sign in
               </Link>
