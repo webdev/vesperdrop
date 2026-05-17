@@ -109,6 +109,7 @@ export function OtpAuthFlow({
         setState({ kind: "email" });
         return;
       }
+      (window as unknown as { fbq?: (...args: unknown[]) => void }).fbq?.("track", "Lead");
       setState({ kind: "code", email });
     },
     [supabase, surface],
