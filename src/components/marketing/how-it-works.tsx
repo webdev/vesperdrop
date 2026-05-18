@@ -33,7 +33,7 @@ export function HowItWorks() {
             {
               n: "2",
               t: "Watermarked previews",
-              c: "Review the supporting shots in 90 seconds. Unlock individually for $9.99, or both as a bundle.",
+              c: "Review the supporting shots in 90 seconds. Unlock the ones you want — full resolution, no watermark.",
             },
             {
               n: "1",
