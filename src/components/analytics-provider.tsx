@@ -47,7 +47,7 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <Script id="hotjar-init" strategy="afterInteractive">{`
+      <Script id="hotjar-init" strategy="lazyOnload">{`
         (function(h,o,t,j,a,r){
           h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
           h._hjSettings={hjid:6708367,hjsv:6};

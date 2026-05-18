@@ -25,7 +25,7 @@ const VALUE_STRIP = [
   "No design skills needed",
 ] as const;
 
-const SOURCE_FLATLAY = "/marketing/before-after/skirt_before.png";
+const SOURCE_FLATLAY = "/marketing/before-after/skirt_before.webp";
 
 export async function Gallery() {
   let presets: SceneifyPublicPreset[] = [];

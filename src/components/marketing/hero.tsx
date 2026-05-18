@@ -7,8 +7,8 @@ const HERO_PAIR: Pair = {
   name: "Cami",
   surface: "Hanger flatlay",
   scene: "Velvet glow",
-  before: "/marketing/before-after/cami_before.png",
-  after: "/marketing/before-after/cami_after.png",
+  before: "/marketing/before-after/cami_before.webp",
+  after: "/marketing/before-after/cami_after.webp",
 };
 
 export function Hero() {

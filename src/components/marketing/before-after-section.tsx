@@ -31,8 +31,8 @@ const PAIRS: Pair[] = [
     sku: "JKT-204",
     label: "Jacket",
     scene: "Urban canvas",
-    before: "/marketing/before-after/jacket_before.png",
-    after: "/marketing/before-after/jacket_after.png",
+    before: "/marketing/before-after/jacket_before.webp",
+    after: "/marketing/before-after/jacket_after.webp",
     layout: {
       direction: "row",
       afterAspect: "aspect-[4/5]",
@@ -47,8 +47,8 @@ const PAIRS: Pair[] = [
     sku: "SKT-018",
     label: "Skirt",
     scene: "Warm retreat",
-    before: "/marketing/before-after/skirt_before.png",
-    after: "/marketing/before-after/skirt_after.png",
+    before: "/marketing/before-after/skirt_before.webp",
+    after: "/marketing/before-after/skirt_after.webp",
     layout: {
       direction: "row-reverse",
       // Taller, more dominant — center moment of the section
@@ -65,8 +65,8 @@ const PAIRS: Pair[] = [
     sku: "LCE-115",
     label: "Lace",
     scene: "Studio athletic",
-    before: "/marketing/before-after/lace_before.png",
-    after: "/marketing/before-after/lace_after.png",
+    before: "/marketing/before-after/lace_before.webp",
+    after: "/marketing/before-after/lace_after.webp",
     layout: {
       direction: "row",
       // Wider — landscape moment to break the portrait rhythm
@@ -120,6 +120,8 @@ export function BeforeAfterSection() {
                   <img
                     src={p.after}
                     alt={`${p.label} — lifestyle generation in ${p.scene.toLowerCase()}`}
+                    loading="lazy"
+                    decoding="async"
                     className="absolute inset-0 h-full w-full object-cover object-[center_25%]"
                   />
                   <span className="absolute bottom-4 left-4 inline-flex items-center rounded-full bg-cream/95 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-ink shadow-subtle">
@@ -133,6 +135,8 @@ export function BeforeAfterSection() {
                     <img
                       src={p.before}
                       alt={`${p.label} — original flatlay`}
+                      loading="lazy"
+                      decoding="async"
                       className="absolute inset-0 h-full w-full object-cover"
                     />
                     <span className="absolute left-2 top-2 inline-flex items-center rounded-sm bg-ink/85 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.16em] text-cream backdrop-blur-sm">
