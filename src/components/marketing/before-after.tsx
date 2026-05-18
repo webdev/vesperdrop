@@ -34,11 +34,11 @@ export function BeforeAfter({ pair }: { pair: Pair }) {
       </div>
 
       {/* Smaller before card, overlapping top-left, slightly tilted.
-          translateX -45px shifts it past the model's face so the eyes
-          stay clear while the card still overlaps the after image. */}
+          Mobile uses a gentler translate so the card stays fully on-screen
+          on narrow viewports; desktop keeps the larger -75/-15 offset that
+          shifts past the model's face. */}
       <div
-        className="absolute left-[6%] top-[8%] w-[36%] overflow-hidden rounded-md border border-line bg-cream shadow-card"
-        style={{ transform: "translate(-75px, -15px) rotate(-3deg)" }}
+        className="absolute left-[6%] top-[8%] w-[36%] origin-top-left -translate-x-5 -translate-y-2 -rotate-3 overflow-hidden rounded-md border border-line bg-cream shadow-card md:-translate-x-[75px] md:-translate-y-[15px]"
       >
         <div className="relative aspect-[4/5]">
           <Image

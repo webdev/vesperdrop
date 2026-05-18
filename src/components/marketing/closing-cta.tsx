@@ -10,7 +10,7 @@ export function ClosingCta() {
       />
       <Container width="reading" className="relative text-center">
         <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-cream/60">
-          Try it free, on us
+          First one&rsquo;s on us · No card required
         </p>
         <h2 className="mt-5 font-serif text-[clamp(2.5rem,6vw,4.5rem)] leading-[0.98] tracking-[-0.02em]">
           Stop reshooting.{" "}

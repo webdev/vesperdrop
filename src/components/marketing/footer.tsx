@@ -21,7 +21,7 @@ export function Footer() {
             Pricing
           </Link>
           <Link href="/try" className="text-ink-3 transition-colors hover:text-ink">
-            Try free
+            Try it
           </Link>
           <Link href="/sign-in" className="text-ink-3 transition-colors hover:text-ink">
             Sign in

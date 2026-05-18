@@ -1,72 +1,44 @@
-const REVIEWS = [
-  {
-    quote:
-      "Replaced our studio days entirely. Three SKUs in the morning, six photos by lunch. Conversion didn't blink.",
-    name: "Maren H.",
-    role: "Buyer, Studio Halo",
-  },
-  {
-    quote:
-      "We used to pay $1,200 a shoot for our drops. Now we pay $49 a month and ship faster.",
-    name: "Lucas P.",
-    role: "Founder, Northbound Goods",
-  },
-  {
-    quote:
-      "The scenes feel like ones I'd pick myself. That's the part that surprised me — it's not generic AI imagery, it's our brand.",
-    name: "Aiyana R.",
-    role: "Creative Lead, Eden Skincare",
-  },
-];
-
+import Link from "next/link";
 import { Container } from "@/components/ui/container";
 
+/**
+ * Honest stand-in for customer testimonials until real ones exist. Per the
+ * FTC: don't fake names. Per the strategy doc: don't ship the page without
+ * addressing social proof in some form — so reframe to "the free photo is
+ * the proof" and add a brief founder/team line.
+ */
 export function Testimonials() {
   return (
     <section className="bg-paper py-20 md:py-24">
-      <Container width="marketing">
-        <div className="mb-12 md:mb-16">
+      <Container width="reading">
+        <div className="text-center md:text-left">
           <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-            Field notes · N°04
+            On proof
           </p>
-          <h2 className="mt-4 font-serif text-[clamp(2.25rem,4.5vw,3.5rem)] leading-[1.02] tracking-[-0.02em] text-ink">
-            Brands you trust,{" "}
+          <h2 className="mx-auto mt-4 max-w-3xl font-serif text-[clamp(2.25rem,4.5vw,3.5rem)] leading-[1.04] tracking-[-0.02em] text-ink md:mx-0">
+            Instead of testimonials,{" "}
             <em className="not-italic font-serif italic text-terracotta-dark">
-              photos they keep.
+              run it on your own product.
             </em>
           </h2>
-        </div>
-
-        <div className="grid grid-cols-1 gap-12 md:grid-cols-3 md:gap-12 lg:gap-16">
-          {REVIEWS.map((r, i) => {
-            const isLead = i === 0;
-            return (
-              <figure
-                key={r.name}
-                className={`flex h-full flex-col border-t border-line-soft pt-6 ${
-                  i === 1 ? "md:translate-y-8" : i === 2 ? "md:translate-y-3" : ""
-                }`}
-              >
-                <blockquote
-                  className={
-                    isLead
-                      ? "font-serif text-[clamp(1.75rem,2.6vw,2.5rem)] leading-[1.15] tracking-[-0.02em] text-ink"
-                      : "font-serif text-[clamp(1.125rem,1.4vw,1.25rem)] leading-[1.4] tracking-[-0.005em] text-ink"
-                  }
-                >
-                  &ldquo;{r.quote}&rdquo;
-                </blockquote>
-                <figcaption className="mt-auto pt-8">
-                  <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink">
-                    {r.name}
-                  </div>
-                  <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-3">
-                    {r.role}
-                  </div>
-                </figcaption>
-              </figure>
-            );
-          })}
+          <p className="mx-auto mt-6 max-w-2xl text-[15px] leading-[1.6] text-ink-3 md:mx-0">
+            We&rsquo;re new. The fastest way to see if this works is the same
+            way we know it does — drop your flat lay in, watch the scenes come
+            back. Built by a team that&rsquo;s lived the apparel content
+            velocity problem: too many SKUs, too few shoot days.
+          </p>
+          <div className="mt-8 flex flex-col items-center gap-3 md:flex-row md:items-center">
+            <Link
+              href="/try"
+              className="inline-flex items-center gap-2 rounded-full bg-terracotta px-6 py-3.5 font-mono text-[12px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark"
+            >
+              Run your own photo
+              <span aria-hidden>→</span>
+            </Link>
+            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+              No card required
+            </p>
+          </div>
         </div>
       </Container>
     </section>

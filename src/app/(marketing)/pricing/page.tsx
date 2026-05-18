@@ -11,7 +11,7 @@ import { PAID_PLAN_SLUGS, PLAN_MARKETING, PLAN_QUOTA } from "@/lib/plans";
 
 const PRICING_TITLE = "Pricing, photo-based plans from $19/mo";
 const PRICING_DESCRIPTION =
-  "Photo-based plans for lifestyle product shots. Try free, no card. Annual saves 20%. Pro from $39/mo for 75 photos. Cancel any time.";
+  "Photo-based plans for lifestyle product shots. First photo free, no card required. Annual saves 20%. Pro from $39/mo for 75 photos. Cancel any time.";
 
 export const metadata: Metadata = {
   title: { absolute: `${PRICING_TITLE} · Vesperdrop` },
@@ -54,7 +54,7 @@ export default function Page() {
               Lifestyle shots for every product.
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-[16px] leading-[1.6] text-ink-3">
-              Try free, no card needed. Upgrade when you see the result. Photos refresh every billing cycle.
+              First photo free, no card required. Upgrade when you see the result. Photos refresh every billing cycle.
             </p>
             <div className="mt-8">
               <MonthlyAnnualToggle />

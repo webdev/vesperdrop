@@ -16,10 +16,10 @@ export function Hero() {
     <section className="relative">
       <Container width="marketing" className="pb-16 pt-12 md:pb-24 md:pt-20">
         <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-[1.05fr_1fr] md:gap-16">
-          {/* Left — editorial copy */}
-          <div className="order-2 md:order-1">
+          {/* Left — editorial copy. JSX order = mobile order: headline first, visual below. */}
+          <div>
             <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-              AI lifestyle photography
+              For Etsy, Shopify &amp; Amazon apparel sellers
             </p>
             {/* Slight outdent on the H1 — masthead edge tension */}
             <h1 className="mt-4 font-serif text-[clamp(3rem,6vw,4.5rem)] leading-[0.96] tracking-[-0.02em] text-ink md:-ml-2">
@@ -30,15 +30,15 @@ export function Hero() {
               lifestyle images.
             </h1>
             <p className="mt-5 max-w-md text-[15px] leading-[1.55] text-ink-3">
-              Drop a single product photo. We generate studio-quality images
-              that sell — six looks in ninety seconds. zero shoot day.
+              Drop one flat lay. Get six on-model lifestyle photos in different
+              scenes — in 90 seconds.
             </p>
             <div className="mt-7 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
               <Link
                 href="/try"
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-terracotta px-6 py-3.5 font-mono text-[12px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark"
               >
-                Try Vesperdrop free
+                Get your first photo free
                 <span aria-hidden>→</span>
               </Link>
               <Link
@@ -48,16 +48,19 @@ export function Hero() {
                 See how it works
               </Link>
             </div>
+            <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+              No card required · First one&rsquo;s on us
+            </p>
             <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-line-soft pt-6 sm:grid-cols-4">
-              <Stat label="Free trial" value="Yes" />
+              <Stat label="Per batch" value="6 photos" />
               <Stat label="Marketplace" value="A+ ready" />
-              <Stat label="Per batch" value="~90s" />
-              <Stat label="Pro from" value="$20" />
+              <Stat label="Time" value="~90s" />
+              <Stat label="Pro from" value="$39/mo" />
             </dl>
           </div>
 
-          {/* Right — composed before/after visual */}
-          <div className="order-1 md:order-2">
+          {/* Right (desktop) / below (mobile) — composed before/after visual */}
+          <div>
             <BeforeAfter pair={HERO_PAIR} />
           </div>
         </div>

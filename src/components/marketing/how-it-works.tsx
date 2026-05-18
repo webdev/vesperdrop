@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Container } from "@/components/ui/container";
 
 export function HowItWorks() {
@@ -10,35 +11,34 @@ export function HowItWorks() {
               How it works
             </p>
             <h2 className="mt-4 font-serif text-[clamp(2.25rem,4.5vw,3.5rem)] leading-[1.02] tracking-[-0.02em] text-ink">
-              Three steps.{" "}
+              Three.{" "}
               <em className="not-italic font-serif italic text-terracotta-dark">
-                No camera.
+                Two. One.
               </em>
             </h2>
           </div>
           <p className="text-[15px] leading-[1.6] text-ink-3 md:max-w-sm md:text-right">
-            We trained on 4,000+ conversion-tested references so your first
-            generation looks like a tenth one. No prompts, no tweaking, no
-            re-rolls.
+            One flat lay in. Six lifestyle photos out. The first one is yours
+            to keep, full resolution, no card required.
           </p>
         </div>
 
         <ol className="grid grid-cols-1 gap-12 md:grid-cols-3 md:gap-16">
           {[
             {
-              n: "01",
-              t: "Drop a photo",
-              c: "Any flatlay, hanger, mannequin, or floor shot. Phone or studio. PNG or JPG up to 40MB.",
+              n: "3",
+              t: "Scenes you pick",
+              c: "Velvet glow, urban canvas, warm retreat, studio athletic — choose up to three looks for your unauth batch.",
             },
             {
-              n: "02",
-              t: "Pick a few scenes",
-              c: "Velvet glow, urban canvas, warm retreat, studio athletic — choose up to five looks.",
+              n: "2",
+              t: "Watermarked previews",
+              c: "Review the supporting shots in 90 seconds. Unlock individually for $9.99, or both as a bundle.",
             },
             {
-              n: "03",
-              t: "Get six photos",
-              c: "Watermarked previews in 90 seconds. One full-resolution HD shot free with sign-up.",
+              n: "1",
+              t: "Full-resolution HD photo, free",
+              c: "Your hero shot is free, watermark-free, and HD. Sign up to download — no card required.",
             },
           ].map((step) => (
             <li key={step.n} className="border-t border-line-soft pt-6">
@@ -54,6 +54,19 @@ export function HowItWorks() {
             </li>
           ))}
         </ol>
+
+        <div className="mt-12 flex flex-col items-center gap-3 md:mt-16 md:flex-row md:justify-center">
+          <Link
+            href="/try"
+            className="inline-flex items-center gap-2 rounded-full bg-terracotta px-6 py-3.5 font-mono text-[12px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark"
+          >
+            Get your first photo free
+            <span aria-hidden>→</span>
+          </Link>
+          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+            No card required
+          </p>
+        </div>
       </Container>
     </section>
   );

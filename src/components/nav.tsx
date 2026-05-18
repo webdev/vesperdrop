@@ -118,7 +118,7 @@ export async function Nav({ width = "app" }: NavProps = {}) {
                 href="/try"
                 className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-[14px] font-medium text-cream transition-colors hover:bg-ink-2"
               >
-                Try free <span aria-hidden>→</span>
+                First photo free <span aria-hidden>→</span>
               </Link>
             </>
           )}

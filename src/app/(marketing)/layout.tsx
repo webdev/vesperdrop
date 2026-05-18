@@ -1,5 +1,6 @@
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/marketing/footer";
+import { StickyMobileCta } from "@/components/marketing/sticky-mobile-cta";
 import {
   OrganizationJsonLd,
   WebSiteJsonLd,
@@ -13,6 +14,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <Nav width="marketing" />
       <main>{children}</main>
       <Footer />
+      <StickyMobileCta />
     </div>
   );
 }
