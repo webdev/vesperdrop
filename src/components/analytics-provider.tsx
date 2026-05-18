@@ -6,18 +6,22 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { clientEnv } from "@/lib/env.client";
 
 /**
- * Loads gtag.js for Google Analytics 4 and fires a `page_view` event on
- * client-side route changes (Next App Router doesn't trigger gtag's
- * automatic SPA tracking, so we wire it manually). The init script sets
- * `send_page_view: false` so the first paint isn't double-counted.
+ * Loads gtag.js for Google Analytics 4 and Meta Pixel. All third-party
+ * scripts use `strategy="lazyOnload"` so they only fire after the page
+ * has reached `window.load`, keeping initial paint + TTI uncluttered.
+ *
+ * Trade-off: the React `useEffect` that manually fires `gtag` page_view
+ * on route change runs before the scripts load, so for the very first
+ * page view we rely on gtag's own `send_page_view: true` config-time
+ * fire (and Meta Pixel's inline `fbq('track','PageView')` at load).
+ * Subsequent SPA route changes are caught by the useEffect because
+ * `gtag` / `fbq` exist on `window` by then.
  *
  * Also loads Google Tag Manager so non-engineering tags (Contentsquare,
- * Hotjar, ad pixels, etc.) can be configured from the GTM UI without
- * code changes. GTM's own `dataLayer` listener handles SPA route
- * changes; no manual wiring is needed.
+ * etc.) can be configured from the GTM UI. GTM's own dataLayer listener
+ * handles SPA route changes; no manual wiring is needed.
  *
- * Each integration no-ops cleanly when its env var is unset; both can
- * coexist or run independently.
+ * Each integration no-ops cleanly when its env var is unset.
  */
 export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -57,7 +61,7 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
           a.appendChild(r);
         })(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
       `}</Script>
-      <Script id="meta-pixel-init" strategy="afterInteractive">{`
+      <Script id="meta-pixel-init" strategy="lazyOnload">{`
         !function(f,b,e,v,n,t,s)
         {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
         n.callMethod.apply(n,arguments):n.queue.push(arguments)};
@@ -82,20 +86,20 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
         <>
           <Script
             src={`https://www.googletagmanager.com/gtag/js?id=${measurementId}`}
-            strategy="afterInteractive"
+            strategy="lazyOnload"
           />
-          <Script id="ga-init" strategy="afterInteractive">{`
+          <Script id="ga-init" strategy="lazyOnload">{`
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         window.gtag = gtag;
         gtag('js', new Date());
-        gtag('config', '${measurementId}', { send_page_view: false });
+        gtag('config', '${measurementId}', { send_page_view: true });
       `}</Script>
         </>
       ) : null}
       {gtmId ? (
         <>
-          <Script id="gtm-init" strategy="afterInteractive">{`
+          <Script id="gtm-init" strategy="lazyOnload">{`
         (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
         new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
         j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=

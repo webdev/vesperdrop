@@ -88,6 +88,12 @@ export default function RootLayout({
       lang="en"
       className={`${geist.variable} ${fraunces.variable} ${mono.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="preconnect" href="https://www.googletagmanager.com" crossOrigin="" />
+        <link rel="preconnect" href="https://connect.facebook.net" crossOrigin="" />
+        <link rel="preconnect" href="https://script.hotjar.com" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://t.contentsquare.net" />
+      </head>
       <body className="min-h-full flex flex-col">
         <Suspense fallback={null}>
           <AnalyticsProvider>{children}</AnalyticsProvider>
