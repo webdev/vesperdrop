@@ -31,6 +31,7 @@ import {
 import { ProgressScreen } from "./progress-screen";
 import { SavedBar } from "./saved-bar";
 import { AuthModal } from "./auth-modal";
+import { EmailCapture } from "./email-capture";
 import { OtpAuthFlow } from "@/components/app/otp-auth-flow";
 import { motion } from "framer-motion";
 import { EditorialClaimRail, TrustRow } from "./editorial-rail";
@@ -994,15 +995,22 @@ function DevelopStep({
 
   // Originally pushed to /app/library, which threw the user out of the
   // generations page they just signed up *from*. Now we mirror the
-  // inline-claim flow: attach the batch, flip `claimed`, refresh server
-  // state, and close the modal. The page stays put and the tiles
-  // promote to their authed states (HD downloads, no watermark on the
-  // free hero, etc.).
+  // inline-claim flow: attach the batch, flip `claimed`, close the
+  // modal. The page stays put and the tiles promote to their authed
+  // states via the client-side `claimed` flag (HD downloads, no
+  // watermark on the free hero, etc.).
+  //
+  // We intentionally do NOT call router.refresh() here: the parent
+  // page conditionally renders `{isAuthed ? AuthedDevelopLayout :
+  // UnauthEditorialStage}`, and a refresh would flip `isAuthed` from
+  // SSR=false to SSR=true, swapping the entire subtree and unmounting
+  // the studio the user just unlocked. The Nav stays "Sign in" until
+  // the next navigation, which is an acceptable cost vs blowing away
+  // the unlocked render.
   const handleAuthSuccess = useCallback(async () => {
     await handleClaimSuccess();
     setAuthModal((s) => ({ ...s, open: false }));
-    router.refresh();
-  }, [handleClaimSuccess, router]);
+  }, [handleClaimSuccess]);
 
   return (
     <div className={`relative ${developDone && isAuthed ? "pb-40 md:pb-44" : ""}`}>
@@ -1051,7 +1059,9 @@ function DevelopStep({
           unlockSubmitting={unlockSubmitting}
           claimed={claimed}
           batchReady={batchPersisted}
+          savedRunId={savedRunId}
           onClaimSuccess={handleClaimSuccess}
+          onEmailClaim={() => setClaimed(true)}
           castingRace={batchCastingRace}
         />
       )}
@@ -1091,7 +1101,9 @@ function UnauthEditorialStage({
   unlockSubmitting,
   claimed,
   batchReady,
+  savedRunId,
   onClaimSuccess,
+  onEmailClaim,
   castingRace,
 }: {
   photo: Photo | null;
@@ -1107,7 +1119,9 @@ function UnauthEditorialStage({
   unlockSubmitting: boolean;
   claimed: boolean;
   batchReady: boolean;
+  savedRunId: string | null;
   onClaimSuccess: (args: { email: string; userId: string }) => void | Promise<void>;
+  onEmailClaim: () => void;
   castingRace: string;
 }) {
   const anyPending = generationResults.some((r) => r.status === "pending");
@@ -1236,6 +1250,21 @@ function UnauthEditorialStage({
           onPreviewClick={setLightboxSlug}
         />
       )}
+
+      {allSucceeded && batchReady && !claimed && savedRunId ? (
+        <div className="mt-10 md:mt-12">
+          <EmailCapture
+            runId={savedRunId}
+            onSuccess={(_photos, _emailed) => {
+              // Server-confirmed Lead has already fired inside EmailCapture.
+              // Flip the parent `claimed` flag so AdaptiveStudioLayout reveals
+              // every tile at its raw_url. EmailCapture also shows its own
+              // success state immediately above the studio grid.
+              onEmailClaim();
+            }}
+          />
+        </div>
+      ) : null}
 
       {allSucceeded && batchReady ? (
         <>

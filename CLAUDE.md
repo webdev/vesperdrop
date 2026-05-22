@@ -354,44 +354,67 @@ also pass when `isAdminEmail(user.email)` is true — independent of what
 
 ---
 
-# 15a. Free-tier Funnel (LOCKED)
+# 15a. Free-tier Funnel (LOCKED — revised 2026-05-18)
 
 These are the canonical rules for the unauth /try flow. Do NOT change
-ratios or pricing without explicit instruction — they're tied to the
-homepage hero copy, the AdaptiveStudioLayout states, and the Stripe
-SKU plumbing.
+ratios or copy without explicit instruction — they're tied to the
+homepage hero, the inline email-capture moment in /try, and the Pro
+upsell plumbing.
+
+The previous version of this section (locked Indexes 1, 2 behind a
+$9.99 per-image unlock) was retired in the conversion-sprint brief
+on 2026-05-18: the campaign needed every scrap of email capture, and
+$9.99 unlocks on watermarked previews were a friction speed-bump in
+front of email collection. All 3 watermark-free outputs are now
+delivered as the email-capture reward.
 
 ## Scene cap
 
 - **Unauth visitors: max 3 scenes per batch.**
-  - Index 0 → free hero preview (no watermark post-claim, downloadable HD)
-  - Indexes 1, 2 → watermarked previews unlockable for payment
+  - All 3 generate as **watermarked previews** anonymously (no email
+    required) so the visitor sees output quality up front.
+  - Submitting the inline email gate (`/api/try/email-photo`) unlocks
+    **all 3 watermark-free HD versions** — delivered both on-screen
+    and via Resend transactional email.
 - Authed visitors: up to 6 scenes per batch.
 - Enforced client-side in `try-flow.tsx` (`MAX_TRY_SCENES_UNAUTH = 3`)
   AND server-side in `/api/try/finalize-batch` (`maxScenes = userId ? 6 : 3`).
   Both layers required — never rely on the client cap alone.
 
-## Pricing (locked across all surfaces)
+## Monetization moments
 
-- **$9.99** — single unlock per locked image (State A & B).
-- **$9.99** — State C bundle unlock (both locked images, framed as
-  "save $4.99 vs was $14.98" — same price as a single unlock). The
-  Stripe SKU is the existing $9.99 unlock; no separate bundle SKU.
-- **$39/mo** — Pro unlimited plan.
-- Anywhere these prices appear (StateA/B/C upsell cards, homepage hero,
-  emails), pull from `PRICE_PER_SHOT` / `PRICE_BUNDLE` / `PRICE_BUNDLE_WAS`
-  / `PRICE_BUNDLE_SAVINGS` / `PRICE_PRO_MONTHLY` in
-  `src/app/try/adaptive-studio-layout.tsx`. Never hardcode.
+- **Email** is the primary unauth conversion event — the email gate
+  fires `fbq('track','Lead')` on server-confirmed success and writes a
+  `try_intents` row. This is the moment ads optimize against.
+- **Pro plan** ($39/mo) is the post-email upsell, surfaced as a teaser
+  of additional unseen scenes ("Available with Pro · $39/mo"). The
+  per-image $9.99 Stripe SKU stays in the DB for the authed re-unlock
+  path and historical webhooks, but is **no longer used in /try state
+  A/B/C upsell cards** — those cards either drive Pro signup or get
+  removed.
+- "Complete the studio" / "Complete the studio set" copy is deprecated
+  on the unauth funnel. Replace with "All 3 photos · free with email"
+  on State A/B/C, OR remove the upsell card and let the inline email
+  gate carry the conversion.
 
-## State copy (locked)
+## Locked copy
 
-- "Complete the studio" — used in BOTH State B and State C upsell cards.
-  "Complete the studio set" / "studio set" is deprecated.
-- "Free hero shot" / "Free hero" — used for the index-0 tile in
-  AdaptiveStudioLayout. "Free hero shot on signup" is the only
-  microcopy that mentions the signup gate.
+- **Headline language**: "first photo free" / "first one's free" —
+  matches `lessons.md`. Never "free trial" anywhere on the site.
+- **CTA**: "Get my first photo free →" (note "my", not "your" — the
+  ads brief specified this; tested better in cold ad copy).
+- **Risk reversal**: "No card required" / "First photo's on us"
+  must appear visibly near every primary CTA.
 - "Out of free renders" — error headline when `credit_limit_reached`
-  fires. Never "Free batch used", never "3 free previews used".
+  fires. Never "Free batch used".
+
+## What 15a does NOT cover
+
+- The Pixel ID, ad event mapping, and Resend domain config live in
+  env vars + Vercel project settings; do not hardcode.
+- Pricing pages (`/pricing`) still display $19/$39/$99/$499 tier
+  pricing — that's the authed/paid path and is not affected by the
+  unauth-funnel rewrite.
 
 ---
 

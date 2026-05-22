@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { Container } from "@/components/ui/container";
 
-/**
- * Honest stand-in for customer testimonials until real ones exist. Per the
- * FTC: don't fake names. Per the strategy doc: don't ship the page without
- * addressing social proof in some form — so reframe to "the free photo is
- * the proof" and add a brief founder/team line.
- */
+// TESTIMONIAL PLACEHOLDER
+// Replace this section with 2-3 real customer quotes once we have explicit
+// permission to publish them. Per FTC + the sprint brief: no fabricated
+// names, no fabricated personas. Until then, the section reads as an
+// honest reframe: the free photo IS the proof.
 export function Testimonials() {
   return (
     <section className="bg-paper py-20 md:py-24">
@@ -22,10 +21,10 @@ export function Testimonials() {
             </em>
           </h2>
           <p className="mx-auto mt-6 max-w-2xl text-[15px] leading-[1.6] text-ink-3 md:mx-0">
-            We&rsquo;re new. The fastest way to see if this works is the same
-            way we know it does — drop your flat lay in, watch the scenes come
-            back. Built by a team that&rsquo;s lived the apparel content
-            velocity problem: too many SKUs, too few shoot days.
+            Built for apparel brands tired of waiting on shoot days. The
+            fastest way to know if Vesperdrop works for your garments is the
+            same way we know it does — drop your flat lay in, watch the
+            scenes come back. First photo&rsquo;s on us.
           </p>
           <div className="mt-8 flex flex-col items-center gap-3 md:flex-row md:items-center">
             <Link

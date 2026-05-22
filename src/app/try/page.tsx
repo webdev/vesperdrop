@@ -6,7 +6,7 @@ import { isAdminEmail } from "@/lib/admin";
 import { Nav } from "@/components/nav";
 import { TryFlow } from "./try-flow";
 
-const TRY_TITLE = "Try free — 1 HD lifestyle shot, no card";
+const TRY_TITLE = "First photo free — HD lifestyle shots, no card";
 const TRY_DESCRIPTION =
   "Drop a product photo, pick a scene, and watch Vesperdrop develop a 6-image lifestyle batch — no account, no card.";
 

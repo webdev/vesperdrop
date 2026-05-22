@@ -81,8 +81,8 @@ export function PreviewCta({ data }: Props) {
           </h2>
           <p className="mt-3 max-w-[40ch] text-[14.5px] leading-[1.6] text-ink-3">
             Transform your products into premium product campaigns in minutes.
-            Start your free trial today and see what Vesperdrop can do for your
-            store.
+            Your first photo&rsquo;s on us — see what Vesperdrop can do for
+            your store.
           </p>
         </div>
 
@@ -115,7 +115,7 @@ export function PreviewCta({ data }: Props) {
           </button>
 
           <ul className="mt-5 grid grid-cols-1 gap-y-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-4 sm:grid-cols-3">
-            <li>7-day free trial</li>
+            <li>First photo free</li>
             <li>Cancel anytime</li>
             <li>No credit card required</li>
           </ul>

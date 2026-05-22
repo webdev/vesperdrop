@@ -111,12 +111,15 @@ export function AdaptiveStudioLayout({
         {lockedTiles[0] ? (
           <LockedPreviewCard
             tile={lockedTiles[0]}
-            unlocked={paid}
+            // Locked tiles reveal on EITHER paid OR claimed (email-captured)
+            // per the 2026-05-18 free-tier rewrite — email capture now
+            // unlocks all 3 watermark-free.
+            unlocked={paid || claimed}
             onPreview={() => onPreviewClick(lockedTiles[0].sceneSlug)}
             onDownload={() => onDownloadClick(lockedTiles[0].sceneSlug)}
           />
         ) : null}
-        {paid ? null : (
+        {paid || claimed ? null : (
           <PremiumUpsellCard
             variant="single"
             disabled={!unlockReady || unlockSubmitting}
@@ -141,14 +144,14 @@ export function AdaptiveStudioLayout({
           <LockedPreviewCard
             key={t.sceneSlug}
             tile={t}
-            unlocked={paid}
+            unlocked={paid || claimed}
             compact
             onPreview={() => onPreviewClick(t.sceneSlug)}
             onDownload={() => onDownloadClick(t.sceneSlug)}
           />
         ))}
       </div>
-      {paid ? null : (
+      {paid || claimed ? null : (
         <PremiumUpsellCard
           variant="bundle"
           disabled={!unlockReady || unlockSubmitting}

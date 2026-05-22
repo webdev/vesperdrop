@@ -175,7 +175,7 @@ export default async function EtsyPreviewPage({
             </div>
 
             <div className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-mono text-[9px] uppercase tracking-[0.22em] text-ink-4">
-              <span>7-day free trial</span>
+              <span>First photo free</span>
               <span aria-hidden>·</span>
               <span>Cancel anytime</span>
               <span aria-hidden>·</span>
