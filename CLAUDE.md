@@ -273,6 +273,47 @@ Before coding:
 - Do NOT duplicate components
 - Do NOT introduce new layout systems
 
+## Verification rule (LOCKED — added 2026-05-22)
+
+When an issue (Linear, GitHub, anywhere) has explicit **acceptance
+criteria or QA test cases attached, those MUST be run against the
+implementation before the issue is marked Done.** "I shipped the code"
+is NOT verification.
+
+This rule exists because VES-6's nav-sheet implementation slipped a
+copy regression ("Try free" reintroduced at narrow widths, violating
+§15a) past closure — the acceptance criteria existed but no one ran
+them. Caught only after the fact via spot-check.
+
+How to verify, depending on criterion type:
+
+- **Visual/layout criteria** (e.g., "above the fold at 390×700",
+  "single card on mobile") → use Playwright at the spec'd viewport
+  size, take a screenshot, confirm visually.
+- **Copy criteria** (e.g., "headline reads exactly X") → grep the
+  rendered DOM or the source file, not just the diff of the PR.
+- **Functional criteria** (e.g., "Esc closes the sheet", "tap toggle
+  reveals Before") → exercise the interaction live (Playwright or
+  manual).
+- **Performance criteria** (e.g., "LCP ≤ 2.5s") → run Lighthouse
+  against a Vercel preview URL, not localhost.
+- **A11y criteria** (e.g., "tap target ≥ 44px") → measure bounding
+  rects in DevTools or run an axe scan.
+
+Process expectations:
+
+- Each acceptance bullet should be confirmed individually, not
+  assumed-by-association.
+- Record verification results in the Linear issue (comment, or check
+  off the acceptance boxes in the description) so the trail is clear.
+- Any criterion that genuinely cannot be verified yet (e.g., a metric
+  needing real user data, an external service in a state we don't
+  control) must be explicitly flagged in the issue before the Done
+  flip happens.
+- A regression caught during verification → move the issue back to
+  In Progress with a comment naming the specific failing criterion,
+  not silently leave it Done.
+
 ---
 
 # 12. Allowed vs Forbidden Changes
@@ -400,7 +441,12 @@ delivered as the email-capture reward.
 ## Locked copy
 
 - **Headline language**: "first photo free" / "first one's free" —
-  matches `lessons.md`. Never "free trial" anywhere on the site.
+  matches `lessons.md`. Never "free trial" or "Try free" anywhere on
+  the site (including "Try free →" as a mobile shorthand — that was
+  the VES-6 regression on 2026-05-22).
+- **Allowed short forms** for narrow widths where "First photo free"
+  wraps: **"First free"** (short for "first one's free") is fine.
+  Do NOT use "Try free", "Free trial", or any time-bound phrasing.
 - **CTA**: "Get my first photo free →" (note "my", not "your" — the
   ads brief specified this; tested better in cold ad copy).
 - **Risk reversal**: "No card required" / "First photo's on us"

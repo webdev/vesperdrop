@@ -134,7 +134,11 @@ export async function Nav({ width = "app" }: NavProps = {}) {
                 href="/try"
                 className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-ink px-4 py-2.5 text-[13px] font-medium text-cream transition-colors hover:bg-ink-2 md:gap-2 md:px-5 md:text-[14px]"
               >
-                <span className="sm:hidden">Try free</span>
+                {/* Short variant on narrowest widths so the CTA never
+                    wraps. "First free" is allowed by CLAUDE.md §15a as
+                    a short form of "first one's free"; "Try free" was
+                    a previous regression and is forbidden. */}
+                <span className="sm:hidden">First free</span>
                 <span className="hidden sm:inline">First photo free</span>
                 <span aria-hidden>→</span>
               </Link>
