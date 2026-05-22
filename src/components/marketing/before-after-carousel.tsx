@@ -168,6 +168,11 @@ function SingleCardToggle({
     }
   }
 
+  function handlePointerCancel(e: React.PointerEvent<HTMLDivElement>) {
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+    setDragPct(null);
+  }
+
   // After image is on top; clip-path inset(0 0 0 X%) hides the left X% of After.
   // showBefore=true → clip 100% (entire After hidden, Before visible)
   // showBefore=false → clip 0% (entire After visible)
@@ -180,11 +185,11 @@ function SingleCardToggle({
       <div
         ref={cardRef}
         data-testid="card-image-area"
-        className="relative aspect-[4/5] w-full max-w-sm overflow-hidden rounded-lg border border-line-soft bg-paper-2 shadow-soft"
+        className="relative aspect-[4/5] w-full max-w-sm overflow-hidden rounded-lg border border-line-soft bg-paper-2 shadow-soft select-none touch-pan-y"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
       >
         {/* Before — bottom layer */}
         <Image
