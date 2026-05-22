@@ -21,12 +21,11 @@ export function DiscoverEntryBanner({ scrollTargetId }: Props) {
 
   return (
     <section
-      className="mx-auto w-full max-w-[1100px] opacity-0 motion-safe:animate-[entry-fadein_300ms_ease-out_forwards]"
+      className="mx-auto w-full max-w-[1100px] p-5 opacity-0 motion-safe:animate-[entry-fadein_300ms_ease-out_forwards] md:p-[28px_32px]"
       style={{
         background: "#F6F3EE",
         border: "1px solid rgba(0,0,0,0.05)",
         borderRadius: 24,
-        padding: "28px 32px",
         boxShadow: "0 6px 18px rgba(0,0,0,0.025)",
       }}
     >

@@ -349,17 +349,20 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
   }
 
   function peekStyle(side: "left" | "right", index: number): React.CSSProperties {
-    const dir = side === "left" ? -1 : 1;
-    // Spec transforms (locked):
+    const sign = side === "left" ? "-" : "+";
+    // Spec transforms (locked, desktop):
     //   offset ±1: translateX(±240px), scale 0.88, opacity 0.80, z-20
     //   offset ±2: translateX(±400px), scale 0.78, opacity 0.55, z-10
-    // Side cards lifted +0.05 for a smoother step from the active card.
-    // Depth still comes from scale + overlap; opacity is a softer cue.
-    const xOffset = index === 1 ? 240 : 400;
+    // The locked offsets are tuned for the desktop viewport. On narrow
+    // viewports they push side cards entirely off-screen and §6's "still
+    // clearly visible" rule breaks. We expose --peek-1-x / --peek-2-x on
+    // the stack container (set vw-based on mobile, snapping back to the
+    // locked px values at ≥ md) and consume them here.
+    const cssVar = index === 1 ? "var(--peek-1-x)" : "var(--peek-2-x)";
     const scale = index === 1 ? 0.88 : 0.78;
     const opacity = index === 1 ? 0.8 : 0.55;
     return {
-      transform: `translate(calc(-50% + ${dir * xOffset}px), -50%) scale(${scale})`,
+      transform: `translate(calc(-50% ${sign} ${cssVar}), -50%) scale(${scale})`,
       opacity,
       transition: "transform 200ms ease, opacity 200ms ease",
       pointerEvents: "none",
@@ -376,27 +379,27 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
   return (
     <PageShell rhythm="tight">
       {/* Header */}
-      <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+      <div className="flex flex-row items-start justify-between gap-4 md:gap-6">
         <div className="md:max-w-[520px]">
-          <p className="font-mono text-[12px] uppercase tracking-[0.12em] text-terracotta">
+          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-terracotta md:text-[12px]">
             Discover styles
           </p>
-          <h1 className="mt-3 font-serif text-[64px] leading-[1.05] tracking-[-0.02em] text-ink">
+          <h1 className="mt-2 font-serif text-[40px] leading-[1.05] tracking-[-0.02em] text-ink md:mt-3 md:text-[64px]">
             Train your eye.
           </h1>
         </div>
 
-        <div className="text-right">
-          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+        <div className="shrink-0 text-right">
+          <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3 md:text-[11px]">
             Progress
           </p>
-          <p className="mt-2 font-serif text-[56px] leading-[1] tracking-[-0.02em] text-ink tabular-nums">
+          <p className="mt-1.5 font-serif text-[32px] leading-[1] tracking-[-0.02em] text-ink tabular-nums md:mt-2 md:text-[56px]">
             {totalDecided}{" "}
             <span className="text-ink-4">/ {totalCards}</span>
           </p>
-          <div className="mt-1.5 flex items-center justify-end gap-3 text-[12px] tabular-nums text-ink opacity-60">
-            <span>♥ {liked.length} liked</span>
-            <span>✕ {skipped.length} skipped</span>
+          <div className="mt-1.5 flex items-center justify-end gap-2 text-[11px] tabular-nums text-ink opacity-60 md:gap-3 md:text-[12px]">
+            <span>♥ {liked.length}</span>
+            <span>✕ {skipped.length}</span>
           </div>
           {progressMessage ? (
             <p
@@ -448,7 +451,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
         ) : null}
 
         <div
-          className="relative mx-auto h-[420px] select-none"
+          className="discover-stack relative mx-auto h-[400px] select-none md:h-[420px]"
           onMouseMove={(e) => onMove(e.clientX, e.clientY)}
           onMouseUp={onUp}
           onMouseLeave={onUp}
@@ -503,16 +506,17 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
         </div>
 
         {/* Arrows — siblings of the stack container, anchored to the
-            breakout wrapper. Hidden on small viewports to avoid off-screen
-            placement; visible md+ at the spec offsets. */}
+            breakout wrapper. Mobile: pinned to the viewport edges (still
+            outside the center card per §7 — the center card is capped at
+            74vw, leaving room on each side for a 40px arrow). Desktop
+            (≥ md): the locked spec offsets at ±580 / +540 from center. */}
         <button
           type="button"
           onClick={undo}
           disabled={history.length === 0}
           aria-label="Previous"
           title="Previous"
-          className="absolute top-1/2 z-40 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-line-soft bg-white/90 text-ink opacity-90 shadow-subtle transition-all duration-200 ease-out hover:scale-105 hover:opacity-100 hover:shadow-card disabled:cursor-not-allowed disabled:opacity-40 md:inline-flex"
-          style={{ left: "calc(50% - 580px)" }}
+          className="discover-arrow discover-arrow-left absolute top-1/2 z-40 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-line-soft bg-white/90 text-ink opacity-90 shadow-subtle transition-all duration-200 ease-out hover:scale-105 hover:opacity-100 hover:shadow-card disabled:cursor-not-allowed disabled:opacity-40"
         >
           <span aria-hidden className="text-base">←</span>
         </button>
@@ -522,20 +526,22 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
           disabled={!topId || !!exiting}
           aria-label="Next"
           title="Next"
-          className="absolute top-1/2 z-40 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-line-soft bg-white/90 text-ink opacity-90 shadow-subtle transition-all duration-200 ease-out hover:scale-105 hover:opacity-100 hover:shadow-card disabled:cursor-not-allowed disabled:opacity-40 md:inline-flex"
-          style={{ left: "calc(50% + 540px)" }}
+          className="discover-arrow discover-arrow-right absolute top-1/2 z-40 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-line-soft bg-white/90 text-ink opacity-90 shadow-subtle transition-all duration-200 ease-out hover:scale-105 hover:opacity-100 hover:shadow-card disabled:cursor-not-allowed disabled:opacity-40"
         >
           <span aria-hidden className="text-base">→</span>
         </button>
       </div>
 
-      {/* Controls — tightened from mt-6 (24px) → mt-7 (28px) per density spec */}
-      <div className="!mt-7 flex items-center justify-center gap-4">
+      {/* Controls — mobile leans into a punchier two-button cluster (Tinder-
+          style) where the icon buttons themselves carry the affordance; the
+          word-labels are hidden on small viewports to put thumb-reach first.
+          Desktop restores the labels. */}
+      <div className="!mt-5 flex items-center justify-center gap-5 md:!mt-7 md:gap-4">
         <button
           type="button"
           onClick={() => decide("left")}
           disabled={!topId || !!exiting}
-          className="font-mono text-[12px] uppercase tracking-[0.1em] text-ink-3 transition-colors hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+          className="hidden font-mono text-[12px] uppercase tracking-[0.1em] text-ink-3 transition-colors hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 md:inline"
         >
           Skip
         </button>
@@ -545,9 +551,9 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
           disabled={!topId || !!exiting}
           aria-label="Skip"
           title="Skip"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-ink bg-cream text-ink transition-colors hover:bg-paper-soft disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-ink bg-cream text-ink shadow-subtle transition-colors hover:bg-paper-soft disabled:cursor-not-allowed disabled:opacity-40 md:h-11 md:w-11 md:shadow-none"
         >
-          <span aria-hidden className="text-lg">×</span>
+          <span aria-hidden className="text-2xl md:text-lg">×</span>
         </button>
         <button
           type="button"
@@ -555,14 +561,14 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
           disabled={!topId || !!exiting}
           aria-label="Save"
           title="Save look"
-          className="inline-flex h-[52px] w-[52px] items-center justify-center rounded-full bg-terracotta text-cream shadow-card transition-colors hover:bg-terracotta-dark disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-terracotta text-cream shadow-card transition-colors hover:bg-terracotta-dark disabled:cursor-not-allowed disabled:opacity-40 md:h-[52px] md:w-[52px]"
         >
           {/* Inner span keyed on pulseTick → remounts and re-runs the
               one-shot pulse animation each time the user saves. */}
           <span
             key={`heart-${pulseTick}`}
             aria-hidden
-            className="inline-block text-lg motion-safe:animate-[heart-pulse_320ms_ease-out]"
+            className="inline-block text-2xl motion-safe:animate-[heart-pulse_320ms_ease-out] md:text-lg"
           >
             ♥
           </span>
@@ -571,7 +577,7 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
           type="button"
           onClick={() => decide("right")}
           disabled={!topId || !!exiting}
-          className="text-[14px] text-ink-3 transition-colors hover:text-terracotta disabled:cursor-not-allowed disabled:opacity-40"
+          className="hidden text-[14px] text-ink-3 transition-colors hover:text-terracotta disabled:cursor-not-allowed disabled:opacity-40 md:inline"
         >
           Save look
         </button>
@@ -602,6 +608,38 @@ export function SwipeDeck({ presets }: { presets: SceneifyPublicPreset[] }) {
       </div>
 
       <style jsx global>{`
+        /* Card-stack peek offsets — vw-based on mobile so the side cards
+           remain visible per §6, snapping back to the locked spec values
+           (±240px / ±400px) at the md breakpoint and up. */
+        .discover-stack {
+          --peek-1-x: 42vw;
+          --peek-2-x: 64vw;
+        }
+        @media (min-width: 768px) {
+          .discover-stack {
+            --peek-1-x: 240px;
+            --peek-2-x: 400px;
+          }
+        }
+        /* Arrow positioning — mobile pins to viewport edges (the breakout
+           wrapper is w-screen), desktop uses the locked spec offsets
+           relative to the breakout-wrapper center. */
+        .discover-arrow-left {
+          left: 6px;
+        }
+        .discover-arrow-right {
+          right: 6px;
+        }
+        @media (min-width: 768px) {
+          .discover-arrow-left {
+            left: calc(50% - 580px);
+            right: auto;
+          }
+          .discover-arrow-right {
+            left: calc(50% + 540px);
+            right: auto;
+          }
+        }
         @keyframes heart-pulse {
           0%,
           100% {
@@ -669,7 +707,7 @@ function PeekCard({
   const { preset } = entry;
   return (
     <div
-      className="absolute left-1/2 top-1/2 h-[420px] w-[320px] max-w-[88vw] overflow-hidden rounded-[28px] bg-paper-2 shadow-subtle"
+      className="absolute left-1/2 top-1/2 h-[400px] w-[320px] max-w-[74vw] md:h-[420px] md:max-w-[88vw] overflow-hidden rounded-[28px] bg-paper-2 shadow-subtle"
       style={style}
     >
       {preset.heroImageUrl ? (
@@ -733,7 +771,7 @@ function TopCard({
     <div
       onMouseDown={onMouseDown}
       onTouchStart={onTouchStart}
-      className="absolute left-1/2 top-1/2 z-30 h-[420px] w-[320px] max-w-[88vw] overflow-hidden rounded-[28px] bg-surface shadow-soft"
+      className="absolute left-1/2 top-1/2 z-30 h-[400px] w-[320px] max-w-[74vw] md:h-[420px] md:max-w-[88vw] overflow-hidden rounded-[28px] bg-surface shadow-soft"
       style={style}
     >
       {preset.heroImageUrl ? (
