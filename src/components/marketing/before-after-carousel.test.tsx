@@ -105,4 +105,41 @@ describe("BeforeAfterCarousel — mobile toggle (VES-8)", () => {
     expect(screen.getByText(/cami/i)).toBeInTheDocument();
     expect(screen.getByText(/velvet glow/i)).toBeInTheDocument();
   });
+
+  it("'tap to compare' hint dismisses on pointerDown (any drag interaction)", () => {
+    render(<BeforeAfterCarousel />);
+    const hint = screen.getByTestId("compare-hint");
+    expect(hint.className).toContain("opacity-100");
+
+    // Fire pointerDown on the card div (firstElementChild of the SingleCardToggle wrapper)
+    // mobile-card > div.flex-col (wrapper) > div[ref=cardRef] (has pointer handlers)
+    const card = screen.getByTestId("mobile-card").firstElementChild!.firstElementChild!;
+    fireEvent.pointerDown(card, { pointerId: 1, clientX: 80, buttons: 1 });
+
+    expect(hint.className).toContain("opacity-0");
+  });
+
+  it("drag crossing left of center (< 50%) snaps to Before on pointerUp", () => {
+    render(<BeforeAfterCarousel />);
+
+    // mobile-card > div.flex-col (wrapper) > div[ref=cardRef] (has pointer handlers)
+    const card = screen.getByTestId("mobile-card").firstElementChild!.firstElementChild!;
+
+    // Mock getBoundingClientRect so width is 200px, left 0
+    vi.spyOn(card as any, "getBoundingClientRect").mockReturnValue({
+      left: 0, top: 0, right: 200, bottom: 300, width: 200, height: 300,
+      x: 0, y: 0, toJSON: () => {},
+    } as DOMRect);
+
+    // Start in After state
+    expect(screen.getByRole("button", { name: /show after/i })).toHaveAttribute("aria-pressed", "true");
+
+    // Drag: pointerDown, move to clientX=40 (40/200 = 20%, left of center), pointerUp
+    fireEvent.pointerDown(card, { pointerId: 1, clientX: 100, buttons: 1 });
+    fireEvent.pointerMove(card, { pointerId: 1, clientX: 40, buttons: 1 });
+    fireEvent.pointerUp(card, { pointerId: 1 });
+
+    // Should have snapped to Before
+    expect(screen.getByRole("button", { name: /show before/i })).toHaveAttribute("aria-pressed", "true");
+  });
 });

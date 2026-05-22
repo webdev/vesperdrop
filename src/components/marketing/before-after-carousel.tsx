@@ -55,7 +55,6 @@ export function BeforeAfterCarousel() {
 
   function toggleBefore() {
     setShowBeforeMap((prev) => ({ ...prev, [index]: !(prev[index] ?? false) }));
-    if (!hintDismissed) setHintDismissed(true);
   }
 
   return (
@@ -86,6 +85,7 @@ export function BeforeAfterCarousel() {
             pairIndex={index}
             showBefore={showBefore}
             onToggle={toggleBefore}
+            onFirstInteract={() => setHintDismissed(true)}
             showHint={!hintDismissed}
           />
         </div>
@@ -128,6 +128,7 @@ type SingleCardToggleProps = {
   pairIndex: number;
   showBefore: boolean;
   onToggle: () => void;
+  onFirstInteract: () => void;
   showHint: boolean;
 };
 
@@ -136,13 +137,15 @@ function SingleCardToggle({
   pairIndex,
   showBefore,
   onToggle,
+  onFirstInteract,
   showHint,
 }: SingleCardToggleProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [dragPct, setDragPct] = useState<number | null>(null);
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
-    e.currentTarget.setPointerCapture(e.pointerId);
+    onFirstInteract();
+    e.currentTarget.setPointerCapture?.(e.pointerId);
   }
 
   function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
@@ -241,6 +244,7 @@ function SingleCardToggle({
           aria-label="Show after"
           aria-pressed={isAfterActive}
           onClick={() => {
+            onFirstInteract();
             if (!isAfterActive) onToggle();
           }}
           className={`rounded-full px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] transition-all ${
@@ -254,6 +258,7 @@ function SingleCardToggle({
           aria-label="Show before"
           aria-pressed={showBefore}
           onClick={() => {
+            onFirstInteract();
             if (!showBefore) onToggle();
           }}
           className={`rounded-full px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] transition-all ${
