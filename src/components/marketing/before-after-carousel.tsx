@@ -61,20 +61,23 @@ export function BeforeAfterCarousel() {
     <div className="flex flex-col items-center gap-4 md:gap-6">
       <figure className="w-full max-w-4xl">
         {/* Desktop: side-by-side (unchanged from original) */}
+        {/* Note: `priority` is intentionally OFF for the desktop variants —
+            Lighthouse measures mobile, and Next/Image preloads all
+            priority images regardless of CSS visibility, so giving the
+            desktop pair priority on a mobile viewport just steals
+            bandwidth from the actual LCP candidate (mobile After). */}
         <div className="hidden md:grid md:grid-cols-2 md:gap-5">
           <BeforeAfterCard
             kind="before"
             src={pair.before}
             alt={`${pair.label} — flat lay before Vesperdrop`}
             label="Before"
-            priority={index === 0}
           />
           <BeforeAfterCard
             kind="after"
             src={pair.after}
             alt={`${pair.label} — on-model lifestyle photo, ${pair.scene.toLowerCase()}`}
             label="After"
-            priority={index === 0}
           />
         </div>
 
@@ -113,10 +116,15 @@ export function BeforeAfterCarousel() {
             aria-selected={i === index}
             aria-label={`Show ${p.label} example`}
             onClick={() => setIndex(i)}
-            className={`h-2 rounded-full transition-all ${
-              i === index ? "w-8 bg-ink" : "w-2 bg-ink-4 hover:bg-ink-3"
-            }`}
-          />
+            className="flex h-6 min-w-6 items-center justify-center p-2"
+          >
+            <span
+              aria-hidden
+              className={`block h-2 rounded-full transition-all ${
+                i === index ? "w-8 bg-ink" : "w-2 bg-ink-4"
+              }`}
+            />
+          </button>
         ))}
       </div>
     </div>
@@ -196,13 +204,15 @@ function SingleCardToggle({
           src={pair.before}
           alt={`${pair.label} — flat lay before Vesperdrop`}
           fill
-          priority={pairIndex === 0 && showBefore}
           sizes="(min-width: 640px) 384px, calc(100vw - 40px)"
           quality={80}
           className="object-cover"
         />
 
-        {/* After — top layer, clipped to reveal Before underneath */}
+        {/* After — top layer, clipped to reveal Before underneath.
+            This is the mobile LCP candidate — give it explicit
+            fetchPriority=high so the browser preload lands ahead of
+            other resources. */}
         <div
           className="absolute inset-0"
           style={{
@@ -215,6 +225,7 @@ function SingleCardToggle({
             alt={`${pair.label} — on-model lifestyle photo, ${pair.scene.toLowerCase()}`}
             fill
             priority={pairIndex === 0}
+            fetchPriority={pairIndex === 0 ? "high" : "auto"}
             sizes="(min-width: 640px) 384px, calc(100vw - 40px)"
             quality={85}
             className="object-cover"
@@ -254,7 +265,7 @@ function SingleCardToggle({
             onFirstInteract();
             if (!isAfterActive) onToggle();
           }}
-          className={`rounded-full px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] transition-all ${
+          className={`inline-flex min-h-11 items-center justify-center rounded-full px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] transition-all ${
             isAfterActive ? "bg-ink text-cream" : "text-ink-3 hover:text-ink"
           }`}
         >
@@ -268,7 +279,7 @@ function SingleCardToggle({
             onFirstInteract();
             if (!showBefore) onToggle();
           }}
-          className={`rounded-full px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] transition-all ${
+          className={`inline-flex min-h-11 items-center justify-center rounded-full px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] transition-all ${
             showBefore ? "bg-ink text-cream" : "text-ink-3 hover:text-ink"
           }`}
         >
@@ -284,13 +295,11 @@ function BeforeAfterCard({
   src,
   alt,
   label,
-  priority,
 }: {
   kind: "before" | "after";
   src: string;
   alt: string;
   label: string;
-  priority?: boolean;
 }) {
   return (
     <div className="relative aspect-[4/5] overflow-hidden rounded-lg border border-line-soft bg-paper-2 shadow-soft">
@@ -298,7 +307,6 @@ function BeforeAfterCard({
         src={src}
         alt={alt}
         fill
-        priority={priority}
         sizes="(min-width: 1024px) 480px, (min-width: 640px) 45vw, 50vw"
         quality={kind === "after" ? 85 : 80}
         className="object-cover"

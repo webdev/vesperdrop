@@ -132,7 +132,7 @@ export async function Nav({ width = "app" }: NavProps = {}) {
               </Link>
               <Link
                 href="/try"
-                className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-ink px-4 py-2.5 text-[13px] font-medium text-cream transition-colors hover:bg-ink-2 md:gap-2 md:px-5 md:text-[14px]"
+                className="inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-full bg-ink px-4 py-2.5 text-[13px] font-medium text-cream transition-colors hover:bg-ink-2 md:gap-2 md:px-5 md:text-[14px]"
               >
                 {/* Short variant on narrowest widths so the CTA never
                     wraps. "First free" is allowed by CLAUDE.md §15a as

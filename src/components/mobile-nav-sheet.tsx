@@ -61,7 +61,7 @@ export function MobileNavSheet({
               Vesperdrop
             </span>
             <DialogPrimitive.Close
-              className="flex h-9 w-9 items-center justify-center rounded-full text-ink-3 transition-colors hover:bg-surface hover:text-ink"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-ink-3 transition-colors hover:bg-surface hover:text-ink"
               aria-label="Close navigation"
             >
               <svg
