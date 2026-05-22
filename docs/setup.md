@@ -35,6 +35,33 @@
    ```
 6. (First run only) `pnpm stripe:listen` in a separate terminal — it prints a `whsec_...` value. Paste that into `.env.local` as `STRIPE_WEBHOOK_SECRET`, then restart `pnpm dev`.
 
+## Email (Resend)
+
+Auth OTPs / magic links go out over Resend in both local and production.
+Local routes through Resend too (not Inbucket) so dev exercises the real
+deliverability path; use throwaway addresses like `gblazer+testN@gmail.com`
+to keep your quota in check.
+
+1. **Resend account.** Sign up at https://resend.com, verify a sending
+   domain (`vesperdrop.com`) under **Domains**, and create an API key
+   under **API Keys**.
+2. **Local.** Put the key in `.env.local` as `RESEND_API_KEY=...`. The
+   local stack already has SMTP wired up in `supabase/config.toml`
+   (`[auth.email.smtp]`, host `smtp.resend.com:465`, sender
+   `info@vesperdrop.com`). Restart: `pnpm db:stop && pnpm db:start`.
+   To bypass Resend and use Inbucket again, flip
+   `[auth.email.smtp] enabled = false`.
+3. **Production (Supabase dashboard).** In the production project:
+   - **Authentication → Emails → SMTP Settings**: host
+     `smtp.resend.com`, port `465`, user `resend`, pass `<API key>`,
+     sender `info@vesperdrop.com`.
+   - **Authentication → Rate Limits**: bump **email send** to `100`/hour
+     (matches the local `email_sent = 100` in `config.toml`).
+
+Sender name is `Vesperdrop`. To change either the address or the display
+name, update `[auth.email.smtp]` in `config.toml` *and* the production
+dashboard so they stay in sync.
+
 ## Google OAuth (optional)
 
 Sign-in with Google is wired up in the auth form, but it only works once you've
