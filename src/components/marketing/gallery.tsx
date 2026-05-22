@@ -65,8 +65,8 @@ export async function Gallery() {
           <p className="mt-3 max-w-[520px] text-[15px] leading-[1.55] text-ink-3">
             One photo → a full set for your store, ads, and socials.
           </p>
-          {/* Use-case pills */}
-          <ul className="mt-6 flex flex-wrap items-center gap-2">
+          {/* Use-case pills — desktop only; add width without converting on mobile */}
+          <ul className="mt-6 hidden flex-wrap items-center gap-2 md:flex">
             {USE_CASE_PILLS.map((label) => (
               <li
                 key={label}
@@ -179,13 +179,13 @@ export async function Gallery() {
               </p>
             </div>
 
-            {/* Value strip — 4 columns, evenly spaced, divider above */}
+            {/* Value strip + price anchor — desktop only; redundant on mobile */}
             <div
               aria-hidden
-              className="mt-12 h-px w-full md:mt-14"
+              className="mt-12 hidden h-px w-full md:mt-14 md:block"
               style={{ background: "rgba(0,0,0,0.06)" }}
             />
-            <ul className="mt-6 grid grid-cols-1 gap-3 text-[13px] text-ink-3 sm:grid-cols-2 md:grid-cols-4 md:gap-6">
+            <ul className="mt-6 hidden grid-cols-1 gap-3 text-[13px] text-ink-3 sm:grid-cols-2 md:grid md:grid-cols-4 md:gap-6">
               {VALUE_STRIP.map((label) => (
                 <li key={label} className="flex items-center gap-2">
                   <span aria-hidden className="text-terracotta">
@@ -197,7 +197,7 @@ export async function Gallery() {
             </ul>
 
             {/* Price anchor */}
-            <div className="mt-6 text-center text-[12px] text-ink-4">
+            <div className="mt-6 hidden text-center text-[12px] text-ink-4 md:block">
               Typical photoshoot: $300–$2,000 ·{" "}
               <span className="text-ink-3">
                 Vesperdrop: starting at $19/mo

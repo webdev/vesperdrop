@@ -98,7 +98,7 @@ export function BeforeAfterSection() {
               out.
             </h2>
           </div>
-          <p className="text-[15px] leading-[1.55] text-ink-3 md:max-w-sm md:text-right">
+          <p className="hidden text-[15px] leading-[1.55] text-ink-3 md:block md:max-w-sm md:text-right">
             Same product, same upload — three different scenes. No props,
             no models, no studio. Ninety seconds each.
           </p>

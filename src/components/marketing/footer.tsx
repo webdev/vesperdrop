@@ -20,10 +20,11 @@ export function Footer() {
           <Link href="/pricing" className="text-ink-3 transition-colors hover:text-ink">
             Pricing
           </Link>
-          <Link href="/try" className="text-ink-3 transition-colors hover:text-ink">
+          {/* Try it + Sign in available via top nav/sheet on mobile — hide here to slim footer */}
+          <Link href="/try" className="hidden text-ink-3 transition-colors hover:text-ink md:inline">
             Try it
           </Link>
-          <Link href="/sign-in" className="text-ink-3 transition-colors hover:text-ink">
+          <Link href="/sign-in" className="hidden text-ink-3 transition-colors hover:text-ink md:inline">
             Sign in
           </Link>
         </div>

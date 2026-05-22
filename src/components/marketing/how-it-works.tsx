@@ -17,7 +17,7 @@ export function HowItWorks() {
               </em>
             </h2>
           </div>
-          <p className="text-[15px] leading-[1.6] text-ink-3 md:max-w-sm md:text-right">
+          <p className="hidden text-[15px] leading-[1.6] text-ink-3 md:block md:max-w-sm md:text-right">
             One flat lay in. Six lifestyle photos out. Your first one is on
             us, full resolution, no card required.
           </p>

@@ -20,7 +20,7 @@ export function Testimonials() {
               run it on your own product.
             </em>
           </h2>
-          <p className="mx-auto mt-6 max-w-2xl text-[15px] leading-[1.6] text-ink-3 md:mx-0">
+          <p className="mx-auto mt-6 hidden max-w-2xl text-[15px] leading-[1.6] text-ink-3 md:mx-0 md:block">
             Built for apparel brands tired of waiting on shoot days. The
             fastest way to know if Vesperdrop works for your garments is the
             same way we know it does — drop your flat lay in, watch the
