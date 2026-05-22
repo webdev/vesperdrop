@@ -101,7 +101,7 @@ export function MobileNavSheet({
               <>
                 <Link
                   href="/try"
-                  className="mb-4 inline-flex items-center justify-center gap-2 rounded-full bg-terracotta px-5 py-3 font-mono text-[12px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark"
+                  className="mb-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-terracotta px-5 py-3 font-mono text-[12px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark"
                 >
                   First photo free →
                 </Link>

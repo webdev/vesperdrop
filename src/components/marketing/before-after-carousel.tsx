@@ -116,7 +116,7 @@ export function BeforeAfterCarousel() {
             aria-selected={i === index}
             aria-label={`Show ${p.label} example`}
             onClick={() => setIndex(i)}
-            className="flex h-6 min-w-6 items-center justify-center p-2"
+            className="flex h-11 min-w-11 items-center justify-center p-3"
           >
             <span
               aria-hidden

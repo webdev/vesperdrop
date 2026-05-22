@@ -43,7 +43,7 @@ export function Hero() {
             <div className="mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center md:mt-7 lg:justify-start">
               <Link
                 href="/try"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-terracotta px-6 py-3 font-mono text-[12px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark md:py-3.5"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-terracotta px-6 py-3 font-mono text-[12px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark md:py-3.5"
               >
                 Get my first photo free
                 <span aria-hidden>→</span>

@@ -26,9 +26,13 @@ export function StickyMobileCta() {
         <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3">
           No card required
         </p>
+        {/* tabIndex flips to -1 while hidden so the focusable child doesn't
+            violate the parent's aria-hidden=true (Lighthouse a11y
+            aria-hidden-focus rule). */}
         <Link
           href="/try"
-          className="inline-flex items-center gap-2 rounded-full bg-terracotta px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark"
+          tabIndex={visible ? 0 : -1}
+          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-terracotta px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark"
         >
           First photo free
           <span aria-hidden>→</span>
