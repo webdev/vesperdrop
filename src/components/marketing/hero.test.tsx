@@ -31,8 +31,8 @@ describe("Hero — mobile compression (VES-7)", () => {
   it("'See how it works' link has the hidden class (mobile-hidden)", () => {
     render(<Hero />);
     const link = screen.getByRole("link", { name: /see how it works/i });
-    expect(link.className).toContain("hidden");
-    expect(link.className).toContain("md:inline-flex");
+    expect(link.classList.contains("hidden")).toBe(true);
+    expect(link.classList.contains("md:inline-flex")).toBe(true);
   });
 
   it("renders the carousel before the stat strip in DOM order", () => {

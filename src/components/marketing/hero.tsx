@@ -12,7 +12,7 @@ export function Hero() {
           </p>
 
           {/* Single <h1>; mobile and desktop copy use CSS visibility, not duplicate tags. */}
-          <h1 className="mt-4 text-[clamp(2rem,5vw,4.5rem)] font-serif leading-[1.02] tracking-[-0.02em] text-ink md:mt-5 md:text-[clamp(2.5rem,6vw,4.5rem)]">
+          <h1 className="mt-4 text-[clamp(2rem,5vw,4.5rem)] font-serif leading-[1.02] tracking-[-0.02em] text-ink md:mt-5 md:text-[clamp(2.4rem,5.5vw,4.5rem)]">
             <span className="md:hidden">
               Apparel photos that look{" "}
               <em className="not-italic font-serif italic text-terracotta-dark">
