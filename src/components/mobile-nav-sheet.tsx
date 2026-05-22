@@ -28,7 +28,7 @@ export function MobileNavSheet({
   }, [pathname]);
 
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
+    <DialogPrimitive.Root open={open} onOpenChange={(open) => setOpen(open)}>
       <DialogPrimitive.Trigger
         className="flex h-11 w-11 items-center justify-center text-ink"
         aria-label="Open navigation"
@@ -53,7 +53,6 @@ export function MobileNavSheet({
       <DialogPrimitive.Portal>
         <DialogPrimitive.Backdrop
           className="fixed inset-0 z-40 bg-black/30 backdrop-blur-xs"
-          onClick={() => setOpen(false)}
         />
         <DialogPrimitive.Popup className="fixed inset-y-0 right-0 z-50 flex w-[88%] max-w-sm flex-col bg-paper shadow-xl">
           {/* Sheet header */}

@@ -175,8 +175,9 @@ describe("MobileNavSheet — content (VES-6)", () => {
     });
   });
 
-  it("usePathname is called (so route-change close effect is wired)", () => {
-    render(
+  it("changing pathname does not crash (route-change close effect runs clean)", () => {
+    mockPathname.mockClear();
+    const { rerender } = render(
       <MobileNavSheet
         isSignedIn={false}
         credits={null}
@@ -185,6 +186,22 @@ describe("MobileNavSheet — content (VES-6)", () => {
         email=""
       />,
     );
-    expect(mockPathname).toHaveBeenCalled();
+
+    // Simulate route change by updating the mock and re-rendering
+    mockPathname.mockReturnValue("/discover");
+    rerender(
+      <MobileNavSheet
+        isSignedIn={false}
+        credits={null}
+        isAdmin={false}
+        firstName={null}
+        email=""
+      />,
+    );
+
+    // usePathname is called on both renders; useEffect fires on pathname change
+    expect(mockPathname).toHaveBeenCalledTimes(2);
+    // Component still renders without error after pathname change
+    expect(screen.getByTestId("hamburger-button")).toBeInTheDocument();
   });
 });
