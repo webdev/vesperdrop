@@ -79,14 +79,14 @@ export function EmailCapture({ runId, onSuccess }: Props) {
 
   if (status === "success") {
     return (
-      <section className="rounded-xl border border-line-soft bg-paper p-6 md:p-8">
+      <section className="rounded-xl border border-line-soft bg-paper p-4 md:p-8">
         <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-3">
           Done · Sent to your inbox
         </p>
-        <h3 className="mt-3 font-serif text-[clamp(1.5rem,2.4vw,2rem)] leading-[1.1] tracking-[-0.01em] text-ink">
+        <h3 className="mt-2 font-serif text-[clamp(1.25rem,2.4vw,2rem)] leading-[1.1] tracking-[-0.01em] text-ink md:mt-3">
           Watermark-free photos are yours.
         </h3>
-        <p className="mt-3 max-w-[60ch] text-[14px] leading-[1.55] text-ink-3">
+        <p className="mt-2 max-w-[60ch] text-[13.5px] leading-[1.5] text-ink-3 md:mt-3 md:text-[14px] md:leading-[1.55]">
           Check <strong className="text-ink">{email}</strong> for the HD
           download links. The photos are also revealed below — right-click
           any image to save.
@@ -98,25 +98,25 @@ export function EmailCapture({ runId, onSuccess }: Props) {
   return (
     <section
       data-testid="email-capture"
-      className="rounded-xl border border-terracotta/30 bg-paper p-6 md:p-8"
+      className="rounded-xl border border-terracotta/30 bg-paper p-4 md:p-8"
     >
       <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-terracotta-dark">
         Get all 3 photos · Watermark-free
       </p>
-      <h3 className="mt-3 font-serif text-[clamp(1.625rem,2.6vw,2.125rem)] leading-[1.05] tracking-[-0.01em] text-ink">
+      <h3 className="mt-2 font-serif text-[clamp(1.25rem,2.6vw,2.125rem)] leading-[1.08] tracking-[-0.01em] text-ink md:mt-3 md:leading-[1.05]">
         Like what you see?{" "}
         <em className="not-italic font-serif italic text-terracotta-dark">
           We&rsquo;ll send the watermark-free versions.
         </em>
       </h3>
-      <p className="mt-3 max-w-[58ch] text-[14px] leading-[1.55] text-ink-3">
+      <p className="mt-2 max-w-[58ch] text-[13.5px] leading-[1.5] text-ink-3 md:mt-3 md:text-[14px] md:leading-[1.55]">
         All 3 photos, full resolution, no watermark — delivered to your
         inbox. No card required. First one&rsquo;s on us.
       </p>
 
       <form
         onSubmit={handleSubmit}
-        className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-stretch"
+        className="mt-3 flex flex-col gap-2.5 sm:flex-row sm:items-stretch md:mt-5 md:gap-3"
         noValidate
       >
         <label htmlFor="try-email" className="sr-only">
@@ -143,7 +143,7 @@ export function EmailCapture({ runId, onSuccess }: Props) {
         </button>
       </form>
 
-      <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
+      <p className="mt-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 md:mt-3">
         No spam · Unsubscribe anytime · If you don&rsquo;t love the photos,
         reply and we&rsquo;ll regenerate
       </p>

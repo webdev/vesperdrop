@@ -42,8 +42,8 @@ export function EditorialClaimRail({
       transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
       className={
         showUpsell
-          ? "mt-12 grid grid-cols-1 items-start gap-10 md:mt-16 md:grid-cols-[1.1fr_auto_0.95fr] md:gap-12"
-          : "mt-12 md:mt-16"
+          ? "mt-6 grid grid-cols-1 items-start gap-6 md:mt-16 md:grid-cols-[1.1fr_auto_0.95fr] md:gap-12"
+          : "mt-6 md:mt-16"
       }
     >
       <ClaimColumn claimed={claimed} onClaimSuccess={onClaimSuccess} />
@@ -77,16 +77,16 @@ function ClaimColumn({
   onClaimSuccess: (args: { email: string; userId: string }) => void | Promise<void>;
 }) {
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-3 md:gap-5">
       <div>
-        <h2 className="font-serif text-[clamp(2rem,3.4vw,2.75rem)] leading-[1.05] tracking-[-0.02em] text-ink">
+        <h2 className="font-serif text-[clamp(1.5rem,3.4vw,2.75rem)] leading-[1.08] tracking-[-0.02em] text-ink md:leading-[1.05]">
           Claim your{" "}
           <em className="not-italic font-serif italic text-terracotta-dark">
             studio
           </em>
           .
         </h2>
-        <p className="mt-2 max-w-[36ch] text-[14.5px] leading-[1.55] text-ink-3">
+        <p className="mt-1.5 max-w-[36ch] text-[13.5px] leading-[1.5] text-ink-3 md:mt-2 md:text-[14.5px] md:leading-[1.55]">
           {claimed
             ? "Your studio is saved. Your hero shot is ready to download — complete the set to unlock the rest."
             : "Enter your email to save this batch and unlock your first HD image."}
@@ -369,11 +369,11 @@ function UpsellThumbnails({
 export function TrustRow() {
   const brands = ["ZARA", "alo", "FEW MODA", "vuori", "KOTN"];
   return (
-    <div className="mt-16 border-t border-line-soft pt-8">
+    <div className="mt-8 border-t border-line-soft pt-5 md:mt-16 md:pt-8">
       <p className="text-center font-mono text-[11px] uppercase tracking-[0.18em] text-ink-3">
         Trusted by creators and brands worldwide
       </p>
-      <div className="mt-5 flex flex-wrap items-center justify-center gap-x-12 gap-y-4">
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 md:mt-5 md:gap-x-12 md:gap-y-4">
         {brands.map((b) => (
           <span
             key={b}

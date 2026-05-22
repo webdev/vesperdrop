@@ -325,7 +325,7 @@ export function TryFlow({
           /try flow. */}
       <WizardSteps current={step} />
 
-      <Container as="main" width="app" className="flex-1 pt-6 pb-8 md:pt-10 md:pb-12">
+      <Container as="main" width="app" className="flex-1 pt-4 pb-6 md:pt-10 md:pb-12">
         {step === "upload" ? (
           <UploadStep
             photo={photo}
@@ -394,30 +394,30 @@ function UploadStep({
 }) {
   const [dragging, setDragging] = useState(false);
   return (
-    <div className="grid grid-cols-1 gap-12 md:grid-cols-[1.2fr_1fr] md:gap-16">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-[1.2fr_1fr] md:gap-16">
       <div>
         <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
           New batch · N°01
         </p>
-        <h1 className="mt-4 font-serif text-[clamp(3rem,6vw,4.5rem)] leading-[0.98] tracking-[-0.02em] text-ink">
+        <h1 className="mt-2 font-serif text-[clamp(1.875rem,6vw,4.5rem)] leading-[1] tracking-[-0.02em] text-ink md:mt-4 md:leading-[0.98]">
           Drop your{" "}
           <em className="not-italic font-serif italic text-terracotta-dark">
             product
           </em>
           .
         </h1>
-        <p className="mt-5 max-w-lg text-[16px] leading-[1.55] text-ink-3">
+        <p className="mt-2 max-w-lg text-[14px] leading-[1.5] text-ink-3 md:mt-5 md:text-[16px] md:leading-[1.55]">
           Any flatlay works — on the floor, on a rug, on your desk. Your Amazon
           main image is perfect.
         </p>
 
         {photo ? (
-          <p className="mt-5 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-4">
+          <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-4 md:mt-5">
             On file · {photo.name} · drop a different one to replace
           </p>
         ) : null}
 
-        <div className="mt-8">
+        <div className="mt-4 md:mt-8">
           <Dropzone
             dragging={dragging}
             setDragging={setDragging}
@@ -463,26 +463,26 @@ function Dropzone({
           setDragging(false);
           onFiles(e.dataTransfer.files, "drop");
         }}
-        className={`block w-full cursor-pointer rounded-lg border border-dashed px-8 py-14 text-center transition-colors ${
+        className={`block w-full cursor-pointer rounded-lg border border-dashed px-6 py-8 text-center transition-colors md:px-8 md:py-14 ${
           dragging
             ? "border-terracotta bg-terracotta-wash/40"
             : "border-line bg-surface hover:border-ink-4"
         }`}
       >
-        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-paper-2 text-ink-2">
-          <span aria-hidden className="font-serif text-[24px] leading-none">↑</span>
+        <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-paper-2 text-ink-2 md:mb-5 md:h-14 md:w-14">
+          <span aria-hidden className="font-serif text-[20px] leading-none md:text-[24px]">↑</span>
         </div>
         <div className="font-serif text-[clamp(1.125rem,1.5vw,1.25rem)] leading-tight text-ink">
           Drag a product photo here
         </div>
-        <div className="mt-2 text-[14px] text-ink-3">
+        <div className="mt-1.5 text-[13px] text-ink-3 md:mt-2 md:text-[14px]">
           or{" "}
           <span className="text-terracotta underline underline-offset-4">
             browse files
           </span>{" "}
           · PNG, JPG up to 40MB
         </div>
-        <div className="mt-6 border-t border-line-soft pt-5 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4">
+        <div className="mt-4 border-t border-line-soft pt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4 md:mt-6 md:pt-5">
           No account · no card · stays in your browser
         </div>
       </button>
@@ -532,27 +532,37 @@ function ScenesStep({
   }
   return (
     <div>
-      <div className="mb-10 flex flex-col gap-5 md:flex-row md:items-end md:justify-between md:gap-8">
+      <div className="mb-5 flex flex-col gap-3 md:mb-10 md:flex-row md:items-end md:justify-between md:gap-8 md:gap-y-5">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-            Scenes · N°02
-          </p>
-          <h1 className="mt-4 font-serif text-[clamp(2.5rem,5.5vw,4rem)] leading-[0.98] tracking-[-0.02em] text-ink">
+          <div className="flex items-center justify-between gap-3 md:block">
+            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+              Scenes · N°02
+            </p>
+            <button
+              type="button"
+              onClick={onBack}
+              className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3 underline-offset-4 transition-colors hover:text-ink hover:underline md:hidden"
+            >
+              ← Back
+            </button>
+          </div>
+          <h1 className="mt-2 font-serif text-[clamp(1.75rem,5.5vw,4rem)] leading-[1.02] tracking-[-0.02em] text-ink md:mt-4 md:leading-[0.98]">
             Pick your{" "}
             <em className="not-italic font-serif italic text-terracotta-dark">
               scenes
             </em>
             .
           </h1>
-          <p className="mt-4 max-w-xl text-[16px] leading-[1.55] text-ink-3">
+          <p className="mt-1.5 max-w-xl text-[13px] leading-[1.45] text-ink-3 md:mt-4 md:text-[16px] md:leading-[1.55]">
             Choose the looks you want. We&apos;ll spread your batch across them.
           </p>
         </div>
         {/* Right-aligned action stack. The Develop CTA lives here too
             (in addition to the bottom action row) so it's reachable
             without scrolling once the user has picked at least one
-            scene. Disabled state mirrors the bottom button. */}
-        <div className="flex flex-col items-start gap-3 md:items-end">
+            scene. On mobile we hide it to avoid duplicating the bottom
+            CTA, and surface a compact Back link inline with the eyebrow. */}
+        <div className="hidden flex-col items-start gap-3 md:flex md:items-end">
           <button
             type="button"
             onClick={onBack}
@@ -633,7 +643,7 @@ function ScenesStep({
         })}
       </div>
 
-      <div className="mt-10 flex items-center justify-between border-t border-line-soft pt-6">
+      <div className="mt-5 flex items-center justify-between border-t border-line-soft pt-4 md:mt-10 md:pt-6">
         <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
           {picked.length} of {sceneCap} scene{picked.length === 1 ? "" : "s"} picked
         </p>
@@ -642,7 +652,7 @@ function ScenesStep({
           data-testid="generate-button"
           disabled={picked.length === 0 || busy}
           onClick={onContinue}
-          className="inline-flex items-center rounded-full bg-terracotta px-6 py-3 font-mono text-[12px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex items-center rounded-full bg-terracotta px-5 py-2.5 font-mono text-[12px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark disabled:cursor-not-allowed disabled:opacity-40 md:px-6 md:py-3"
         >
           {busy ? "Loading…" : "Develop my batch →"}
         </button>
@@ -1014,12 +1024,12 @@ function DevelopStep({
 
   return (
     <div className={`relative ${developDone && isAuthed ? "pb-40 md:pb-44" : ""}`}>
-      <div className="mb-10 flex flex-col items-start justify-between gap-4 md:mb-14 md:flex-row md:items-end">
+      <div className="mb-4 flex flex-col items-start justify-between gap-4 md:mb-14 md:flex-row md:items-end">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
             Developing · N°03
           </p>
-          <h1 className="mt-5 font-serif text-[clamp(2.5rem,5.5vw,4rem)] leading-[1.04] tracking-[-0.02em] text-ink md:mt-6">
+          <h1 className="mt-2 font-serif text-[clamp(1.75rem,5.5vw,4rem)] leading-[1.05] tracking-[-0.02em] text-ink md:mt-6 md:leading-[1.04]">
             In the{" "}
             <em className="not-italic font-serif italic text-terracotta-dark">
               studio

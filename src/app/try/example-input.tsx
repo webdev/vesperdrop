@@ -52,10 +52,10 @@ export function ExampleInput({ paused }: { paused: boolean }) {
 
   return (
     <div>
-      <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+      <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3 md:mb-3">
         Example of a good input →
       </p>
-      <div className="relative aspect-square overflow-hidden rounded-lg border border-line-soft bg-paper-2">
+      <div className="relative aspect-[16/10] overflow-hidden rounded-lg border border-line-soft bg-paper-2 md:aspect-square">
         {SAMPLES.map((s, i) => (
           <img
             key={s.slug}
@@ -70,11 +70,11 @@ export function ExampleInput({ paused }: { paused: boolean }) {
           Yours can look like this
         </div>
       </div>
-      <div className="mt-3 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4">
+      <div className="mt-2 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4 md:mt-3">
         <span>{SAMPLES[idx]!.filename}</span>
         <span>{SAMPLES[idx]!.size}</span>
       </div>
-      <p className="mt-3 text-[14px] leading-[1.55] text-ink-3">
+      <p className="mt-2 text-[13px] leading-[1.5] text-ink-3 md:mt-3 md:text-[14px] md:leading-[1.55]">
         Hanger, mannequin, flat on the floor — any angle works.
       </p>
     </div>
