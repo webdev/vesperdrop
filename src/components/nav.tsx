@@ -5,6 +5,7 @@ import { NavLink } from "@/components/ui/nav-link";
 import { firstNameFrom } from "@/lib/user-display";
 import { getQuotaBalance } from "@/lib/db/quota";
 import { isAdminEmail } from "@/lib/admin";
+import { MobileNavSheet } from "@/components/mobile-nav-sheet";
 
 type NavProps = {
   width?: ContainerWidth;
@@ -25,8 +26,19 @@ export async function Nav({ width = "app" }: NavProps = {}) {
     <header className="sticky top-0 z-30 border-b border-line-soft bg-paper/85 backdrop-blur-md">
       <Container
         width={width}
-        className="flex items-center gap-10 py-4"
+        className="flex items-center gap-3 py-4 md:gap-10"
       >
+        {/* Mobile hamburger — hidden above md */}
+        <div className="md:hidden">
+          <MobileNavSheet
+            isSignedIn={isSignedIn}
+            credits={credits}
+            isAdmin={isAdmin}
+            firstName={firstName}
+            email={email}
+          />
+        </div>
+
         <Link
           href={isSignedIn ? "/app" : "/"}
           className="font-serif text-[22px] font-medium tracking-tight text-ink"
@@ -34,6 +46,7 @@ export async function Nav({ width = "app" }: NavProps = {}) {
           Vesperdrop
         </Link>
 
+        {/* Desktop primary nav */}
         <nav
           aria-label="Primary"
           className="hidden flex-1 items-center gap-8 text-[14px] text-ink-3 md:flex"
@@ -66,13 +79,15 @@ export async function Nav({ width = "app" }: NavProps = {}) {
           <NavLink href="/pricing">Pricing</NavLink>
         </nav>
 
+        {/* Right side */}
         <div className="ml-auto flex items-center gap-3">
           {isSignedIn ? (
             <>
+              {/* Credit chip — always visible (mobile users need to see this) */}
               {isAdmin ? (
                 <span
                   aria-label="Unlimited photos"
-                  className="hidden items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-2 md:inline-flex"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-2"
                 >
                   Photos
                   <span className="text-ink">∞</span>
@@ -80,7 +95,7 @@ export async function Nav({ width = "app" }: NavProps = {}) {
               ) : typeof credits === "number" ? (
                 <span
                   aria-label={`${credits} photos remaining`}
-                  className="hidden items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-2 md:inline-flex"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-2"
                 >
                   Photos
                   <span className="text-ink">{credits}</span>
@@ -108,17 +123,20 @@ export async function Nav({ width = "app" }: NavProps = {}) {
             </>
           ) : (
             <>
+              {/* Sign in hidden on mobile — reachable via sheet */}
               <Link
                 href="/sign-in"
-                className="py-1 text-[13px] text-ink-3 transition-colors hover:text-ink md:text-[14px]"
+                className="hidden py-1 text-[13px] text-ink-3 transition-colors hover:text-ink md:inline md:text-[14px]"
               >
                 Sign in
               </Link>
               <Link
                 href="/try"
-                className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-[14px] font-medium text-cream transition-colors hover:bg-ink-2"
+                className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-ink px-4 py-2.5 text-[13px] font-medium text-cream transition-colors hover:bg-ink-2 md:gap-2 md:px-5 md:text-[14px]"
               >
-                First photo free <span aria-hidden>→</span>
+                <span className="sm:hidden">Try free</span>
+                <span className="hidden sm:inline">First photo free</span>
+                <span aria-hidden>→</span>
               </Link>
             </>
           )}
