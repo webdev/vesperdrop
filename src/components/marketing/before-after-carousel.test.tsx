@@ -111,9 +111,7 @@ describe("BeforeAfterCarousel — mobile toggle (VES-8)", () => {
     const hint = screen.getByTestId("compare-hint");
     expect(hint.className).toContain("opacity-100");
 
-    // Fire pointerDown on the card div (firstElementChild of the SingleCardToggle wrapper)
-    // mobile-card > div.flex-col (wrapper) > div[ref=cardRef] (has pointer handlers)
-    const card = screen.getByTestId("mobile-card").firstElementChild!.firstElementChild!;
+    const card = screen.getByTestId("card-image-area");
     fireEvent.pointerDown(card, { pointerId: 1, clientX: 80, buttons: 1 });
 
     expect(hint.className).toContain("opacity-0");
@@ -122,8 +120,7 @@ describe("BeforeAfterCarousel — mobile toggle (VES-8)", () => {
   it("drag crossing left of center (< 50%) snaps to Before on pointerUp", () => {
     render(<BeforeAfterCarousel />);
 
-    // mobile-card > div.flex-col (wrapper) > div[ref=cardRef] (has pointer handlers)
-    const card = screen.getByTestId("mobile-card").firstElementChild!.firstElementChild!;
+    const card = screen.getByTestId("card-image-area");
 
     // Mock getBoundingClientRect so width is 200px, left 0
     vi.spyOn(card as any, "getBoundingClientRect").mockReturnValue({

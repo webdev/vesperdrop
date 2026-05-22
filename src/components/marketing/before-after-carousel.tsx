@@ -158,7 +158,8 @@ function SingleCardToggle({
     setDragPct(pct);
   }
 
-  function handlePointerUp() {
+  function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
     if (dragPct !== null) {
       // Snap: drag left of center → Before, drag right of center → After
       const shouldShowBefore = dragPct < 50;
@@ -178,6 +179,7 @@ function SingleCardToggle({
     <div className="flex flex-col items-center gap-3">
       <div
         ref={cardRef}
+        data-testid="card-image-area"
         className="relative aspect-[4/5] w-full max-w-sm overflow-hidden rounded-lg border border-line-soft bg-paper-2 shadow-soft"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
