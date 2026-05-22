@@ -86,7 +86,7 @@ export function BeforeAfterSection() {
     <section className="bg-paper-soft py-20 md:py-24">
       <Container width="marketing">
         <div className="mb-12 flex flex-col items-end justify-between gap-6 md:mb-16 md:flex-row">
-          <div className="md:max-w-2xl">
+          <div className="text-center md:max-w-2xl md:text-left">
             <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
               Real before / after
             </p>

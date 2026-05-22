@@ -52,7 +52,7 @@ export async function Gallery() {
     >
       <Container width="marketing">
         {/* Header — eyebrow → headline → subtext */}
-        <div className="max-w-2xl">
+        <div className="max-w-2xl text-center md:text-left">
           <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
             The complete set
           </p>
@@ -62,7 +62,7 @@ export async function Gallery() {
               sell your product.
             </em>
           </h2>
-          <p className="mt-3 max-w-[520px] text-[15px] leading-[1.55] text-ink-3">
+          <p className="mt-3 mx-auto max-w-[520px] text-[15px] leading-[1.55] text-ink-3 md:mx-0">
             One photo → a full set for your store, ads, and socials.
           </p>
           {/* Use-case pills — desktop only; add width without converting on mobile */}
