@@ -150,9 +150,18 @@ function SingleCardToggle({
 }: SingleCardToggleProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [dragPct, setDragPct] = useState<number | null>(null);
+  // Defer Before-image mount until the user shows intent to compare.
+  // Keeps the Before fetch off the critical-LCP path.
+  const [beforeMounted, setBeforeMounted] = useState(showBefore);
+  if (showBefore && !beforeMounted) setBeforeMounted(true);
+
+  function ensureBeforeMounted() {
+    if (!beforeMounted) setBeforeMounted(true);
+  }
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     onFirstInteract();
+    ensureBeforeMounted();
     e.currentTarget.setPointerCapture?.(e.pointerId);
   }
 
@@ -211,15 +220,23 @@ function SingleCardToggle({
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
       >
-        {/* Before — bottom layer */}
-        <Image
-          src={pair.before}
-          alt={`${pair.label} — flat lay before Vesperdrop`}
-          fill
-          sizes="(min-width: 640px) 384px, calc(100vw - 40px)"
-          quality={80}
-          className="object-cover"
-        />
+        {/* Before — bottom layer. Mounted only after the user shows intent
+            to compare (toggle / drag). At SSR/idle the After image fully
+            covers it, so deferring the Before fetch keeps it from
+            competing with the LCP After image for bandwidth on the
+            critical render path. (cami_before.webp was loading at ~1.3s
+            in Lighthouse, right in the LCP window.) */}
+        {beforeMounted ? (
+          <Image
+            src={pair.before}
+            alt={`${pair.label} — flat lay before Vesperdrop`}
+            fill
+            loading="lazy"
+            sizes="(min-width: 640px) 384px, calc(100vw - 40px)"
+            quality={80}
+            className="object-cover"
+          />
+        ) : null}
 
         {/* After — top layer, clipped to reveal Before underneath.
             This is the mobile LCP candidate — give it explicit
@@ -283,6 +300,7 @@ function SingleCardToggle({
           aria-pressed={showBefore}
           onClick={() => {
             onFirstInteract();
+            ensureBeforeMounted();
             if (!showBefore) onToggle();
           }}
           className={`inline-flex min-h-11 items-center justify-center rounded-full px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] transition-all ${
