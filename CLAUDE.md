@@ -273,6 +273,45 @@ Before coding:
 - Do NOT duplicate components
 - Do NOT introduce new layout systems
 
+## Deploy workflow (LOCKED — added 2026-05-22)
+
+Two paths, picked based on the nature of the change:
+
+**Direct-to-main** is acceptable for surgical, single-shot fixes where the
+outcome is visually obvious and the blast radius is small:
+
+- Copy / language audits.
+- Tap-target / a11y class swaps.
+- Heading alignment, color tweaks, padding tightening.
+- Mobile-only visibility toggles (`hidden md:block`).
+- Anything you would commit in one push and verify with a single
+  Lighthouse / Playwright pass.
+
+**Feature branches + Vercel preview deploys** are REQUIRED for multi-iteration
+work where you may need to try several approaches before landing the right
+fix:
+
+- Performance optimization (LCP, CLS, bundle splitting, critical CSS).
+- Structural refactors (component re-architecture, hydration boundaries).
+- Anything that might inflate HTML, change the bundle, or affect the
+  critical render path.
+- Anything where you expect to push → measure → revert at least once.
+
+This rule was added after the 2026-05-22 VES-7 LCP iteration where the
+perf agent shipped critical-CSS inlining to prod, found it inflated HTML
+6× without LCP improvement, and reverted — all visible on production
+during the experiment window. That kind of "try, measure, maybe revert"
+loop belongs on a preview, not on prod.
+
+Branch naming: follow the Linear gitBranchName from `get_issue`
+(e.g., `gblazer/ves-7-...`). Vercel will auto-create a preview deploy
+when you push the branch. Run Lighthouse against the preview URL,
+NOT prod, until your criteria pass. Merge to main only when the
+acceptance criteria from the Linear ticket are met.
+
+If you're unsure whether a change qualifies as surgical or
+multi-iteration, default to a feature branch.
+
 ## Verification rule (LOCKED — added 2026-05-22)
 
 When an issue (Linear, GitHub, anywhere) has explicit **acceptance
