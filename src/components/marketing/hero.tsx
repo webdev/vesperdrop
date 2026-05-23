@@ -1,5 +1,14 @@
 import Link from "next/link";
-import { CreditCard, Gift, ShieldCheck } from "lucide-react";
+import {
+  BadgeCheck,
+  Clock,
+  CreditCard,
+  Crown,
+  Gift,
+  Layers,
+  ShieldCheck,
+  type LucideIcon,
+} from "lucide-react";
 import { Container } from "@/components/ui/container";
 import { BeforeAfterCarousel } from "./before-after-carousel";
 
@@ -95,25 +104,42 @@ export function Hero() {
         </div>
 
         <dl className="mx-auto mt-6 grid max-w-3xl grid-cols-2 gap-x-6 gap-y-5 border-t border-line-soft pt-6 sm:grid-cols-4 md:mt-16">
-          <Stat label="Per batch" value="6 photos" />
-          <Stat label="Time" value="~90 sec" />
-          <Stat label="Marketplace" value="A+ ready" />
-          <Stat label="Pro from" value="$39/mo" />
+          <Stat icon={Layers} label="Per batch" value="6 photos" />
+          <Stat icon={Clock} label="Time" value="~90 sec" />
+          <Stat icon={BadgeCheck} label="Marketplace" value="A+ ready" />
+          <Stat icon={Crown} label="Pro from" value="$39/mo" />
         </dl>
       </Container>
     </section>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+}) {
   return (
-    <div>
-      <dt className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4">
-        {label}
-      </dt>
-      <dd className="mt-1.5 font-serif text-[20px] leading-none tracking-[-0.01em] text-ink">
-        {value}
-      </dd>
+    <div className="flex items-center gap-3 sm:block">
+      {/* Mobile-only icon circle — VES-34. Hidden at sm: so desktop is pixel-identical. */}
+      <span
+        aria-hidden="true"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-paper-2 sm:hidden"
+      >
+        <Icon className="h-4 w-4 text-ink-3" />
+      </span>
+      <div>
+        <dt className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4">
+          {label}
+        </dt>
+        <dd className="mt-1.5 font-serif text-[20px] leading-none tracking-[-0.01em] text-ink">
+          {value}
+        </dd>
+      </div>
     </div>
   );
 }
