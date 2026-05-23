@@ -7,6 +7,7 @@ import {
   Gift,
   Layers,
   ShieldCheck,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { Container } from "@/components/ui/container";
@@ -109,6 +110,12 @@ export function Hero() {
           <Stat icon={BadgeCheck} label="Marketplace" value="A+ ready" />
           <Stat icon={Crown} label="Pro from" value="$39/mo" />
         </dl>
+
+        {/* Mobile-only positioning statement — VES-35 (option b, no numeric claims). */}
+        <p className="mt-5 flex items-center justify-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-3 md:hidden">
+          <Sparkles aria-hidden="true" className="h-3.5 w-3.5 text-terracotta" />
+          Built for Etsy &amp; Shopify sellers
+        </p>
       </Container>
     </section>
   );
