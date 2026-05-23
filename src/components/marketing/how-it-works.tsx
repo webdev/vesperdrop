@@ -3,9 +3,9 @@ import { Container } from "@/components/ui/container";
 
 export function HowItWorks() {
   return (
-    <section id="how" className="bg-paper py-20 md:py-24">
+    <section id="how" className="bg-paper py-10 md:py-24">
       <Container width="marketing">
-        <div className="mb-12 flex flex-col items-end justify-between gap-6 md:mb-16 md:flex-row">
+        <div className="mb-6 flex flex-col items-end justify-between gap-6 md:mb-16 md:flex-row">
           <div className="text-center md:max-w-2xl md:text-left">
             <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
               How it works
@@ -23,7 +23,7 @@ export function HowItWorks() {
           </p>
         </div>
 
-        <ol className="grid grid-cols-1 gap-12 md:grid-cols-3 md:gap-16">
+        <ol className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-16">
           {[
             {
               n: "01",
@@ -55,7 +55,7 @@ export function HowItWorks() {
           ))}
         </ol>
 
-        <div className="mt-12 flex flex-col items-center gap-3 md:mt-16 md:flex-row md:justify-center">
+        <div className="mt-6 flex flex-col items-center gap-3 md:mt-16 md:flex-row md:justify-center">
           <Link
             href="/try"
             className="inline-flex items-center gap-2 rounded-full bg-terracotta px-6 py-3.5 font-mono text-[12px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark"

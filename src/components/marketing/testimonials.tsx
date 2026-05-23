@@ -8,7 +8,7 @@ import { Container } from "@/components/ui/container";
 // honest reframe: the free photo IS the proof.
 export function Testimonials() {
   return (
-    <section className="bg-paper py-20 md:py-24">
+    <section className="hidden bg-paper py-20 md:block md:py-24">
       <Container width="reading">
         <div className="text-center md:text-left">
           <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">

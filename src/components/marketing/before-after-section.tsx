@@ -83,9 +83,9 @@ const PAIRS: Pair[] = [
 
 export function BeforeAfterSection() {
   return (
-    <section className="bg-paper-soft py-20 md:py-24">
+    <section className="bg-paper-soft py-10 md:py-24">
       <Container width="marketing">
-        <div className="mb-12 flex flex-col items-end justify-between gap-6 md:mb-16 md:flex-row">
+        <div className="mb-6 flex flex-col items-end justify-between gap-6 md:mb-16 md:flex-row">
           <div className="text-center md:max-w-2xl md:text-left">
             <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
               Real before / after
@@ -104,7 +104,7 @@ export function BeforeAfterSection() {
           </p>
         </div>
 
-        <div className="space-y-20 md:space-y-24">
+        <div className="space-y-10 md:space-y-24">
           {PAIRS.map((p, i) => (
             <article
               key={p.sku}
@@ -169,7 +169,7 @@ export function BeforeAfterSection() {
           ))}
         </div>
 
-        <div className="mt-16 text-center md:mt-20">
+        <div className="mt-8 text-center md:mt-20">
           <Link
             href="/try"
             className="inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3.5 font-mono text-[12px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-ink-2"

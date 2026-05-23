@@ -5,7 +5,7 @@ import { BeforeAfterCarousel } from "./before-after-carousel";
 export function Hero() {
   return (
     <section className="relative">
-      <Container width="marketing" className="pb-12 pt-8 md:pb-20 md:pt-20">
+      <Container width="marketing" className="pb-6 pt-6 md:pb-20 md:pt-20">
         {/* Stacked at mobile/tablet (matches the IG ad bet — headline first),
             side-by-side at lg+ so the carousel stays in the desktop viewport
             (VES-9 acceptance: hero imagery entirely above the fold). The
@@ -69,7 +69,7 @@ export function Hero() {
           </div>
         </div>
 
-        <dl className="mx-auto mt-10 grid max-w-3xl grid-cols-2 gap-x-6 gap-y-5 border-t border-line-soft pt-6 sm:grid-cols-4 md:mt-16">
+        <dl className="mx-auto mt-6 grid max-w-3xl grid-cols-2 gap-x-6 gap-y-5 border-t border-line-soft pt-6 sm:grid-cols-4 md:mt-16">
           <Stat label="Per batch" value="6 photos" />
           <Stat label="Time" value="~90 sec" />
           <Stat label="Marketplace" value="A+ ready" />

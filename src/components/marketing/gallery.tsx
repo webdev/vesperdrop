@@ -48,7 +48,7 @@ export async function Gallery() {
   return (
     <section
       id="use-cases"
-      className="border-y border-line-soft bg-paper-soft py-20 md:py-24"
+      className="border-y border-line-soft bg-paper-soft py-10 md:py-24"
     >
       <Container width="marketing">
         {/* Header — eyebrow → headline → subtext */}
@@ -88,7 +88,7 @@ export async function Gallery() {
 
         {/* Before → After strip */}
         {thumbUrls.length > 0 ? (
-          <div className="mt-10 flex flex-col items-start gap-3 md:mt-12 md:flex-row md:items-center md:gap-6">
+          <div className="mt-4 flex flex-col items-start gap-3 md:mt-12 md:flex-row md:items-center md:gap-6">
             <div className="flex items-center gap-4">
               <span
                 className="relative block h-14 w-14 overflow-hidden rounded-[10px] bg-paper-2 shadow-subtle"
@@ -138,7 +138,7 @@ export async function Gallery() {
         {/* Subtle divider */}
         <div
           aria-hidden
-          className="mt-10 mb-10 h-px w-full"
+          className="mt-4 mb-4 h-px w-full md:mt-10 md:mb-10"
           style={{ background: "rgba(0,0,0,0.06)" }}
         />
 
@@ -152,11 +152,16 @@ export async function Gallery() {
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-12 md:gap-6">
               {ordered.map((preset, i) => {
                 const span = i < 4 ? "md:col-span-3" : "md:col-span-4";
+                // Mobile only renders the first 4 scenes; the remaining 3 are
+                // shown on tablet/desktop via the md:block override. Keeps
+                // the editorial 4+3 grid on desktop while hitting the < 7,000 px
+                // mobile budget (VES-14).
+                const mobileVisibility = i < 4 ? "" : "hidden md:block";
                 return (
                   <SceneCard
                     key={preset.slug}
                     index={i + 1}
-                    span={span}
+                    span={`${span} ${mobileVisibility}`}
                     preset={preset}
                     delayMs={i * 50}
                   />
@@ -165,7 +170,7 @@ export async function Gallery() {
             </div>
 
             {/* Micro CTA */}
-            <div className="mt-12 flex flex-col items-center text-center md:mt-14">
+            <div className="mt-6 flex flex-col items-center text-center md:mt-14">
               <p className="font-serif text-[clamp(1.5rem,2.4vw,1.875rem)] leading-[1.15] tracking-[-0.01em] text-ink">
                 Ready to generate your full set?
               </p>
