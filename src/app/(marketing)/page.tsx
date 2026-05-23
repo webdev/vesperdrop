@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Hero } from "@/components/marketing/hero";
 import { BeforeAfterSection } from "@/components/marketing/before-after-section";
@@ -27,12 +28,29 @@ export default function Page() {
   return (
     <>
       <Hero />
-      <BeforeAfterSection />
-      <Gallery />
-      <HowItWorks />
-      <Testimonials />
-      <Faq />
-      <ClosingCta />
+      {/* Below-fold sections stream in after the hero shell. This lets the
+          browser flush the hero HTML to the wire (and start painting LCP)
+          without waiting on slow data fetches (e.g. Gallery's
+          sceneify().listPublicPresets()) or large below-fold subtrees.
+          VES-7 TC-7.10 structural fix. */}
+      <Suspense fallback={null}>
+        <BeforeAfterSection />
+      </Suspense>
+      <Suspense fallback={null}>
+        <Gallery />
+      </Suspense>
+      <Suspense fallback={null}>
+        <HowItWorks />
+      </Suspense>
+      <Suspense fallback={null}>
+        <Testimonials />
+      </Suspense>
+      <Suspense fallback={null}>
+        <Faq />
+      </Suspense>
+      <Suspense fallback={null}>
+        <ClosingCta />
+      </Suspense>
     </>
   );
 }
