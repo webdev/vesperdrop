@@ -209,11 +209,16 @@ function SplitSliderCard({
     }
   }
 
-  // After is the top layer; clip its left side up to the seam so that
-  // the Before underneath shows on the left.
-  // inset(top right bottom left): inset(0 0 0 X%) hides the left X% of After.
-  const afterClipStyle = {
-    clipPath: `inset(0 0 0 ${splitPct}%)`,
+  // LCP-critical layering: After is the BOTTOM layer rendered WITHOUT a
+  // clip-path so the browser can promote it to LCP without the Chrome
+  // compositor-pending delay that VES-7 measured (~2s on mobile when an
+  // Image is wrapped in a clip-path inset). Before is the TOP layer,
+  // clipped to the LEFT of the seam via `inset(0 right% 0 0)`. At
+  // splitPct=50, right inset = 50% → Before covers the left half and
+  // After shows through on the right. Drag right → splitPct grows →
+  // right inset shrinks → more Before revealed.
+  const beforeClipStyle = {
+    clipPath: `inset(0 ${100 - splitPct}% 0 0)`,
   };
 
   const splitPctRounded = Math.round(splitPct);
@@ -230,35 +235,38 @@ function SplitSliderCard({
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
       >
-        {/* Before — bottom layer. Both images mount on initial render because
-            both halves are visible at rest (50/50). */}
+        {/* After — BOTTOM layer, rendered without any clip-path so the
+            browser promotes it as LCP without compositor-pending delay
+            (VES-7). Priority + fetchPriority=high keep it ahead of the
+            Before image on the critical render path. */}
         <Image
-          src={pair.before}
-          alt={`${pair.label} — flat lay before Vesperdrop`}
+          src={pair.after}
+          alt={`${pair.label} — on-model lifestyle photo, ${pair.scene.toLowerCase()}`}
           fill
-          loading={pairIndex === 0 ? "eager" : "lazy"}
+          priority={pairIndex === 0}
+          fetchPriority={pairIndex === 0 ? "high" : "auto"}
           sizes="(min-width: 640px) 384px, calc(100vw - 40px)"
-          quality={80}
+          quality={85}
           className="object-cover"
         />
 
-        {/* After — top layer, clipped to reveal Before on the left of the seam.
-            This is the mobile LCP candidate — give it explicit
-            fetchPriority=high so the browser preload lands ahead of
-            other resources. (VES-7.) */}
+        {/* Before — TOP layer, clipped to the left of the seam so After
+            shows through on the right. Marked loading="lazy" + low fetch
+            priority so it never starves the After preload, even though
+            it's in-viewport and will be fetched in parallel. */}
         <div
           className="absolute inset-0"
-          style={afterClipStyle}
-          aria-hidden={splitPct >= 100}
+          style={beforeClipStyle}
+          aria-hidden={splitPct <= 0}
         >
           <Image
-            src={pair.after}
-            alt={`${pair.label} — on-model lifestyle photo, ${pair.scene.toLowerCase()}`}
+            src={pair.before}
+            alt={`${pair.label} — flat lay before Vesperdrop`}
             fill
-            priority={pairIndex === 0}
-            fetchPriority={pairIndex === 0 ? "high" : "auto"}
+            loading="lazy"
+            fetchPriority="low"
             sizes="(min-width: 640px) 384px, calc(100vw - 40px)"
-            quality={85}
+            quality={80}
             className="object-cover"
           />
         </div>
