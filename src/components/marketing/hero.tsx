@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CreditCard, Gift, ShieldCheck } from "lucide-react";
 import { Container } from "@/components/ui/container";
 import { BeforeAfterCarousel } from "./before-after-carousel";
 
@@ -62,7 +63,26 @@ export function Hero() {
               </Link>
             </div>
 
-            <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-3">
+            {/* Mobile trust row — icons + mid-dot dividers (VES-32) */}
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-3 md:hidden">
+              <span className="inline-flex items-center gap-1.5">
+                <Gift aria-hidden="true" className="h-3.5 w-3.5" />
+                First one&rsquo;s on us
+              </span>
+              <span aria-hidden="true">&middot;</span>
+              <span className="inline-flex items-center gap-1.5">
+                <CreditCard aria-hidden="true" className="h-3.5 w-3.5" />
+                No card
+              </span>
+              <span aria-hidden="true">&middot;</span>
+              <span className="inline-flex items-center gap-1.5">
+                <ShieldCheck aria-hidden="true" className="h-3.5 w-3.5" />
+                No spam
+              </span>
+            </div>
+
+            {/* Desktop trust caption — plain text, unchanged */}
+            <p className="mt-3 hidden font-mono text-[11px] uppercase tracking-[0.14em] text-ink-3 md:block">
               First one&rsquo;s on us &middot; No card &middot; No spam
             </p>
           </div>
