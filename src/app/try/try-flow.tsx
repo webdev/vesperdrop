@@ -11,7 +11,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 
-import { Crown } from "lucide-react";
+import { ArrowRight, Crown, Lock, ShieldCheck, Sparkles, Zap } from "lucide-react";
 import type { Scene } from "@/lib/db/scenes";
 import { track } from "@/lib/analytics";
 import { isNonProdEnv } from "@/lib/env.client";
@@ -325,13 +325,18 @@ export function TryFlow({
           /try flow. */}
       <WizardSteps current={step} />
 
-      <Container as="main" width="app" className="flex-1 pt-4 pb-6 md:pt-10 md:pb-12">
+      <Container
+        as="main"
+        width="app"
+        className={`flex-1 pt-4 md:pt-10 md:pb-12 ${step === "upload" ? "pb-40" : "pb-6"}`}
+      >
         {step === "upload" ? (
           <UploadStep
             photo={photo}
             fileInputRef={fileInputRef}
             onFiles={handleFiles}
             onUseSample={useSample}
+            onContinue={() => goToStep("scenes")}
           />
         ) : null}
 
@@ -386,50 +391,206 @@ function UploadStep({
   fileInputRef,
   onFiles,
   onUseSample,
+  onContinue,
 }: {
   photo: Photo | null;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   onFiles: (files: FileList | null, source?: "drop" | "browse") => void;
   onUseSample: () => void;
+  onContinue: () => void;
 }) {
   const [dragging, setDragging] = useState(false);
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-[1.2fr_1fr] md:gap-16">
-      <div>
-        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-          New batch · N°01
-        </p>
-        <h1 className="mt-2 font-serif text-[clamp(1.875rem,6vw,4.5rem)] leading-[1] tracking-[-0.02em] text-ink md:mt-4 md:leading-[0.98]">
-          Drop your{" "}
-          <em className="not-italic font-serif italic text-terracotta-dark">
-            product
-          </em>
-          .
-        </h1>
-        <p className="mt-2 max-w-lg text-[14px] leading-[1.5] text-ink-3 md:mt-5 md:text-[16px] md:leading-[1.55]">
-          Any flatlay works — on the floor, on a rug, on your desk. Your Amazon
-          main image is perfect.
-        </p>
-
-        {photo ? (
-          <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-4 md:mt-5">
-            On file · {photo.name} · drop a different one to replace
+    <>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-[1.2fr_1fr] md:gap-16">
+        <div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+            New batch · N°01
           </p>
-        ) : null}
+          <h1 className="mt-2 font-serif text-[clamp(1.875rem,6vw,4.5rem)] leading-[1] tracking-[-0.02em] text-ink md:mt-4 md:leading-[0.98]">
+            Drop your{" "}
+            <em className="not-italic font-serif italic text-terracotta-dark">
+              product
+            </em>
+            .
+          </h1>
+          <p className="mt-2 max-w-lg text-[14px] leading-[1.5] text-ink-3 md:mt-5 md:text-[16px] md:leading-[1.55]">
+            Any flatlay works — on the floor, on a rug, on your desk. Your Amazon
+            main image is perfect.
+          </p>
 
-        <div className="mt-4 md:mt-8">
-          <Dropzone
-            dragging={dragging}
-            setDragging={setDragging}
-            fileInputRef={fileInputRef}
-            onFiles={onFiles}
-            onUseSample={onUseSample}
-          />
+          {/* Mobile-only constraint pill between subhead and dropzone */}
+          <div className="mt-3 md:hidden">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-line-soft bg-paper-soft px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3">
+              <svg
+                aria-hidden
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <path d="M14 2v6h6" />
+              </svg>
+              Files: JPG, PNG up to 40MB
+            </span>
+          </div>
+
+          {photo ? (
+            <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-4 md:mt-5">
+              On file · {photo.name} · drop a different one to replace
+            </p>
+          ) : null}
+
+          <div className="mt-4 md:mt-8">
+            <Dropzone
+              dragging={dragging}
+              setDragging={setDragging}
+              fileInputRef={fileInputRef}
+              onFiles={onFiles}
+              onUseSample={onUseSample}
+            />
+          </div>
+
+          {/* Mobile-only trust row directly under dropzone */}
+          <MobileTrustRow />
+        </div>
+
+        <div className="md:pt-12">
+          <ExampleInput paused={photo !== null} />
+          {/* Tip card flows after the sample scroller on mobile; desktop
+              keeps the existing layout. */}
+          <MobileTipCard />
         </div>
       </div>
 
-      <div className="md:pt-12">
-        <ExampleInput paused={photo !== null} />
+      {/* Mobile-only sticky CTA bar */}
+      <MobileUploadStickyBar photo={photo} onContinue={onContinue} />
+    </>
+  );
+}
+
+function MobileTrustRow() {
+  const items = [
+    { Icon: Lock, label: "No account required" },
+    { Icon: ShieldCheck, label: "No card needed" },
+    { Icon: Zap, label: "Starts in seconds" },
+  ];
+  return (
+    <div className="mt-4 grid grid-cols-3 divide-x divide-line-soft rounded-lg border border-line-soft bg-paper-soft/60 md:hidden">
+      {items.map(({ Icon, label }) => (
+        <div
+          key={label}
+          className="flex flex-col items-center gap-1.5 px-2 py-3 text-center"
+        >
+          <Icon aria-hidden className="h-4 w-4 text-ink-3" strokeWidth={1.5} />
+          <span className="font-mono text-[9px] uppercase leading-tight tracking-[0.1em] text-ink-3">
+            {label}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MobileTipCard() {
+  return (
+    <div className="mt-2 rounded-2xl border border-terracotta/15 bg-terracotta-wash/50 p-3 md:hidden">
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-cream/80">
+          <Sparkles
+            aria-hidden
+            className="h-4 w-4 text-terracotta-dark"
+            strokeWidth={1.75}
+          />
+        </div>
+        <p className="flex-1 text-[12px] leading-[1.4] text-ink-2">
+          Good lighting, no clutter, and the whole product in frame give you the
+          best results.
+        </p>
+        <img
+          src="/marketing/before-after/cami_before.png"
+          alt=""
+          aria-hidden
+          className="h-12 w-12 flex-none rounded-md object-cover"
+          draggable={false}
+        />
+      </div>
+    </div>
+  );
+}
+
+function MobileUploadStickyBar({
+  photo,
+  onContinue,
+}: {
+  photo: Photo | null;
+  onContinue: () => void;
+}) {
+  const enabled = photo !== null;
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line-soft bg-paper/95 backdrop-blur-md md:hidden">
+      <div className="mx-auto flex max-w-[var(--container-max)] flex-col gap-2.5 px-5 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-[13px] font-medium text-ink">
+              {enabled ? "Photo ready" : "You have 1 photo left"}
+            </p>
+            <p className="truncate text-[11px] text-ink-3">
+              Need more?{" "}
+              <a
+                href="/pricing"
+                className="text-terracotta underline underline-offset-4"
+              >
+                View plans →
+              </a>
+            </p>
+          </div>
+          {photo ? (
+            <div className="relative h-10 w-10 flex-none">
+              <img
+                src={photo.url}
+                alt=""
+                aria-hidden
+                className="h-full w-full rounded-md object-cover"
+                draggable={false}
+              />
+              <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-ink px-1 font-mono text-[9px] text-cream">
+                1
+              </span>
+            </div>
+          ) : (
+            <div
+              aria-hidden
+              className="flex h-10 w-10 flex-none items-center justify-center rounded-md border border-dashed border-line-soft text-ink-4"
+            >
+              <span className="font-serif text-[16px]">↑</span>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onContinue}
+            disabled={!enabled}
+            className="inline-flex h-11 flex-1 items-center justify-center rounded-full bg-ink font-mono text-[12px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-ink-2 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {enabled ? "Continue to scenes" : "Drop a photo to continue"}
+          </button>
+          <button
+            type="button"
+            onClick={onContinue}
+            disabled={!enabled}
+            aria-label="Continue"
+            className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-ink text-cream transition-colors hover:bg-ink-2 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ArrowRight aria-hidden className="h-4 w-4" strokeWidth={2} />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -479,10 +640,10 @@ function Dropzone({
           or{" "}
           <span className="text-terracotta underline underline-offset-4">
             browse files
-          </span>{" "}
-          · PNG, JPG up to 40MB
+          </span>
+          <span className="hidden md:inline"> · PNG, JPG up to 40MB</span>
         </div>
-        <div className="mt-4 border-t border-line-soft pt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4 md:mt-6 md:pt-5">
+        <div className="mt-4 hidden border-t border-line-soft pt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4 md:mt-6 md:block md:pt-5">
           No account · no card · stays in your browser
         </div>
       </button>

@@ -4,10 +4,10 @@ import { Container } from "@/components/ui/container";
 
 export type StepId = "upload" | "scenes" | "develop";
 
-export const STEPS: { id: StepId; n: string; t: string }[] = [
-  { id: "upload", n: "1", t: "Upload product" },
-  { id: "scenes", n: "2", t: "Pick scenes" },
-  { id: "develop", n: "3", t: "Develop" },
+export const STEPS: { id: StepId; n: string; t: string; short: string }[] = [
+  { id: "upload", n: "1", t: "Upload product", short: "Product" },
+  { id: "scenes", n: "2", t: "Pick scenes", short: "Scene" },
+  { id: "develop", n: "3", t: "Develop", short: "Generate" },
 ];
 
 export function WizardSteps({ current }: { current: StepId }) {
@@ -16,17 +16,17 @@ export function WizardSteps({ current }: { current: StepId }) {
 
   return (
     <div className="sticky top-0 z-30 border-b border-line-soft bg-paper/85 backdrop-blur-md">
-      <Container width="app" className="flex items-center gap-3 py-3.5 md:gap-5">
+      <Container width="app" className="flex items-center gap-3 py-2.5 md:gap-5 md:py-3.5">
         {STEPS.map((s, i) => {
           const done = i < currentIdx;
           const active = i === currentIdx;
           return (
             <div key={s.id} className="flex items-center gap-3 md:gap-4">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2 md:gap-2.5">
                 <span
-                  className={`flex h-6 w-6 items-center justify-center rounded-full font-mono text-[11px] tracking-[0.04em] ${
+                  className={`flex h-5 w-5 items-center justify-center rounded-full font-mono text-[10px] tracking-[0.04em] md:h-6 md:w-6 md:text-[11px] ${
                     active
-                      ? "bg-ink text-cream"
+                      ? "bg-terracotta text-cream md:bg-ink"
                       : done
                         ? "bg-terracotta-wash text-terracotta-dark"
                         : "border border-line-soft bg-paper-soft text-ink-4"
@@ -51,7 +51,7 @@ export function WizardSteps({ current }: { current: StepId }) {
                   )}
                 </span>
                 <span
-                  className={`hidden font-mono text-[11px] uppercase tracking-[0.12em] sm:inline ${
+                  className={`font-mono text-[10px] uppercase tracking-[0.12em] md:text-[11px] ${
                     active
                       ? "text-ink"
                       : done
@@ -59,11 +59,12 @@ export function WizardSteps({ current }: { current: StepId }) {
                         : "text-ink-4"
                   }`}
                 >
-                  {s.t}
+                  <span className="md:hidden">{s.short}</span>
+                  <span className="hidden md:inline">{s.t}</span>
                 </span>
               </div>
               {i < STEPS.length - 1 ? (
-                <span aria-hidden className="h-px w-6 bg-line-soft md:w-10" />
+                <span aria-hidden className="h-px w-4 bg-line-soft md:w-10" />
               ) : null}
             </div>
           );
