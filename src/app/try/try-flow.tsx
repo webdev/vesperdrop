@@ -413,7 +413,7 @@ function UploadStep({
     // Desktop (md+) is unchanged: tip card sits in column 2 alongside the
     // sample scroller, dropzone in column 1 — exactly as today.
     <div className="pb-[132px] md:pb-0">
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-[1.2fr_1fr] md:gap-16">
+      <div className="grid grid-cols-1 gap-14 md:grid-cols-[1.2fr_1fr] md:gap-16">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
             New batch · N°01
@@ -501,7 +501,7 @@ function MobileTrustRow() {
     { Icon: Zap, label: "Starts in seconds" },
   ];
   return (
-    <div className="mt-4 grid grid-cols-3 divide-x divide-line-soft rounded-lg border border-line-soft bg-paper-soft/60 md:hidden">
+    <div className="mt-8 grid grid-cols-3 divide-x divide-line-soft rounded-lg border border-line-soft bg-paper-soft/60 md:hidden">
       {items.map(({ Icon, label }) => (
         <div
           key={label}
@@ -519,7 +519,7 @@ function MobileTrustRow() {
 
 function MobileTipCard() {
   return (
-    <div className="mt-2 rounded-2xl border border-terracotta/15 bg-terracotta-wash/50 p-3 md:hidden">
+    <div className="mt-7 rounded-2xl border border-terracotta/15 bg-terracotta-wash/50 p-3 md:hidden">
       <div className="flex items-center gap-3">
         <div className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-cream/80">
           <Sparkles
@@ -674,7 +674,7 @@ function Dropzone({
         className="hidden"
         onChange={(e) => onFiles(e.target.files, "browse")}
       />
-      <div className="mt-4 text-[14px] text-ink-3">
+      <div className="mt-6 text-[14px] text-ink-3 md:mt-4">
         Don&apos;t have one handy?{" "}
         <button
           type="button"
@@ -824,7 +824,7 @@ function ScenesStep({
         })}
       </div>
 
-      <div className="mt-5 flex items-center justify-between border-t border-line-soft pt-4 md:mt-10 md:pt-6">
+      <div className="mt-8 flex items-center justify-between border-t border-line-soft pt-5 md:mt-10 md:pt-6">
         <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
           {picked.length} of {sceneCap} scene{picked.length === 1 ? "" : "s"} picked
         </p>
@@ -1443,7 +1443,7 @@ function UnauthEditorialStage({
       )}
 
       {allSucceeded && batchReady && !claimed && savedRunId ? (
-        <div className="mt-10 md:mt-12">
+        <div className="mt-14 md:mt-12">
           <EmailCapture
             runId={savedRunId}
             onSuccess={(_photos, _emailed) => {

@@ -42,8 +42,8 @@ export function EditorialClaimRail({
       transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
       className={
         showUpsell
-          ? "mt-6 grid grid-cols-1 items-start gap-6 md:mt-16 md:grid-cols-[1.1fr_auto_0.95fr] md:gap-12"
-          : "mt-6 md:mt-16"
+          ? "mt-12 grid grid-cols-1 items-start gap-6 md:mt-16 md:grid-cols-[1.1fr_auto_0.95fr] md:gap-12"
+          : "mt-12 md:mt-16"
       }
     >
       <ClaimColumn claimed={claimed} onClaimSuccess={onClaimSuccess} />
@@ -369,7 +369,7 @@ function UpsellThumbnails({
 export function TrustRow() {
   const brands = ["ZARA", "alo", "FEW MODA", "vuori", "KOTN"];
   return (
-    <div className="mt-8 border-t border-line-soft pt-5 md:mt-16 md:pt-8">
+    <div className="mt-14 border-t border-line-soft pt-7 md:mt-16 md:pt-8">
       <p className="text-center font-mono text-[11px] uppercase tracking-[0.18em] text-ink-3">
         Trusted by creators and brands worldwide
       </p>
