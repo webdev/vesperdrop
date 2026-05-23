@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
+import { ChevronsLeftRight } from "lucide-react";
 
 type Pair = {
   slug: string;
@@ -42,20 +43,34 @@ const PAIRS: Pair[] = [
   },
 ];
 
+const DEFAULT_SPLIT = 50;
+const KEY_STEP = 5;
+
 export function BeforeAfterCarousel() {
   const [index, setIndex] = useState(0);
-  // Per-slide before/after state — key is pair index, default false (After)
-  const [showBeforeMap, setShowBeforeMap] = useState<Record<number, boolean>>(
-    {},
-  );
-  const [hintDismissed, setHintDismissed] = useState(false);
+  // Per-slide split position. splitPct = % from the left edge where the seam
+  // sits. After is the top layer, clipped to the right of the seam
+  // (clip-path inset 0 0 0 splitPct%) so the Before peeks through on the left.
+  // Default 50 → 50/50 split. Per VES-33 TC-3.8: split resets to 50 on slide
+  // change (each slide has its own entry; absent → DEFAULT_SPLIT).
+  const [splitMap, setSplitMap] = useState<Record<number, number>>({});
 
   const pair = PAIRS[index];
-  const showBefore = showBeforeMap[index] ?? false;
+  const splitPct = splitMap[index] ?? DEFAULT_SPLIT;
 
-  function toggleBefore() {
-    setShowBeforeMap((prev) => ({ ...prev, [index]: !(prev[index] ?? false) }));
-  }
+  const setSplit = useCallback(
+    (pairIndex: number, next: number | ((current: number) => number)) => {
+      setSplitMap((prev) => {
+        const current = prev[pairIndex] ?? DEFAULT_SPLIT;
+        const resolved = typeof next === "function" ? next(current) : next;
+        return {
+          ...prev,
+          [pairIndex]: Math.max(0, Math.min(100, resolved)),
+        };
+      });
+    },
+    [],
+  );
 
   return (
     <div className="flex flex-col items-center gap-4 md:gap-6">
@@ -81,15 +96,13 @@ export function BeforeAfterCarousel() {
           />
         </div>
 
-        {/* Mobile: single card with toggle */}
+        {/* Mobile: persistent split-slider */}
         <div className="md:hidden" data-testid="mobile-card">
-          <SingleCardToggle
+          <SplitSliderCard
             pair={pair}
             pairIndex={index}
-            showBefore={showBefore}
-            onToggle={toggleBefore}
-            onFirstInteract={() => setHintDismissed(true)}
-            showHint={!hintDismissed}
+            splitPct={splitPct}
+            onSplitChange={(next) => setSplit(index, next)}
           />
         </div>
 
@@ -131,118 +144,113 @@ export function BeforeAfterCarousel() {
   );
 }
 
-type SingleCardToggleProps = {
+type SplitSliderCardProps = {
   pair: Pair;
   pairIndex: number;
-  showBefore: boolean;
-  onToggle: () => void;
-  onFirstInteract: () => void;
-  showHint: boolean;
+  splitPct: number;
+  onSplitChange: (next: number | ((current: number) => number)) => void;
 };
 
-function SingleCardToggle({
+function SplitSliderCard({
   pair,
   pairIndex,
-  showBefore,
-  onToggle,
-  onFirstInteract,
-  showHint,
-}: SingleCardToggleProps) {
+  splitPct,
+  onSplitChange,
+}: SplitSliderCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
-  const [dragPct, setDragPct] = useState<number | null>(null);
-  // Defer Before-image mount until the user shows intent to compare.
-  // Keeps the Before fetch off the critical-LCP path.
-  const [beforeMounted, setBeforeMounted] = useState(showBefore);
-  if (showBefore && !beforeMounted) setBeforeMounted(true);
+  const draggingRef = useRef(false);
 
-  function ensureBeforeMounted() {
-    if (!beforeMounted) setBeforeMounted(true);
-  }
+  const updateFromClientX = useCallback(
+    (clientX: number) => {
+      const el = cardRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const pct = ((clientX - rect.left) / rect.width) * 100;
+      onSplitChange(pct);
+    },
+    [onSplitChange],
+  );
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
-    onFirstInteract();
-    ensureBeforeMounted();
+    draggingRef.current = true;
     e.currentTarget.setPointerCapture?.(e.pointerId);
+    updateFromClientX(e.clientX);
   }
 
   function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
-    if (!cardRef.current || !(e.buttons & 1)) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const pct = Math.max(
-      0,
-      Math.min(100, ((e.clientX - rect.left) / rect.width) * 100),
-    );
-    setDragPct(pct);
+    if (!draggingRef.current) return;
+    updateFromClientX(e.clientX);
   }
 
-  function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
+  function endDrag(e: React.PointerEvent<HTMLDivElement>) {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
     e.currentTarget.releasePointerCapture?.(e.pointerId);
-    if (dragPct !== null) {
-      // Snap: drag left of center → Before, drag right of center → After
-      const shouldShowBefore = dragPct < 50;
-      if (shouldShowBefore !== showBefore) onToggle();
-      setDragPct(null);
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    switch (e.key) {
+      case "ArrowLeft":
+        e.preventDefault();
+        onSplitChange((cur) => cur - KEY_STEP);
+        break;
+      case "ArrowRight":
+        e.preventDefault();
+        onSplitChange((cur) => cur + KEY_STEP);
+        break;
+      case "Home":
+        e.preventDefault();
+        onSplitChange(0);
+        break;
+      case "End":
+        e.preventDefault();
+        onSplitChange(100);
+        break;
     }
   }
 
-  function handlePointerCancel(e: React.PointerEvent<HTMLDivElement>) {
-    e.currentTarget.releasePointerCapture?.(e.pointerId);
-    setDragPct(null);
-  }
+  // After is the top layer; clip its left side up to the seam so that
+  // the Before underneath shows on the left.
+  // inset(top right bottom left): inset(0 0 0 X%) hides the left X% of After.
+  const afterClipStyle = {
+    clipPath: `inset(0 0 0 ${splitPct}%)`,
+  };
 
-  // After image is on top; clip-path inset(0 0 0 X%) hides the left X% of After.
-  // showBefore=true → clip 100% (entire After hidden, Before visible)
-  // showBefore=false → clip 0% (entire After visible)
-  const afterClipLeft = dragPct !== null ? 100 - dragPct : showBefore ? 100 : 0;
-  // Only apply the clip-path inline style when the After image is partially
-  // hidden — at the default state (showBefore=false, dragPct=null) the clip
-  // is 0% which is a no-op, but Chrome still considers the wrapped image
-  // "compositor-pending" and delays LCP paint by ~2s on mobile. Skipping the
-  // style entirely on initial render lets LCP fire immediately. (VES-7.)
-  const afterClipStyle =
-    afterClipLeft === 0
-      ? undefined
-      : {
-          clipPath: `inset(0 0 0 ${afterClipLeft}%)`,
-          transition: dragPct !== null ? "none" : "clip-path 0.2s ease",
-        };
-
-  const isAfterActive = !showBefore;
+  const splitPctRounded = Math.round(splitPct);
 
   return (
     <div className="flex flex-col items-center gap-3">
       <div
         ref={cardRef}
         data-testid="card-image-area"
-        className="relative aspect-[4/5] w-full max-w-sm overflow-hidden rounded-lg border border-line-soft bg-paper-2 shadow-soft select-none touch-pan-y"
+        className="relative aspect-[4/5] w-full max-w-sm overflow-hidden rounded-lg border border-line-soft bg-paper-2 shadow-soft select-none"
+        style={{ touchAction: "none" }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerCancel}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
       >
-        {/* Before — bottom layer. Mounted only after the user shows intent
-            to compare (toggle / drag). At SSR/idle the After image fully
-            covers it, so deferring the Before fetch keeps it from
-            competing with the LCP After image for bandwidth on the
-            critical render path. (cami_before.webp was loading at ~1.3s
-            in Lighthouse, right in the LCP window.) */}
-        {beforeMounted ? (
-          <Image
-            src={pair.before}
-            alt={`${pair.label} — flat lay before Vesperdrop`}
-            fill
-            loading="lazy"
-            sizes="(min-width: 640px) 384px, calc(100vw - 40px)"
-            quality={80}
-            className="object-cover"
-          />
-        ) : null}
+        {/* Before — bottom layer. Both images mount on initial render because
+            both halves are visible at rest (50/50). */}
+        <Image
+          src={pair.before}
+          alt={`${pair.label} — flat lay before Vesperdrop`}
+          fill
+          loading={pairIndex === 0 ? "eager" : "lazy"}
+          sizes="(min-width: 640px) 384px, calc(100vw - 40px)"
+          quality={80}
+          className="object-cover"
+        />
 
-        {/* After — top layer, clipped to reveal Before underneath.
+        {/* After — top layer, clipped to reveal Before on the left of the seam.
             This is the mobile LCP candidate — give it explicit
             fetchPriority=high so the browser preload lands ahead of
-            other resources. */}
-        <div className="absolute inset-0" style={afterClipStyle}>
+            other resources. (VES-7.) */}
+        <div
+          className="absolute inset-0"
+          style={afterClipStyle}
+          aria-hidden={splitPct >= 100}
+        >
           <Image
             src={pair.after}
             alt={`${pair.label} — on-model lifestyle photo, ${pair.scene.toLowerCase()}`}
@@ -253,62 +261,52 @@ function SingleCardToggle({
             quality={85}
             className="object-cover"
           />
-          <span className="absolute right-3 top-3 inline-flex items-center rounded-full bg-ink/85 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-cream backdrop-blur-sm">
-            Vesperdrop
-          </span>
         </div>
 
-        {/* Before label — only when Before is showing */}
-        {showBefore ? (
-          <span className="absolute bottom-3 left-3 inline-flex items-center rounded-full bg-cream/95 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink shadow-subtle">
-            Before
-          </span>
-        ) : null}
+        {/* VESPERDROP pill — top right, preserved */}
+        <span className="pointer-events-none absolute right-3 top-3 inline-flex items-center rounded-full bg-ink/85 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-cream backdrop-blur-sm">
+          Vesperdrop
+        </span>
 
-        {/* "Tap to compare" hint — fades after first toggle */}
+        {/* RAW PRODUCT pill — bottom left, over Before */}
+        <span className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-cream/95 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink shadow-subtle">
+          Raw product
+          <span aria-hidden className="text-ink-3">
+            •
+          </span>
+        </span>
+
+        {/* READY TO LIST pill — bottom right, over After */}
+        <span className="pointer-events-none absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-full bg-terracotta px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-cream shadow-subtle">
+          Ready to list
+          <span aria-hidden className="text-cream/70">
+            •
+          </span>
+        </span>
+
+        {/* Vertical seam — visual hairline at the split */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute top-0 bottom-0 w-px bg-white/80 mix-blend-overlay"
+          style={{ left: `${splitPct}%`, transform: "translateX(-0.5px)" }}
+        />
+
+        {/* Drag handle — circular, sits on the seam, vertically centered */}
         <div
-          data-testid="compare-hint"
-          className={`pointer-events-none absolute bottom-12 left-0 right-0 flex justify-center transition-opacity duration-500 ${
-            showHint ? "opacity-100" : "opacity-0"
-          }`}
+          role="slider"
+          tabIndex={0}
+          aria-label="Compare before and after"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={splitPctRounded}
+          aria-orientation="horizontal"
+          onKeyDown={handleKeyDown}
+          data-testid="split-handle"
+          className="absolute top-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize items-center justify-center rounded-full bg-white text-ink shadow-md ring-1 ring-black/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+          style={{ left: `${splitPct}%` }}
         >
-          <span className="rounded-full bg-black/50 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white backdrop-blur-sm">
-            Tap to compare
-          </span>
+          <ChevronsLeftRight aria-hidden className="h-4 w-4" strokeWidth={2} />
         </div>
-      </div>
-
-      {/* After / Before toggle pill */}
-      <div className="flex items-center gap-1 rounded-full border border-line bg-surface p-1">
-        <button
-          type="button"
-          aria-label="Show after"
-          aria-pressed={isAfterActive}
-          onClick={() => {
-            onFirstInteract();
-            if (!isAfterActive) onToggle();
-          }}
-          className={`inline-flex min-h-11 items-center justify-center rounded-full px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] transition-all ${
-            isAfterActive ? "bg-ink text-cream" : "text-ink-3 hover:text-ink"
-          }`}
-        >
-          After
-        </button>
-        <button
-          type="button"
-          aria-label="Show before"
-          aria-pressed={showBefore}
-          onClick={() => {
-            onFirstInteract();
-            ensureBeforeMounted();
-            if (!showBefore) onToggle();
-          }}
-          className={`inline-flex min-h-11 items-center justify-center rounded-full px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] transition-all ${
-            showBefore ? "bg-ink text-cream" : "text-ink-3 hover:text-ink"
-          }`}
-        >
-          Before
-        </button>
       </div>
     </div>
   );
