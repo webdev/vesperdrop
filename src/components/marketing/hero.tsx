@@ -35,15 +35,20 @@ export function Hero() {
               </span>
             </h1>
 
-            {/* Subhead hidden on mobile — caption carries the risk reversal */}
+            {/* Mobile subhead — value-prop framing per VES-31. Desktop keeps the risk-reversal copy below. */}
+            <p className="mt-4 max-w-[20rem] text-[15px] leading-[1.5] text-ink-3 md:hidden">
+              Studio-quality photos, made for your product.
+            </p>
+
+            {/* Desktop subhead — risk reversal */}
             <p className="mt-5 hidden max-w-xl text-[16px] leading-[1.55] text-ink-3 md:block">
               Get your first photo free. No card required.
             </p>
 
-            <div className="mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center md:mt-7 lg:justify-start">
+            <div className="mt-5 flex w-full flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center md:mt-7 lg:justify-start">
               <Link
                 href="/try"
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-terracotta px-6 py-3 font-mono text-[12px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark md:py-3.5"
+                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-terracotta px-6 py-4 font-mono text-[12px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark sm:w-auto md:px-6 md:py-3.5"
               >
                 Get my first photo free
                 <span aria-hidden>→</span>
