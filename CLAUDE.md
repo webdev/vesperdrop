@@ -503,6 +503,59 @@ delivered as the email-capture reward.
 
 ---
 
+# 15b. PR Standard
+
+Every PR description MUST cover:
+
+- What changed
+- Why
+- Linear issue link
+- Acceptance criteria checked (per §11 verification rule)
+- Screenshots, Loom, or preview URL when UI-visible
+- Risk
+- How to test
+- What was intentionally NOT done (scope boundary)
+- Agent involvement
+- Follow-up issues created
+
+Follow `.github/pull_request_template.md` when present.
+
+---
+
+# 15c. PR Review Standard
+
+Review against the linked Linear issue ONLY. Look for:
+
+- Acceptance criteria gaps
+- Bugs and broken data flow
+- Unnecessary scope expansion
+- Security issues
+- Bad abstractions
+- Missing loading/error states
+- Code that will be hard for future agents to modify
+
+Do NOT suggest unrelated improvements unless severe.
+
+Return feedback in three groups:
+
+1. **Must fix before merge**
+2. **Should fix soon**
+3. **Safe to merge**
+
+---
+
+# 15d. Verification Command Scope
+
+Use the **narrowest useful verification command** for the task. Do not
+run the whole test suite or full type-check when a targeted command
+covers the changed files.
+
+If a broad check is known to have unrelated failures, say so plainly
+in the PR and include the targeted checks that DID pass — do not
+silently suppress or "fix" the unrelated noise.
+
+---
+
 # 16. Final Constraint
 
 Claude must prioritize:
