@@ -401,7 +401,18 @@ function UploadStep({
 }) {
   const [dragging, setDragging] = useState(false);
   return (
-    <>
+    // VES-36: eliminate the dead zone above the sticky bar by:
+    // 1. Moving MobileTipCard into the dropzone column on mobile (Option D
+    //    from the ticket). The sample scroller stays in the second column.
+    //    On mobile, that re-orders the column so the visible-above-fold
+    //    content is dropzone → trust row → tip card → sample scroller (the
+    //    scroller is horizontal and short, so it lands directly above the
+    //    sticky bar with minimal gap).
+    // 2. Adding pb-[132px] on the page-bottom so the sample scroller has
+    //    breathing room above the sticky CTA bar instead of being clipped.
+    // Desktop (md+) is unchanged: tip card sits in column 2 alongside the
+    // sample scroller, dropzone in column 1 — exactly as today.
+    <div className="pb-[132px] md:pb-0">
       <div className="grid grid-cols-1 gap-6 md:grid-cols-[1.2fr_1fr] md:gap-16">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
@@ -458,19 +469,28 @@ function UploadStep({
 
           {/* Mobile-only trust row directly under dropzone */}
           <MobileTrustRow />
+
+          {/* Tip card on mobile sits inside the dropzone column directly
+              under the trust row, so the sample scroller below it lands
+              just above the sticky CTA (VES-36 Option D). On desktop the
+              tip card moves to the sample column (see below). */}
+          <div className="md:hidden">
+            <MobileTipCard />
+          </div>
         </div>
 
         <div className="md:pt-12">
           <ExampleInput paused={photo !== null} />
-          {/* Tip card flows after the sample scroller on mobile; desktop
-              keeps the existing layout. */}
-          <MobileTipCard />
+          {/* Tip card stays in the sample column on desktop only. */}
+          <div className="hidden md:block">
+            <MobileTipCard />
+          </div>
         </div>
       </div>
 
       {/* Mobile-only sticky CTA bar */}
       <MobileUploadStickyBar photo={photo} onContinue={onContinue} />
-    </>
+    </div>
   );
 }
 
@@ -533,7 +553,7 @@ function MobileUploadStickyBar({
 }) {
   const enabled = photo !== null;
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line-soft bg-paper/95 backdrop-blur-md md:hidden">
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line-soft bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden">
       <div className="mx-auto flex max-w-[var(--container-max)] flex-col gap-2.5 px-5 py-3">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
