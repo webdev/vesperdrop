@@ -185,6 +185,18 @@ function SingleCardToggle({
   // showBefore=true → clip 100% (entire After hidden, Before visible)
   // showBefore=false → clip 0% (entire After visible)
   const afterClipLeft = dragPct !== null ? 100 - dragPct : showBefore ? 100 : 0;
+  // Only apply the clip-path inline style when the After image is partially
+  // hidden — at the default state (showBefore=false, dragPct=null) the clip
+  // is 0% which is a no-op, but Chrome still considers the wrapped image
+  // "compositor-pending" and delays LCP paint by ~2s on mobile. Skipping the
+  // style entirely on initial render lets LCP fire immediately. (VES-7.)
+  const afterClipStyle =
+    afterClipLeft === 0
+      ? undefined
+      : {
+          clipPath: `inset(0 0 0 ${afterClipLeft}%)`,
+          transition: dragPct !== null ? "none" : "clip-path 0.2s ease",
+        };
 
   const isAfterActive = !showBefore;
 
@@ -213,13 +225,7 @@ function SingleCardToggle({
             This is the mobile LCP candidate — give it explicit
             fetchPriority=high so the browser preload lands ahead of
             other resources. */}
-        <div
-          className="absolute inset-0"
-          style={{
-            clipPath: `inset(0 0 0 ${afterClipLeft}%)`,
-            transition: dragPct !== null ? "none" : "clip-path 0.2s ease",
-          }}
-        >
+        <div className="absolute inset-0" style={afterClipStyle}>
           <Image
             src={pair.after}
             alt={`${pair.label} — on-model lifestyle photo, ${pair.scene.toLowerCase()}`}
