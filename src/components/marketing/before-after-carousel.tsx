@@ -10,6 +10,22 @@ type Pair = {
   scene: string;
   before: string;
   after: string;
+  // Mobile split card only. The card is 6:5, so at the default 50/50 split each
+  // half is a portrait panel taller than the (square) source photos. object-cover
+  // therefore shows each photo's FULL HEIGHT (heads/full bodies stay in frame)
+  // and crops the left/right margins. object-position picks the horizontal slice
+  // — default centred keeps the subject centred; override per pair if it isn't.
+  afterPosition?: string;
+  beforePosition?: string;
+  // Some product photos fill their square frame edge-to-edge, so in the taller
+  // panel object-cover crops them tight / reads too big. `beforeContain` fits
+  // the whole photo inside the panel instead (full width, small top/bottom
+  // margin) so it shows complete with breathing room.
+  beforeContain?: boolean;
+  // Optional shrink for the before image (e.g. 0.7 = 30% smaller), applied as a
+  // centred transform (always a downscale, so it stays sharp) — pairs with
+  // beforeContain to give a too-large product extra breathing room.
+  beforeScale?: number;
 };
 
 const PAIRS: Pair[] = [
@@ -19,6 +35,7 @@ const PAIRS: Pair[] = [
     scene: "Velvet glow",
     before: "/marketing/before-after/cami_before.webp",
     after: "/marketing/before-after/cami_after.webp",
+    beforePosition: "50% 38%",
   },
   {
     slug: "jacket",
@@ -31,14 +48,14 @@ const PAIRS: Pair[] = [
     slug: "skirt",
     label: "Skirt",
     scene: "Warm retreat",
-    before: "/marketing/before-after/skirt_before.webp",
+    before: "/marketing/before-after/skirt_before_carousel.webp",
     after: "/marketing/before-after/skirt_after.webp",
   },
   {
     slug: "lace",
     label: "Lace",
     scene: "Studio athletic",
-    before: "/marketing/before-after/lace_before.webp",
+    before: "/marketing/before-after/lace_before_carousel.webp",
     after: "/marketing/before-after/lace_after.webp",
   },
 ];
@@ -209,18 +226,6 @@ function SplitSliderCard({
     }
   }
 
-  // LCP-critical layering: After is the BOTTOM layer rendered WITHOUT a
-  // clip-path so the browser can promote it to LCP without the Chrome
-  // compositor-pending delay that VES-7 measured (~2s on mobile when an
-  // Image is wrapped in a clip-path inset). Before is the TOP layer,
-  // clipped to the LEFT of the seam via `inset(0 right% 0 0)`. At
-  // splitPct=50, right inset = 50% → Before covers the left half and
-  // After shows through on the right. Drag right → splitPct grows →
-  // right inset shrinks → more Before revealed.
-  const beforeClipStyle = {
-    clipPath: `inset(0 ${100 - splitPct}% 0 0)`,
-  };
-
   const splitPctRounded = Math.round(splitPct);
 
   return (
@@ -228,35 +233,22 @@ function SplitSliderCard({
       <div
         ref={cardRef}
         data-testid="card-image-area"
-        className="relative aspect-[4/5] w-full max-w-sm overflow-hidden rounded-lg border border-line-soft bg-paper-2 shadow-soft select-none"
+        className="relative aspect-[6/5] w-full max-w-sm overflow-hidden rounded-lg border border-line-soft bg-paper-2 shadow-soft select-none"
         style={{ touchAction: "none" }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
       >
-        {/* After — BOTTOM layer, rendered without any clip-path so the
-            browser promotes it as LCP without compositor-pending delay
-            (VES-7). Priority + fetchPriority=high keep it ahead of the
-            Before image on the critical render path. */}
-        <Image
-          src={pair.after}
-          alt={`${pair.label} — on-model lifestyle photo, ${pair.scene.toLowerCase()}`}
-          fill
-          priority={pairIndex === 0}
-          fetchPriority={pairIndex === 0 ? "high" : "auto"}
-          sizes="(min-width: 640px) 384px, calc(100vw - 40px)"
-          quality={85}
-          className="object-cover"
-        />
+        {/* Two side-by-side panels meeting at the split. The 2:1 card makes
+            each panel square at the default 50/50, so the square source photos
+            fill their panel completely — no crop, no overflow. Dragging
+            reallocates width between the before (left) and after (right). */}
 
-        {/* Before — TOP layer, clipped to the left of the seam so After
-            shows through on the right. Marked loading="lazy" + low fetch
-            priority so it never starves the After preload, even though
-            it's in-viewport and will be fetched in parallel. */}
+        {/* Before — left panel */}
         <div
-          className="absolute inset-0"
-          style={beforeClipStyle}
+          className="absolute inset-y-0 left-0 overflow-hidden"
+          style={{ width: `${splitPct}%` }}
           aria-hidden={splitPct <= 0}
         >
           <Image
@@ -265,9 +257,34 @@ function SplitSliderCard({
             fill
             loading="lazy"
             fetchPriority="low"
-            sizes="(min-width: 640px) 384px, calc(100vw - 40px)"
+            sizes="(min-width: 424px) 224px, 50vw"
             quality={80}
+            className={pair.beforeContain ? "object-contain" : "object-cover"}
+            style={{
+              objectPosition: pair.beforePosition,
+              transform: pair.beforeScale ? `scale(${pair.beforeScale})` : undefined,
+            }}
+          />
+        </div>
+
+        {/* After — right panel. Plain object-cover (no clip-path/transform),
+            priority + fetchPriority=high so it stays the LCP candidate on
+            slide 0 (VES-7). */}
+        <div
+          className="absolute inset-y-0 right-0 overflow-hidden"
+          style={{ width: `${100 - splitPct}%` }}
+          aria-hidden={splitPct >= 100}
+        >
+          <Image
+            src={pair.after}
+            alt={`${pair.label} — on-model lifestyle photo, ${pair.scene.toLowerCase()}`}
+            fill
+            priority={pairIndex === 0}
+            fetchPriority={pairIndex === 0 ? "high" : "auto"}
+            sizes="(min-width: 424px) 224px, 50vw"
+            quality={85}
             className="object-cover"
+            style={{ objectPosition: pair.afterPosition }}
           />
         </div>
 
