@@ -441,7 +441,7 @@ function MobileFooterBar() {
           <ShieldIcon size={18} />
         </span>
         <p className="text-[13.5px] leading-[1.5] text-ink-2">
-          Your photos will be emailed to you when they&rsquo;re ready.
+          Your batch is saved automatically. You can safely leave this page.
         </p>
       </div>
       <ul className="mt-4 flex items-center gap-4 px-1 font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-3">
