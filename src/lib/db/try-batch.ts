@@ -150,6 +150,7 @@ export async function recordTileSuccess(input: TileSuccess): Promise<string> {
     })
     .onConflictDoUpdate({
       target: [generations.runId, generations.presetId],
+      targetWhere: sql`${generations.packId} is null`,
       set: {
         status: "succeeded",
         outputUrl: input.outputUrl,
@@ -215,6 +216,7 @@ export async function recordTileFailure(
     })
     .onConflictDoUpdate({
       target: [generations.runId, generations.presetId],
+      targetWhere: sql`${generations.packId} is null`,
       // A later success (auto-retry) MUST be allowed to overwrite a failure,
       // but we never downgrade an already-succeeded row back to failed.
       set: {

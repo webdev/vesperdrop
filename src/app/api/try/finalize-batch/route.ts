@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { sql } from "drizzle-orm";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { runs, generations, unlockBatches } from "@/lib/db/schema";
@@ -201,6 +202,7 @@ export async function POST(req: Request) {
         })
         .onConflictDoUpdate({
           target: [generations.runId, generations.presetId],
+          targetWhere: sql`${generations.packId} is null`,
           set: {
             userId,
             sceneifySourceId: sceneifySource,
