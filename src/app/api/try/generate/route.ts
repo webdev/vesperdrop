@@ -23,6 +23,7 @@ import {
   recordTileSuccess,
   recordTileFailure,
   maybeFinalizeBatch,
+  runFinalizeGrace,
 } from "@/lib/db/try-batch";
 import { env } from "@/lib/env";
 
@@ -357,7 +358,13 @@ export async function POST(req: Request) {
                 focalPoint: result.focalPoint ?? null,
                 faceBox: result.faceBox ?? null,
               });
-              await maybeFinalizeBatch(batchToken, runId);
+              const r = await maybeFinalizeBatch(batchToken, runId);
+              // A success can settle the batch while an earlier retryable
+              // failure is still pending its client retry — hold the flush
+              // for a bounded grace, then settle regardless (VES-53).
+              if (r.status === "grace") {
+                await runFinalizeGrace(batchToken, runId);
+              }
             } catch (err) {
               console.error("[try/generate] tile persist failed", {
                 token: batchToken,
@@ -396,8 +403,17 @@ export async function POST(req: Request) {
                 sourceUrl,
                 batchSize,
                 error: message,
+                retryable,
               });
-              await maybeFinalizeBatch(batchToken, runId);
+              const r = await maybeFinalizeBatch(batchToken, runId);
+              // If this retryable failure settled the batch, hold the flush
+              // for a bounded grace so the client's auto-retry can land a
+              // success before we email the succeeded subset. The grace
+              // still settles on tab-close — there's no client to retry, so
+              // the re-check just emails whatever succeeded (VES-53).
+              if (r.status === "grace") {
+                await runFinalizeGrace(batchToken, runId);
+              }
             } catch (err) {
               console.error("[try/generate] tile failure persist failed", {
                 token: batchToken,

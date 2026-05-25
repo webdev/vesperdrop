@@ -30,6 +30,7 @@ type GenRow = {
   runId: string;
   presetId: string;
   status: string;
+  error: string | null;
   outputUrl: string | null;
   rawUrl: string | null;
   focalPoint: unknown;
@@ -66,6 +67,7 @@ vi.mock("./schema", () => ({
     runId: "generations.runId",
     presetId: "generations.presetId",
     status: "generations.status",
+    error: "generations.error",
   },
 }));
 
@@ -136,6 +138,7 @@ function makeDb() {
               runId,
               presetId,
               status: values.status as string,
+              error: (values.error as string | null) ?? null,
               outputUrl: (values.outputUrl as string | null) ?? null,
               rawUrl: (values.rawUrl as string | null) ?? null,
               focalPoint: values.focalPoint ?? null,
@@ -151,6 +154,7 @@ function makeDb() {
             if ("outputUrl" in cfg.set)
               found.outputUrl = cfg.set.outputUrl as string | null;
             if ("rawUrl" in cfg.set) found.rawUrl = cfg.set.rawUrl as string | null;
+            if ("error" in cfg.set) found.error = cfg.set.error as string | null;
           }
         }
         return Promise.resolve();
@@ -245,6 +249,7 @@ import {
   recordTileSuccess,
   recordTileFailure,
   maybeFinalizeBatch,
+  runFinalizeGrace,
 } from "./try-batch";
 
 const TOKEN = "abcdef0123456789abcdef0123456789";
@@ -268,6 +273,14 @@ function success(slug: string, free = false) {
     rawUrl: `https://b/raw-${slug}.png`,
     focalPoint: null,
     faceBox: null,
+  };
+}
+
+function failure(slug: string, opts: { free?: boolean; retryable?: boolean; error?: string } = {}) {
+  return {
+    ...baseTile(slug, opts.free ?? false),
+    error: opts.error ?? "sceneify 502",
+    retryable: opts.retryable ?? false,
   };
 }
 
@@ -337,8 +350,9 @@ describe("recordTileFailure (partial failure / no hang)", () => {
     await maybeFinalizeBatch(TOKEN, r1);
     const r2 = await recordTileSuccess(success("velvet"));
     await maybeFinalizeBatch(TOKEN, r2);
-    // Third tile fails (and the tab is closed, so no client retry).
-    const r3 = await recordTileFailure({ ...baseTile("urban"), error: "sceneify 502" });
+    // Third tile fails permanently (and the tab is closed, so no client
+    // retry) — a permanent failure settles immediately, no grace.
+    const r3 = await recordTileFailure(failure("urban", { error: "sceneify 400" }));
     await maybeFinalizeBatch(TOKEN, r3);
 
     // All three settled (2 ok + 1 failed) → flush fires once with the 2.
@@ -348,25 +362,154 @@ describe("recordTileFailure (partial failure / no hang)", () => {
   });
 
   it("a later success overwrites a failed row and never downgrades", async () => {
-    await recordTileFailure({ ...baseTile("warm", true), error: "boom" });
+    await recordTileFailure(failure("warm", { free: true, error: "boom" }));
     expect(state.generations[0].status).toBe("failed");
     await recordTileSuccess(success("warm", true));
     expect(state.generations[0].status).toBe("succeeded");
     // And a stray failure after success does not downgrade.
-    await recordTileFailure({ ...baseTile("warm", true), error: "late" });
+    await recordTileFailure(failure("warm", { free: true, error: "late" }));
     expect(state.generations[0].status).toBe("succeeded");
   });
 
   it("flushes (no-op latch path) even when every tile failed", async () => {
     flushPendingBatchEmail.mockResolvedValue({ status: "no_photos" });
-    const r1 = await recordTileFailure({ ...baseTile("warm", true), error: "a" });
+    const r1 = await recordTileFailure(failure("warm", { free: true, error: "a" }));
     await maybeFinalizeBatch(TOKEN, r1);
-    const r2 = await recordTileFailure({ ...baseTile("velvet"), error: "b" });
+    const r2 = await recordTileFailure(failure("velvet", { error: "b" }));
     await maybeFinalizeBatch(TOKEN, r2);
-    const r3 = await recordTileFailure({ ...baseTile("urban"), error: "c" });
+    const r3 = await recordTileFailure(failure("urban", { error: "c" }));
     await maybeFinalizeBatch(TOKEN, r3);
     expect(flushPendingBatchEmail).toHaveBeenCalledTimes(1);
     // No JSONB written (no succeeded tiles) — stays the empty stub.
     expect(state.batches.get(TOKEN)!.generations).toHaveLength(0);
+  });
+});
+
+describe("grace window for retryable failures (VES-53)", () => {
+  // A retryable failure can settle the batch before the client's auto-retry
+  // lands. maybeFinalizeBatch must HOLD the flush (return "grace") in that
+  // case so the email isn't sent with a smaller-than-final set; runFinalizeGrace
+  // then settles after a bounded delay regardless. A 0ms injected sleep
+  // exercises the timing without real waiting.
+  const noWait = () => Promise.resolve();
+
+  it("defers finalize on a retryable failure, then includes a later success", async () => {
+    const r1 = await recordTileSuccess(success("warm", true));
+    expect((await maybeFinalizeBatch(TOKEN, r1)).status).toBe("pending");
+    const r2 = await recordTileSuccess(success("velvet"));
+    expect((await maybeFinalizeBatch(TOKEN, r2)).status).toBe("pending");
+
+    // Third tile fails retryably and settles the batch (3/3). Finalize is
+    // held open — flush must NOT fire yet.
+    const r3 = await recordTileFailure(failure("urban", { retryable: true }));
+    const settled = await maybeFinalizeBatch(TOKEN, r3);
+    expect(settled.status).toBe("grace");
+    expect(flushPendingBatchEmail).not.toHaveBeenCalled();
+
+    // The client's auto-retry lands a success for the same tile during the
+    // grace, overwriting the failed row.
+    await recordTileSuccess(success("urban"));
+
+    // Grace elapses → re-finalize. Now all three succeeded, so the email
+    // includes the recovered tile.
+    const ran = await runFinalizeGrace(TOKEN, r3, noWait);
+    expect(ran).toBe(true);
+    expect(flushPendingBatchEmail).toHaveBeenCalledTimes(1);
+    const batch = state.batches.get(TOKEN)!;
+    expect(batch.generations).toHaveLength(3);
+    expect(state.generations.filter((g) => g.status === "succeeded")).toHaveLength(3);
+  });
+
+  it("tab closed / no retry: grace still settles and emails the succeeded subset", async () => {
+    const r1 = await recordTileSuccess(success("warm", true));
+    await maybeFinalizeBatch(TOKEN, r1);
+    const r2 = await recordTileSuccess(success("velvet"));
+    await maybeFinalizeBatch(TOKEN, r2);
+    // Retryable failure, but the tab is closed — no client to retry.
+    const r3 = await recordTileFailure(failure("urban", { retryable: true }));
+    expect((await maybeFinalizeBatch(TOKEN, r3)).status).toBe("grace");
+    expect(flushPendingBatchEmail).not.toHaveBeenCalled();
+
+    // Grace elapses with no success having arrived → settle with the 2 that
+    // succeeded. No permanent hang.
+    await runFinalizeGrace(TOKEN, r3, noWait);
+    expect(flushPendingBatchEmail).toHaveBeenCalledTimes(1);
+    expect(state.batches.get(TOKEN)!.generations).toHaveLength(2);
+  });
+
+  it("afterGrace=true settles immediately even with a still-retryable failure", async () => {
+    const r1 = await recordTileSuccess(success("warm", true));
+    await maybeFinalizeBatch(TOKEN, r1);
+    const r2 = await recordTileSuccess(success("velvet"));
+    await maybeFinalizeBatch(TOKEN, r2);
+    const r3 = await recordTileFailure(failure("urban", { retryable: true }));
+
+    // Without afterGrace → grace. With afterGrace → finalized (the grace
+    // already elapsed; we never grace twice).
+    expect((await maybeFinalizeBatch(TOKEN, r3)).status).toBe("grace");
+    expect((await maybeFinalizeBatch(TOKEN, r3, { afterGrace: true })).status).toBe(
+      "finalized",
+    );
+    expect(flushPendingBatchEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("no grace for a permanent failure — settles and flushes immediately", async () => {
+    const r1 = await recordTileSuccess(success("warm", true));
+    await maybeFinalizeBatch(TOKEN, r1);
+    const r2 = await recordTileSuccess(success("velvet"));
+    await maybeFinalizeBatch(TOKEN, r2);
+    const r3 = await recordTileFailure(failure("urban", { retryable: false }));
+    expect((await maybeFinalizeBatch(TOKEN, r3)).status).toBe("finalized");
+    expect(flushPendingBatchEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not double-finalize/double-email when both client + grace re-check fire", async () => {
+    // Latch: the deferred-send mock returns sent once, already_sent after.
+    flushPendingBatchEmail
+      .mockResolvedValueOnce({ status: "sent", emailId: "e1" })
+      .mockResolvedValue({ status: "already_sent" });
+
+    const r1 = await recordTileSuccess(success("warm", true));
+    await maybeFinalizeBatch(TOKEN, r1);
+    const r2 = await recordTileSuccess(success("velvet"));
+    await maybeFinalizeBatch(TOKEN, r2);
+    const r3 = await recordTileFailure(failure("urban", { retryable: true }));
+    expect((await maybeFinalizeBatch(TOKEN, r3)).status).toBe("grace");
+
+    // Retry success arrives, then BOTH the grace re-check AND a client-driven
+    // finalize fire. flushPendingBatchEmail is called more than once but the
+    // latch (mock) only "sends" once — no double email.
+    await recordTileSuccess(success("urban"));
+    await runFinalizeGrace(TOKEN, r3, noWait);
+    await maybeFinalizeBatch(TOKEN, r3, { afterGrace: true }); // simulate client finalize
+
+    const sent = flushPendingBatchEmail.mock.results.filter(
+      (r) => r.type === "return",
+    );
+    // Exactly one "sent"; the rest are already_sent (or none).
+    const sentResults = await Promise.all(sent.map((r) => r.value));
+    expect(sentResults.filter((v) => (v as { status: string }).status === "sent")).toHaveLength(1);
+    expect(state.generations.filter((g) => g.status === "succeeded")).toHaveLength(3);
+  });
+
+  it("guards against overlapping grace timers within one invocation", async () => {
+    const r1 = await recordTileSuccess(success("warm", true));
+    await maybeFinalizeBatch(TOKEN, r1);
+    const r2 = await recordTileSuccess(success("velvet"));
+    await maybeFinalizeBatch(TOKEN, r2);
+    const r3 = await recordTileFailure(failure("urban", { retryable: true }));
+    await maybeFinalizeBatch(TOKEN, r3);
+
+    // Two grace timers raced for the same token — only the first runs; the
+    // second is rejected while the first is still pending.
+    let release: () => void = () => {};
+    const gate = new Promise<void>((res) => {
+      release = res;
+    });
+    const first = runFinalizeGrace(TOKEN, r3, () => gate);
+    const second = await runFinalizeGrace(TOKEN, r3, noWait);
+    expect(second).toBe(false);
+    release();
+    expect(await first).toBe(true);
   });
 });
