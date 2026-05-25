@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { tryIntents, generations, runs, unlockBatches } from "@/lib/db/schema";
 import { sendPhotosEmail } from "@/lib/email/send-photo";
 import { stashPendingEmail, flushPendingBatchEmail } from "@/lib/email/deferred-send";
-import { env } from "@/lib/env";
+import { emailLinkBaseUrl } from "@/lib/email/base-url";
 
 // /try email capture — works in TWO states (VES-46):
 //
@@ -201,7 +201,7 @@ export async function POST(req: Request) {
       pickedScenes: intentScenes,
     });
 
-    const siteUrl = env.SITE_URL.replace(/\/$/, "");
+    const siteUrl = emailLinkBaseUrl();
     const sendResult = await sendPhotosEmail({
       to: email,
       photos,

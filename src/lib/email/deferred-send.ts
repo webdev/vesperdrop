@@ -2,7 +2,7 @@ import "server-only";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { generations, tryIntents, unlockBatches } from "@/lib/db/schema";
-import { env } from "@/lib/env";
+import { emailLinkBaseUrl } from "./base-url";
 import { sendPhotosEmail, type PhotoForEmail } from "./send-photo";
 
 // Email-during-generation deferred send (VES-46).
@@ -102,7 +102,7 @@ export async function flushPendingBatchEmail(
     return { status: "no_photos" };
   }
 
-  const siteUrl = env.SITE_URL.replace(/\/$/, "");
+  const siteUrl = emailLinkBaseUrl();
   const sendResult = await sendPhotosEmail({
     to: claim.pendingEmail,
     photos,
