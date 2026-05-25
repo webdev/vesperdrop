@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useProgressBatch } from "@/lib/progress/use-progress-batch";
+import { deriveStudioProgress } from "@/lib/progress/studio-progress";
 import { track } from "@/lib/analytics";
 import type { PresetMeta } from "@/lib/progress/strings";
 import type { FocalPoint, FaceBox } from "@/lib/ai/sceneify";
@@ -188,6 +189,15 @@ export function ProgressScreen({
     liveResults.length > 0 &&
     liveResults.every((r) => r.status === "succeeded");
 
+  // Single source of truth for the cinematic Develop step's progress,
+  // timer and phase state — derived from the real streamed batch view,
+  // never a separate fake countdown (VES-43/44 acceptance criterion).
+  const studioProgress = deriveStudioProgress({
+    medianPhaseId: view.medianPhaseId,
+    slowestElapsedMs: view.slowestElapsedMs,
+    allDone,
+  });
+
   return (
     <>
       {studio ? (
@@ -197,6 +207,7 @@ export function ProgressScreen({
           sourceName={studio.sourceName}
           sceneNames={studio.sceneNames}
           allDone={allDone}
+          progress={studioProgress}
         />
       ) : (
         <DevelopGrid
