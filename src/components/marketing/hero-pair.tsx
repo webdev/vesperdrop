@@ -1,29 +1,22 @@
 "use client";
 import Link from "next/link";
-import type { PlanMarketing, PlanSlug } from "@/lib/plans";
+import type { PlanMarketing } from "@/lib/plans";
+import { PLAN_MONTHLY_USD, type PlanSlug } from "@/lib/plan-pricing";
 import { track } from "@/lib/analytics";
 import { useBilling } from "./billing-provider";
-
-const FLAT_MONTHLY_USD: Record<PlanSlug, number> = {
-  free: 0,
-  starter: 19,
-  pro: 39,
-  studio: 99,
-  agency: 499,
-};
 
 export function formatEffectiveMonthly(
   slug: PlanSlug,
   interval: "monthly" | "annual",
 ): string {
-  const m = FLAT_MONTHLY_USD[slug];
+  const m = PLAN_MONTHLY_USD[slug];
   if (m === 0) return "$0";
   const v = interval === "annual" ? m * 0.8 : m;
   return v % 1 === 0 ? `$${v}` : `$${v.toFixed(2)}`;
 }
 
 export function formatAnnualTotal(slug: PlanSlug): string {
-  const m = FLAT_MONTHLY_USD[slug];
+  const m = PLAN_MONTHLY_USD[slug];
   const yr = m * 12 * 0.8;
   return yr % 1 === 0 ? `$${yr.toFixed(0)}` : `$${yr.toFixed(2)}`;
 }

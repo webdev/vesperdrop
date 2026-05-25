@@ -1,7 +1,12 @@
 import "server-only";
 import { env } from "@/lib/env";
+import {
+  type PlanSlug,
+  PLAN_MONTHLY_USD,
+  PLAN_MONTHLY_PHOTOS,
+} from "./plan-pricing";
 
-export type PlanSlug = "free" | "starter" | "pro" | "studio" | "agency";
+export type { PlanSlug };
 export const PAID_PLAN_SLUGS = ["starter", "pro", "studio", "agency"] as const;
 export type PaidPlanSlug = (typeof PAID_PLAN_SLUGS)[number];
 
@@ -176,11 +181,11 @@ export interface PlanQuota {
 }
 
 export const PLAN_QUOTA: Record<PlanSlug, PlanQuota> = {
-  free: { monthlyQuota: 0, overageCentsPerPhoto: 0 },
-  starter: { monthlyQuota: 25, overageCentsPerPhoto: 50 },
-  pro: { monthlyQuota: 75, overageCentsPerPhoto: 50 },
-  studio: { monthlyQuota: 250, overageCentsPerPhoto: 50 },
-  agency: { monthlyQuota: 1500, overageCentsPerPhoto: 40 },
+  free: { monthlyQuota: PLAN_MONTHLY_PHOTOS.free, overageCentsPerPhoto: 0 },
+  starter: { monthlyQuota: PLAN_MONTHLY_PHOTOS.starter, overageCentsPerPhoto: 50 },
+  pro: { monthlyQuota: PLAN_MONTHLY_PHOTOS.pro, overageCentsPerPhoto: 50 },
+  studio: { monthlyQuota: PLAN_MONTHLY_PHOTOS.studio, overageCentsPerPhoto: 50 },
+  agency: { monthlyQuota: PLAN_MONTHLY_PHOTOS.agency, overageCentsPerPhoto: 40 },
 };
 
 // ---------------------------------------------------------------------------
@@ -190,14 +195,6 @@ export const PLAN_QUOTA: Record<PlanSlug, PlanQuota> = {
 // marketing rewrite drops it from marketing consumers; app-side use is fine
 // indefinitely.
 // ---------------------------------------------------------------------------
-const FLAT_MONTHLY_USD: Record<PlanSlug, number> = {
-  free: 0,
-  starter: 19,
-  pro: 39,
-  studio: 99,
-  agency: 499,
-};
-
 export interface PlanRecord {
   slug: PlanSlug;
   label: string;
@@ -219,7 +216,7 @@ export const PLAN_CATALOG: Record<PlanSlug, PlanRecord> = Object.fromEntries(
       {
         slug,
         label: marketing.label,
-        price: FLAT_MONTHLY_USD[slug],
+        price: PLAN_MONTHLY_USD[slug],
         credits: quota.monthlyQuota,
         perCredit: marketing.perPhotoMonthlyDisplay,
         priceIdEnv: isPaid ? PLAN_STRIPE[slug].monthlyPriceIdEnv : null,
