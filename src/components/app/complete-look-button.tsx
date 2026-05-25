@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { track } from "@/lib/analytics";
+import { PLAN_MONTHLY_USD, PLAN_MONTHLY_PHOTOS } from "@/lib/plan-pricing";
 import type { Generation, Pack } from "@/app/(app)/app/runs/[id]/run-grid";
 
 const PLATFORMS = [
@@ -179,7 +180,7 @@ export function CompleteLookButton({
           See plans <span aria-hidden>→</span>
         </Link>
         <p className="mt-3 text-center font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4">
-          Pro from $39/mo · 200 credits · cancel any time
+          {`Pro from $${PLAN_MONTHLY_USD.pro}/mo · ${PLAN_MONTHLY_PHOTOS.pro} photos · cancel any time`}
         </p>
       </div>
     ) : null;
