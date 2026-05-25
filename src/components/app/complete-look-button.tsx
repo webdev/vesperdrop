@@ -179,7 +179,7 @@ export function CompleteLookButton({
           See plans <span aria-hidden>→</span>
         </Link>
         <p className="mt-3 text-center font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4">
-          Pro from $49/mo · 200 credits · cancel any time
+          Pro from $39/mo · 200 credits · cancel any time
         </p>
       </div>
     ) : null;
