@@ -109,6 +109,15 @@ export const generations = pgTable(
     index("generations_status_idx").on(t.status),
     index("generations_pack_idx").on(t.packId),
     index("generations_parent_idx").on(t.parentGenerationId),
+    // One generation per (run, preset) for the /try funnel (VES-53). The
+    // server tile-complete write and the client finalize-batch upsert both
+    // key on this so a batch never ends up with duplicate rows for the same
+    // scene. /try always renders distinct scenes per batch, so this is a
+    // natural key there; the partial predicate keeps multi-shot pack
+    // generations (same preset, different pack_role) out of the constraint.
+    uniqueIndex("generations_run_preset_uidx")
+      .on(t.runId, t.presetId)
+      .where(sql`${t.packId} IS NULL`),
   ],
 );
 
@@ -517,6 +526,12 @@ export const unlockBatches = pgTable("unlock_batches", {
   pendingEmail: text("pending_email"),
   emailSentAt: timestamp("email_sent_at", { withTimezone: true }),
   emailSendAttempts: integer("email_send_attempts").notNull().default(0),
+  // Total tiles the client launched for this batch (VES-53). Recorded at
+  // generation start by /api/try/generate so the server can detect "every
+  // tile settled" and finalize + flush the deferred email WITHOUT the
+  // client calling finalize-batch (the tab-closed case). Nullable for
+  // back-compat with batches created before server-side persistence.
+  expectedTiles: integer("expected_tiles"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

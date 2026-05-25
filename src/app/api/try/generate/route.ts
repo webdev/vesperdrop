@@ -1,4 +1,5 @@
 import { put } from "@vercel/blob";
+import { after } from "next/server";
 import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
@@ -18,7 +19,18 @@ import {
   tryConsumeAnonCredit,
 } from "@/lib/db/anon-credits";
 import { tryConsumeQuota } from "@/lib/db/quota";
+import {
+  recordTileSuccess,
+  recordTileFailure,
+  maybeFinalizeBatch,
+} from "@/lib/db/try-batch";
 import { env } from "@/lib/env";
+
+// 32-hex client-minted batch token (`/try/b/<token>`). When present, this
+// tile is persisted server-side as it completes so the batch can finalize +
+// flush a mid-generation email even if the client never calls finalize-batch
+// (tab-closed case — VES-53). Absent → legacy stream-only behavior.
+const TOKEN_REGEX = /^[0-9a-f]{32}$/i;
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -160,6 +172,29 @@ export async function POST(req: Request) {
   const sceneSlug = form.get("sceneSlug");
   const castingRaceField = form.get("castingRace");
 
+  // Server-side persistence metadata (VES-53). Optional + best-effort: a
+  // missing/invalid token simply falls back to the legacy stream-only path,
+  // so older clients keep working. When present we persist this tile to the
+  // batch keyed by `token` so a closed tab still produces a deliverable
+  // batch + flushes the deferred email.
+  const tokenField = form.get("token");
+  const sceneNameField = form.get("sceneName");
+  const isFreePreviewField = form.get("isFreePreview");
+  const batchSizeField = form.get("batchSize");
+  const batchToken =
+    typeof tokenField === "string" && TOKEN_REGEX.test(tokenField)
+      ? tokenField
+      : null;
+  const batchSize =
+    typeof batchSizeField === "string" && /^[1-9][0-9]?$/.test(batchSizeField)
+      ? Number(batchSizeField)
+      : null;
+  const sceneNameForPersist =
+    typeof sceneNameField === "string" && sceneNameField.length > 0
+      ? sceneNameField.slice(0, 200)
+      : null;
+  const isFreePreview = isFreePreviewField === "1";
+
   // Casting race is forwarded as a single FormData field, validated
   // against the sceneify vocabulary. The client picks ONE race per
   // batch (not per tile) and sends the same value on each tile's call
@@ -299,6 +334,39 @@ export async function POST(req: Request) {
           focalPoint: result.focalPoint ?? null,
           faceBox: result.faceBox ?? null,
         });
+
+        // Persist this tile server-side, decoupled from the client (VES-53).
+        // Scheduled via after() so it runs (and keeps the function warm on
+        // Vercel) even when the visitor has closed the tab — the whole point
+        // of "you can safely leave, we'll email you." When the last tile of
+        // the batch settles, maybeFinalizeBatch links the run + flushes any
+        // mid-generation email with zero client involvement.
+        if (batchToken && batchSize) {
+          after(async () => {
+            try {
+              const runId = await recordTileSuccess({
+                token: batchToken,
+                userId: userData.user?.id ?? null,
+                sceneSlug: slug,
+                sceneName: sceneNameForPersist ?? slug,
+                isFreePreview,
+                sourceUrl,
+                batchSize,
+                outputUrl: finalUrl,
+                rawUrl,
+                focalPoint: result.focalPoint ?? null,
+                faceBox: result.faceBox ?? null,
+              });
+              await maybeFinalizeBatch(batchToken, runId);
+            } catch (err) {
+              console.error("[try/generate] tile persist failed", {
+                token: batchToken,
+                slug,
+                err,
+              });
+            }
+          });
+        }
       } catch (e) {
         clearInterval(tickInterval);
         const status = e instanceof SceneifyError ? e.status : 502;
@@ -306,6 +374,39 @@ export async function POST(req: Request) {
         const retryable = status >= 500;
         console.error("[try/generate] sceneify failed", { status, message });
         send("error", { message, retryable });
+
+        // Record the failed tile so the batch can still settle and the
+        // deferred email delivers whatever succeeded, instead of hanging on
+        // a tile that will never arrive (VES-53). We persist BOTH retryable
+        // and terminal failures: if the tab is closed there is no client to
+        // retry, so a retryable failure would otherwise leave the batch one
+        // tile short of expected_tiles forever. The (run, preset) upsert is
+        // CASE-guarded — a client retry that later succeeds overwrites the
+        // failed row, and re-running maybeFinalizeBatch is a no-op once the
+        // email latch is claimed, so this can't double-send.
+        if (batchToken && batchSize) {
+          after(async () => {
+            try {
+              const runId = await recordTileFailure({
+                token: batchToken,
+                userId: userData.user?.id ?? null,
+                sceneSlug: slug,
+                sceneName: sceneNameForPersist ?? slug,
+                isFreePreview,
+                sourceUrl,
+                batchSize,
+                error: message,
+              });
+              await maybeFinalizeBatch(batchToken, runId);
+            } catch (err) {
+              console.error("[try/generate] tile failure persist failed", {
+                token: batchToken,
+                slug,
+                err,
+              });
+            }
+          });
+        }
       } finally {
         closed = true;
         try {

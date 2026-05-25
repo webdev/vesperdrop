@@ -39,6 +39,15 @@ export type BatchView = {
   slowestElapsedMs: number;
 };
 
+export type BatchPersistMeta = {
+  /** Client-minted batch token (`/try/b/<token>`). */
+  token: string;
+  /** Total tiles in this batch — the server completion sentinel. */
+  batchSize: number;
+  /** Per-slug display name + free-preview flag for the persisted row. */
+  bySlug: Record<string, { sceneName: string; isFreePreview: boolean }>;
+};
+
 export function useProgressBatch(args: {
   file: File;
   sceneSlugs: string[];
@@ -49,13 +58,31 @@ export function useProgressBatch(args: {
    *  for the lifetime of this hook (`sceneSlugs` already has the same
    *  stability contract). */
   castingRace?: string;
+  /** Server-side persistence metadata (VES-53). When supplied, each tile
+   *  is persisted to the batch as it completes and the deferred email
+   *  flushes when the last tile settles — decoupled from the client, so a
+   *  closed tab still delivers. Must be stable for the hook's lifetime
+   *  (same contract as `sceneSlugs`). */
+  persist?: BatchPersistMeta;
 }): BatchView {
-  const { file, sceneSlugs, primaryPreset, castingRace } = args;
+  const { file, sceneSlugs, primaryPreset, castingRace, persist } = args;
 
   const handles = sceneSlugs.map((slug) => ({
     slug,
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    handle: useProgressStream({ file, sceneSlug: slug, castingRace }),
+    handle: useProgressStream({
+      file,
+      sceneSlug: slug,
+      castingRace,
+      persist: persist
+        ? {
+            token: persist.token,
+            batchSize: persist.batchSize,
+            sceneName: persist.bySlug[slug]?.sceneName ?? slug,
+            isFreePreview: persist.bySlug[slug]?.isFreePreview ?? false,
+          }
+        : undefined,
+    }),
   }));
   const streams: Record<string, StreamHandle> = Object.fromEntries(
     handles.map(({ slug, handle }) => [slug, handle]),

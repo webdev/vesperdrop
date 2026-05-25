@@ -83,11 +83,40 @@ export function ProgressScreen({
 }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const stableSlugs = useMemo(() => sceneSlugs, []); // contract: stable for lifetime
+
+  // Server-side persistence meta (VES-53). Frozen at mount (same lifetime
+  // contract as stableSlugs) so /api/try/generate can persist each tile to
+  // the batch keyed by `emailToken` and flush a mid-generation email when
+  // the last tile settles — even if the tab is closed. Only enabled when we
+  // have a token (the unauth /try/b/<token> flow); authed batches finalize
+  // via /api/try/claim and don't use the deferred email path.
+  const persist = useMemo(() => {
+    if (!emailToken) return undefined;
+    return {
+      token: emailToken,
+      batchSize: stableSlugs.length,
+      bySlug: Object.fromEntries(
+        stableSlugs.map((slug) => {
+          const r = initialResults.find((x) => x.sceneSlug === slug);
+          return [
+            slug,
+            {
+              sceneName: r?.sceneName ?? presetMetaBySlug[slug]?.name ?? slug,
+              isFreePreview: Boolean(r?.isFreePreview),
+            },
+          ];
+        }),
+      ),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emailToken]);
+
   const view = useProgressBatch({
     file,
     sceneSlugs: stableSlugs,
     primaryPreset,
     castingRace,
+    persist,
   });
 
   const [batchId] = useState<string>(() => crypto.randomUUID());
