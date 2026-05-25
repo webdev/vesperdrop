@@ -42,6 +42,17 @@ type Args = {
    *  filters its reference pool by this token; unknown / empty values
    *  fall through to the default sampler. */
   castingRace?: string;
+  /** Server-side persistence metadata (VES-53). When `token` + `batchSize`
+   *  are supplied, /api/try/generate persists this tile to the batch as it
+   *  completes and flushes any mid-generation email when the last tile
+   *  settles — so a closed tab still delivers. Omitting them keeps the
+   *  legacy stream-only behavior. */
+  persist?: {
+    token: string;
+    batchSize: number;
+    sceneName: string;
+    isFreePreview: boolean;
+  };
 };
 
 // Auto-retry policy for retryable errors. Generation failures bubble
@@ -75,8 +86,15 @@ export function useProgressStream({
   sceneSlug,
   enabled = true,
   castingRace,
+  persist,
 }: Args): StreamHandle {
   const [state, setState] = useState<StreamState>(initial);
+  // Destructure persist to stable primitives so the `open` callback (which
+  // depends on these) isn't torn down every render by a fresh object ref.
+  const persistToken = persist?.token;
+  const persistBatchSize = persist?.batchSize;
+  const persistSceneName = persist?.sceneName;
+  const persistIsFreePreview = persist?.isFreePreview;
   const abortRef = useRef<AbortController | null>(null);
   const tickRef = useRef<number | null>(null);
   const startedAtRef = useRef<number | null>(null);
@@ -106,6 +124,14 @@ export function useProgressStream({
     form.append("file", file, file.name);
     form.append("sceneSlug", sceneSlug);
     if (castingRace) form.append("castingRace", castingRace);
+    // Server-side persistence metadata (VES-53). Sent on every (re)open so
+    // an auto-retry re-persists under the same batch token.
+    if (persistToken && persistBatchSize) {
+      form.append("token", persistToken);
+      form.append("batchSize", String(persistBatchSize));
+      if (persistSceneName) form.append("sceneName", persistSceneName);
+      form.append("isFreePreview", persistIsFreePreview ? "1" : "0");
+    }
 
     (async () => {
       try {
@@ -203,7 +229,15 @@ export function useProgressStream({
         }
       }
     })();
-  }, [file, sceneSlug, castingRace]);
+  }, [
+    file,
+    sceneSlug,
+    castingRace,
+    persistToken,
+    persistBatchSize,
+    persistSceneName,
+    persistIsFreePreview,
+  ]);
 
   useEffect(() => {
     if (!enabled) return;

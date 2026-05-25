@@ -13,6 +13,28 @@ vi.mock("@/lib/db/unlock-batches", () => ({
   newToken: () => "fixed-test-token-32-hex-chars",
 }));
 
+// Deferred email-during-generation send (VES-46). Mocked so the
+// finalize transaction assertions stay focused on persistence; the
+// flush is invoked best-effort after commit and its own logic is
+// covered in src/lib/email/deferred-send.test.ts.
+const flushPendingBatchEmail = vi.fn();
+vi.mock("@/lib/email/deferred-send", () => ({
+  flushPendingBatchEmail: (...a: unknown[]) =>
+    (flushPendingBatchEmail as (...x: unknown[]) => unknown)(...a),
+}));
+
+// Server-side per-tile persistence (VES-53). finalize-batch reuses the run
+// the generate route may already have created for a client-minted token via
+// ensureBatchRun, instead of minting a duplicate. Mocked so these tests stay
+// focused on the finalize transaction; ensureBatchRun's own logic is covered
+// in src/lib/db/try-batch.test.ts. Returns a stable run id for the
+// client-token path; the no-token (legacy) path still mints inline.
+const ensureBatchRun = vi.fn();
+vi.mock("@/lib/db/try-batch", () => ({
+  ensureBatchRun: (...a: unknown[]) =>
+    (ensureBatchRun as (...x: unknown[]) => unknown)(...a),
+}));
+
 // db.transaction takes a callback (tx) => Promise<T>. We hand it a fake tx
 // that records insert calls so the test can assert ordering + payloads
 // without spinning up a real database.
@@ -36,11 +58,25 @@ function fakeTx() {
           return {
             returning: async () =>
               tableName === "runs" ? [{ id: "run-xyz" }] : [],
+            // Generations are now upserted one row at a time on the
+            // (run_id, preset_id) unique key (VES-53) so the server
+            // tile-complete write and this client finalize converge on a
+            // single row. unlock_batches stays an upsert (VES-46) so a
+            // mid-generation email stub isn't clobbered. The test only
+            // needs the chain to resolve.
+            onConflictDoUpdate: async () => undefined,
           };
         },
       };
     },
   };
+}
+
+// Generation rows recorded across the per-row upserts, in insert order.
+function generationRows(): Array<Record<string, unknown>> {
+  return inserts
+    .filter((i) => i.table === "generations")
+    .map((i) => i.values as Record<string, unknown>);
 }
 
 vi.mock("@/lib/db", () => ({
@@ -108,6 +144,11 @@ function validGenerations() {
 beforeEach(() => {
   inserts.length = 0;
   getUser.mockReset().mockResolvedValue({ data: { user: null } });
+  flushPendingBatchEmail.mockReset().mockResolvedValue({ status: "no_pending_email" });
+  // Default: the batch has no server-created run linked, so ensureBatchRun
+  // creates one and returns its id. Tests that exercise the no-token legacy
+  // path don't hit this (the route mints inline there).
+  ensureBatchRun.mockReset().mockResolvedValue("run-xyz");
 });
 
 describe("POST /api/try/finalize-batch", () => {
@@ -154,8 +195,7 @@ describe("POST /api/try/finalize-batch", () => {
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.token).toBe("fixed-test-token-32-hex-chars");
-    const gensValues = inserts[1].values as Array<Record<string, unknown>>;
-    expect(gensValues).toHaveLength(1);
+    expect(generationRows()).toHaveLength(1);
   });
 
   it("accepts 6-scene batches for authed users", async () => {
@@ -176,8 +216,7 @@ describe("POST /api/try/finalize-batch", () => {
       }),
     );
     expect(res.status).toBe(201);
-    const gensValues = inserts[1].values as Array<Record<string, unknown>>;
-    expect(gensValues).toHaveLength(6);
+    expect(generationRows()).toHaveLength(6);
   });
 
   it("rejects > 3 scenes for unauth visitors", async () => {
@@ -209,8 +248,17 @@ describe("POST /api/try/finalize-batch", () => {
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.token).toBe(supplied);
-    const batchValues = inserts[2].values as Record<string, unknown>;
+    // With a client token the run is sourced via ensureBatchRun (reusing any
+    // server-created run), so finalize does not mint a fresh `runs` row.
+    expect(ensureBatchRun).toHaveBeenCalledWith({
+      token: supplied,
+      userId: null,
+      batchSize: 3,
+    });
+    const batchInsert = inserts.find((i) => i.table === "unlockBatches");
+    const batchValues = batchInsert!.values as Record<string, unknown>;
     expect(batchValues.token).toBe(supplied);
+    expect(batchValues.runId).toBe("run-xyz");
   });
 
   it("rejects a malformed token", async () => {
@@ -248,14 +296,19 @@ describe("POST /api/try/finalize-batch", () => {
     expect(body.token).toBe("fixed-test-token-32-hex-chars");
     expect(body.runId).toBe("run-xyz");
 
-    // Inserts happened in the right order: run first (so generations
-    // can point at runRow.id), then the 3 generation rows, then the
-    // unlock_batches row.
+    // No client token → legacy path mints the run inline. Inserts happened
+    // in the right order: run first (so generations can point at runRow.id),
+    // then the 3 generation rows (now per-row upserts on (run_id,
+    // preset_id)), then the unlock_batches row.
     expect(inserts.map((i) => i.table)).toEqual([
       "runs",
       "generations",
+      "generations",
+      "generations",
       "unlockBatches",
     ]);
+    // ensureBatchRun is NOT used on the no-token legacy path.
+    expect(ensureBatchRun).not.toHaveBeenCalled();
 
     const runValues = inserts[0].values as Record<string, unknown>;
     expect(runValues.userId).toBeNull();
@@ -263,7 +316,7 @@ describe("POST /api/try/finalize-batch", () => {
     expect(runValues.presetCount).toBe(3);
     expect(runValues.totalImages).toBe(3);
 
-    const gensValues = inserts[1].values as Array<Record<string, unknown>>;
+    const gensValues = generationRows();
     expect(gensValues).toHaveLength(3);
     for (const g of gensValues) {
       expect(g.runId).toBe("run-xyz");
@@ -277,7 +330,8 @@ describe("POST /api/try/finalize-batch", () => {
       expect(g.rawUrl).toMatch(/^https:\/\/blob\.example\/raw-/);
     }
 
-    const batchValues = inserts[2].values as Record<string, unknown>;
+    const batchInsert = inserts.find((i) => i.table === "unlockBatches");
+    const batchValues = batchInsert!.values as Record<string, unknown>;
     expect(batchValues.token).toBe("fixed-test-token-32-hex-chars");
     expect(batchValues.runId).toBe("run-xyz");
     expect(batchValues.userId).toBeNull();
@@ -300,10 +354,39 @@ describe("POST /api/try/finalize-batch", () => {
     expect(res.status).toBe(201);
     const runValues = inserts[0].values as Record<string, unknown>;
     expect(runValues.userId).toBe("user-9");
-    const gensValues = inserts[1].values as Array<Record<string, unknown>>;
+    const gensValues = generationRows();
     for (const g of gensValues) expect(g.userId).toBe("user-9");
-    const batchValues = inserts[2].values as Record<string, unknown>;
+    const batchInsert = inserts.find((i) => i.table === "unlockBatches");
+    const batchValues = batchInsert!.values as Record<string, unknown>;
     expect(batchValues.userId).toBe("user-9");
+  });
+
+  it("triggers the deferred email flush keyed on the batch token after commit", async () => {
+    const res = await POST(
+      jsonReq({
+        generations: validGenerations(),
+        sourceUrl: "https://blob.example/src.jpg",
+      }),
+    );
+    expect(res.status).toBe(201);
+    expect(flushPendingBatchEmail).toHaveBeenCalledTimes(1);
+    expect(flushPendingBatchEmail).toHaveBeenCalledWith(
+      "fixed-test-token-32-hex-chars",
+    );
+  });
+
+  it("does not fail finalize when the deferred email flush throws", async () => {
+    flushPendingBatchEmail.mockRejectedValueOnce(new Error("resend down"));
+    const res = await POST(
+      jsonReq({
+        generations: validGenerations(),
+        sourceUrl: "https://blob.example/src.jpg",
+      }),
+    );
+    // Batch is persisted; the flush failure is swallowed (best-effort).
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.token).toBe("fixed-test-token-32-hex-chars");
   });
 
   it("falls back sceneify_source_id to outputUrl[0] when sourceUrl is missing", async () => {
@@ -311,7 +394,7 @@ describe("POST /api/try/finalize-batch", () => {
     // route must still accept the request and write a non-null column.
     const res = await POST(jsonReq({ generations: validGenerations() }));
     expect(res.status).toBe(201);
-    const gensValues = inserts[1].values as Array<Record<string, unknown>>;
+    const gensValues = generationRows();
     expect(gensValues[0].sceneifySourceId).toBe(
       "https://blob.example/wm-warm.png",
     );

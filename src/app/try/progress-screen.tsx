@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useProgressBatch } from "@/lib/progress/use-progress-batch";
+import { deriveStudioProgress } from "@/lib/progress/studio-progress";
 import { track } from "@/lib/analytics";
 import type { PresetMeta } from "@/lib/progress/strings";
 import type { FocalPoint, FaceBox } from "@/lib/ai/sceneify";
@@ -50,6 +51,15 @@ type Props = {
    *  tiles share one model identity. Vesperdrop picks this once at
    *  DevelopStep mount; sceneify filters its reference pool by it. */
   castingRace?: string;
+  /**
+   * Client-minted batch token (`/try/b/<token>`), threaded to the studio
+   * frame's email-during-generation module (VES-45). Mid-generation the run
+   * isn't finalized, so this token is the durable key the server stashes a
+   * pending email against.
+   */
+  emailToken?: string;
+  /** Fired once when the mid-generation email module captures (VES-45). */
+  onEmailCaptured?: () => void;
 };
 
 export function ProgressScreen({
@@ -68,14 +78,45 @@ export function ProgressScreen({
   freePreviewUnlocked = false,
   studio,
   castingRace,
+  emailToken,
+  onEmailCaptured,
 }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const stableSlugs = useMemo(() => sceneSlugs, []); // contract: stable for lifetime
+
+  // Server-side persistence meta (VES-53). Frozen at mount (same lifetime
+  // contract as stableSlugs) so /api/try/generate can persist each tile to
+  // the batch keyed by `emailToken` and flush a mid-generation email when
+  // the last tile settles — even if the tab is closed. Only enabled when we
+  // have a token (the unauth /try/b/<token> flow); authed batches finalize
+  // via /api/try/claim and don't use the deferred email path.
+  const persist = useMemo(() => {
+    if (!emailToken) return undefined;
+    return {
+      token: emailToken,
+      batchSize: stableSlugs.length,
+      bySlug: Object.fromEntries(
+        stableSlugs.map((slug) => {
+          const r = initialResults.find((x) => x.sceneSlug === slug);
+          return [
+            slug,
+            {
+              sceneName: r?.sceneName ?? presetMetaBySlug[slug]?.name ?? slug,
+              isFreePreview: Boolean(r?.isFreePreview),
+            },
+          ];
+        }),
+      ),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emailToken]);
+
   const view = useProgressBatch({
     file,
     sceneSlugs: stableSlugs,
     primaryPreset,
     castingRace,
+    persist,
   });
 
   const [batchId] = useState<string>(() => crypto.randomUUID());
@@ -188,6 +229,15 @@ export function ProgressScreen({
     liveResults.length > 0 &&
     liveResults.every((r) => r.status === "succeeded");
 
+  // Single source of truth for the cinematic Develop step's progress,
+  // timer and phase state — derived from the real streamed batch view,
+  // never a separate fake countdown (VES-43/44 acceptance criterion).
+  const studioProgress = deriveStudioProgress({
+    medianPhaseId: view.medianPhaseId,
+    slowestElapsedMs: view.slowestElapsedMs,
+    allDone,
+  });
+
   return (
     <>
       {studio ? (
@@ -197,6 +247,10 @@ export function ProgressScreen({
           sourceName={studio.sourceName}
           sceneNames={studio.sceneNames}
           allDone={allDone}
+          progress={studioProgress}
+          emailToken={emailToken}
+          pickedScenes={stableSlugs}
+          onEmailCaptured={onEmailCaptured}
         />
       ) : (
         <DevelopGrid

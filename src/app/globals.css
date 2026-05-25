@@ -198,3 +198,53 @@
     color: var(--terracotta);
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Cinematic "In the studio." Develop step motion (VES-43).
+ * GPU-cheap transforms/opacity only — no layout-affecting animation, so no
+ * CLS. All disabled under prefers-reduced-motion.
+ * ------------------------------------------------------------------------- */
+.studio-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+  animation: studio-grain-shift 1.2s steps(4) infinite;
+  will-change: transform;
+}
+
+@keyframes studio-grain-shift {
+  0% { transform: translate3d(0, 0, 0); }
+  25% { transform: translate3d(-3%, 2%, 0); }
+  50% { transform: translate3d(2%, -3%, 0); }
+  75% { transform: translate3d(-2%, -2%, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+.studio-sweep {
+  animation: studio-sweep-move 5.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes studio-sweep-move {
+  0% { transform: translate3d(0, 0, 0) rotate(18deg); opacity: 0; }
+  18% { opacity: 1; }
+  60% { opacity: 0.6; }
+  100% { transform: translate3d(520%, 0, 0) rotate(18deg); opacity: 0; }
+}
+
+.studio-pulse {
+  animation: studio-pulse-fade 2.4s ease-in-out infinite;
+  will-change: opacity, transform;
+}
+
+@keyframes studio-pulse-fade {
+  0%, 100% { opacity: 0.6; transform: scale(0.94); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-grain,
+  .studio-sweep,
+  .studio-pulse {
+    animation: none;
+  }
+}

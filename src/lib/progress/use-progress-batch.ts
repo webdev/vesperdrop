@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useProgressStream, type StreamHandle } from "./use-progress-stream";
 import { aggregateBatch, type StreamSnapshot } from "./batch-aggregate";
-import { pickLine, type PresetMeta } from "./strings";
+import { pickLine, type PhaseId, type PresetMeta } from "./strings";
 
 const ROTATION_MS = 2800;
 const COUNTER_HOLD_MS = 3000;
@@ -27,6 +27,25 @@ export type BatchView = {
   allFailed: boolean;
   isHighlightingFilmstrip: boolean;
   filmstripIndex: number;
+  /**
+   * Batch-level progress signals, exposed so the cinematic studio frame
+   * (VES-43) and sidebar (VES-44) can drive the render-clarity, the
+   * 5-phase timeline, the timer and the progress line off the SAME real
+   * streamed data instead of a separate fake countdown. `medianPhaseId`
+   * is the median of all in-flight per-scene phases; `slowestElapsedMs`
+   * is the worst-case elapsed across active streams.
+   */
+  medianPhaseId: PhaseId | null;
+  slowestElapsedMs: number;
+};
+
+export type BatchPersistMeta = {
+  /** Client-minted batch token (`/try/b/<token>`). */
+  token: string;
+  /** Total tiles in this batch — the server completion sentinel. */
+  batchSize: number;
+  /** Per-slug display name + free-preview flag for the persisted row. */
+  bySlug: Record<string, { sceneName: string; isFreePreview: boolean }>;
 };
 
 export function useProgressBatch(args: {
@@ -39,13 +58,31 @@ export function useProgressBatch(args: {
    *  for the lifetime of this hook (`sceneSlugs` already has the same
    *  stability contract). */
   castingRace?: string;
+  /** Server-side persistence metadata (VES-53). When supplied, each tile
+   *  is persisted to the batch as it completes and the deferred email
+   *  flushes when the last tile settles — decoupled from the client, so a
+   *  closed tab still delivers. Must be stable for the hook's lifetime
+   *  (same contract as `sceneSlugs`). */
+  persist?: BatchPersistMeta;
 }): BatchView {
-  const { file, sceneSlugs, primaryPreset, castingRace } = args;
+  const { file, sceneSlugs, primaryPreset, castingRace, persist } = args;
 
   const handles = sceneSlugs.map((slug) => ({
     slug,
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    handle: useProgressStream({ file, sceneSlug: slug, castingRace }),
+    handle: useProgressStream({
+      file,
+      sceneSlug: slug,
+      castingRace,
+      persist: persist
+        ? {
+            token: persist.token,
+            batchSize: persist.batchSize,
+            sceneName: persist.bySlug[slug]?.sceneName ?? slug,
+            isFreePreview: persist.bySlug[slug]?.isFreePreview ?? false,
+          }
+        : undefined,
+    }),
   }));
   const streams: Record<string, StreamHandle> = Object.fromEntries(
     handles.map(({ slug, handle }) => [slug, handle]),
@@ -140,5 +177,7 @@ export function useProgressBatch(args: {
     allFailed: agg.allFailed,
     isHighlightingFilmstrip: highlight,
     filmstripIndex,
+    medianPhaseId: agg.medianPhaseId,
+    slowestElapsedMs: agg.slowestElapsedMs,
   };
 }

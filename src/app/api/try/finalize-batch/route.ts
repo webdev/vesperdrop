@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { sql } from "drizzle-orm";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { runs, generations, unlockBatches } from "@/lib/db/schema";
 import { newToken } from "@/lib/db/unlock-batches";
+import { ensureBatchRun } from "@/lib/db/try-batch";
+import { flushPendingBatchEmail } from "@/lib/email/deferred-send";
 import type { UnlockBatchGeneration } from "@/lib/db/schema";
 
 export const runtime = "nodejs";
@@ -146,43 +149,108 @@ export async function POST(req: Request) {
   }));
 
   const now = new Date();
-  const { runId, token } = await db.transaction(async (tx) => {
-    const [runRow] = await tx
-      .insert(runs)
+  const token = clientToken ?? newToken();
+
+  // Reuse the run the server may have already created for this batch token
+  // (VES-53): /api/try/generate persists tiles server-side as they complete
+  // and links a run to the token, so a closed tab still has a deliverable
+  // batch. If we minted a fresh run here we'd orphan those rows and relink
+  // the token to an empty run. ensureBatchRun is the single source of run
+  // creation per token — it returns the existing run when one is linked, or
+  // creates one (and the unlock_batches stub) otherwise. For the legacy
+  // no-token path there is no server persistence, so we mint directly.
+  const runId = clientToken
+    ? await ensureBatchRun({ token, userId, batchSize: gens.length })
+    : null;
+
+  const resolvedRunId = await db.transaction(async (tx) => {
+    let rid = runId;
+    if (!rid) {
+      const [runRow] = await tx
+        .insert(runs)
+        .values({
+          userId,
+          sourceCount: 1,
+          presetCount: gens.length,
+          totalImages: gens.length,
+        })
+        .returning({ id: runs.id });
+      rid = runRow.id;
+    }
+
+    // Upsert generations on (run_id, preset_id) — the server tile-complete
+    // write may already have inserted these rows, so a plain insert would
+    // collide. The client payload is authoritative (it carries the real
+    // watermarked/raw URLs + focal data + the user-picked free-preview
+    // ordering), so on conflict we overwrite with it.
+    for (const g of gens) {
+      await tx
+        .insert(generations)
+        .values({
+          runId: rid,
+          userId,
+          sceneifySourceId: sceneifySource,
+          presetId: g.sceneSlug,
+          status: "succeeded" as const,
+          outputUrl: g.outputUrl,
+          rawUrl: g.rawUrl ?? null,
+          watermarked: true,
+          quality: "preview" as const,
+          focalPoint: g.focalPoint ?? null,
+          faceBox: g.faceBox ?? null,
+          completedAt: now,
+        })
+        .onConflictDoUpdate({
+          target: [generations.runId, generations.presetId],
+          targetWhere: sql`${generations.packId} is null`,
+          set: {
+            userId,
+            sceneifySourceId: sceneifySource,
+            status: "succeeded" as const,
+            outputUrl: g.outputUrl,
+            rawUrl: g.rawUrl ?? null,
+            watermarked: true,
+            quality: "preview" as const,
+            focalPoint: g.focalPoint ?? null,
+            faceBox: g.faceBox ?? null,
+            completedAt: now,
+          },
+        });
+    }
+
+    // Upsert (not plain insert): a visitor may have submitted their email
+    // mid-generation, in which case /api/try/email-photo (or the server
+    // tile-complete path) already created a stub unlock_batches row keyed by
+    // this client-minted token. On conflict we fill in the real generations
+    // + runId WITHOUT clobbering pending_email / email_sent_at / attempts,
+    // so the deferred send below can fire. (VES-46 / VES-53)
+    await tx
+      .insert(unlockBatches)
       .values({
+        token,
+        generations: stored,
         userId,
-        sourceCount: 1,
-        presetCount: gens.length,
-        totalImages: gens.length,
+        runId: rid,
       })
-      .returning({ id: runs.id });
-
-    await tx.insert(generations).values(
-      gens.map((g) => ({
-        runId: runRow.id,
-        userId,
-        sceneifySourceId: sceneifySource,
-        presetId: g.sceneSlug,
-        status: "succeeded" as const,
-        outputUrl: g.outputUrl,
-        rawUrl: g.rawUrl ?? null,
-        watermarked: true,
-        quality: "preview" as const,
-        focalPoint: g.focalPoint ?? null,
-        faceBox: g.faceBox ?? null,
-        completedAt: now,
-      })),
-    );
-
-    const t = clientToken ?? newToken();
-    await tx.insert(unlockBatches).values({
-      token: t,
-      generations: stored,
-      userId,
-      runId: runRow.id,
-    });
-    return { runId: runRow.id, token: t };
+      .onConflictDoUpdate({
+        target: unlockBatches.token,
+        set: { generations: stored, userId, runId: rid },
+      });
+    return rid;
   });
 
-  return NextResponse.json({ token, runId }, { status: 201 });
+  // Deferred email-during-generation send (VES-46). If a pending_email
+  // was stashed mid-generation, deliver the watermark-free photos now
+  // that the run + succeeded generations exist. Idempotent (latched on
+  // email_sent_at) and best-effort: a send failure must NOT fail the
+  // finalize response — the batch is persisted and the URL has already
+  // flipped to /try/b/<token>. Errors are swallowed with a warning; a
+  // future flush (e.g. a post-completion email-photo call) can retry.
+  try {
+    await flushPendingBatchEmail(token);
+  } catch (err) {
+    console.warn("[finalize-batch] deferred email flush failed", { token, err });
+  }
+
+  return NextResponse.json({ token, runId: resolvedRunId }, { status: 201 });
 }

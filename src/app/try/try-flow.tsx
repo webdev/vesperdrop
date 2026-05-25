@@ -1203,22 +1203,31 @@ function DevelopStep({
     setAuthModal((s) => ({ ...s, open: false }));
   }, [handleClaimSuccess]);
 
+  // While generation is in flight, the cinematic studio sidebar
+  // (StudioDevelopFrame, VES-44) owns the "Developing · N°03 / In the
+  // studio." label + headline, so we suppress the duplicate page header
+  // here. Once the batch resolves the post-completion layouts (which have
+  // no sidebar) re-show it.
+  const developPending = generationResults.some((r) => r.status === "pending");
+
   return (
     <div className={`relative ${developDone && isAuthed ? "pb-40 md:pb-44" : ""}`}>
-      <div className="mb-4 flex flex-col items-start justify-between gap-4 md:mb-14 md:flex-row md:items-end">
-        <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-            Developing · N°03
-          </p>
-          <h1 className="mt-2 font-serif text-[clamp(1.75rem,5.5vw,4rem)] leading-[1.05] tracking-[-0.02em] text-ink md:mt-6 md:leading-[1.04]">
-            In the{" "}
-            <em className="not-italic font-serif italic text-terracotta-dark">
-              studio
-            </em>
-            .
-          </h1>
+      {developPending ? null : (
+        <div className="mb-4 flex flex-col items-start justify-between gap-4 md:mb-14 md:flex-row md:items-end">
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+              Developing · N°03
+            </p>
+            <h1 className="mt-2 font-serif text-[clamp(1.75rem,5.5vw,4rem)] leading-[1.05] tracking-[-0.02em] text-ink md:mt-6 md:leading-[1.04]">
+              In the{" "}
+              <em className="not-italic font-serif italic text-terracotta-dark">
+                studio
+              </em>
+              .
+            </h1>
+          </div>
         </div>
-      </div>
+      )}
 
       {isAuthed ? (
         <AuthedDevelopLayout
@@ -1254,6 +1263,7 @@ function DevelopStep({
           onClaimSuccess={handleClaimSuccess}
           onEmailClaim={() => setClaimed(true)}
           castingRace={batchCastingRace}
+          batchToken={batchToken}
         />
       )}
 
@@ -1302,6 +1312,7 @@ function UnauthEditorialStage({
   onClaimSuccess,
   onEmailClaim,
   castingRace,
+  batchToken,
 }: {
   photo: Photo | null;
   picked: string[];
@@ -1320,6 +1331,7 @@ function UnauthEditorialStage({
   onClaimSuccess: (args: { email: string; userId: string }) => void | Promise<void>;
   onEmailClaim: () => void;
   castingRace: string;
+  batchToken: string;
 }) {
   const anyPending = generationResults.some((r) => r.status === "pending");
   const allSucceeded =
@@ -1337,6 +1349,12 @@ function UnauthEditorialStage({
   const [lightboxSlug, setLightboxSlug] = useState<string | null>(null);
   const lightboxTile =
     lightboxSlug && generationResults.find((r) => r.sceneSlug === lightboxSlug);
+
+  // Set once the mid-generation "Don't want to wait here?" module (VES-45)
+  // has captured an email. Used to suppress the redundant post-completion
+  // EmailCapture so the visitor is never asked twice — one capture system
+  // (VES-42 decision #2), one server-confirmed Lead per submit (§15a).
+  const [midGenEmailCaptured, setMidGenEmailCaptured] = useState(false);
 
   // The claim + upsell rail only appears once the batch is persisted
   // (so we have a token to attach on OTP success). Before that, even
@@ -1377,6 +1395,8 @@ function UnauthEditorialStage({
           variant={variant}
           initialResults={generationResults}
           castingRace={castingRace}
+          emailToken={batchToken}
+          onEmailCaptured={() => setMidGenEmailCaptured(true)}
           onSourceUrl={(url) => setServerSourceUrl(url)}
           onUnlockClick={handleUnlockClick}
           studio={{
@@ -1448,7 +1468,7 @@ function UnauthEditorialStage({
         />
       )}
 
-      {allSucceeded && batchReady && !claimed && savedRunId ? (
+      {allSucceeded && batchReady && !claimed && savedRunId && !midGenEmailCaptured ? (
         <div className="mt-14 md:mt-12">
           <EmailCapture
             runId={savedRunId}
