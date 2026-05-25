@@ -138,49 +138,315 @@ export function StudioDevelopFrame({
         }}
       />
 
-      <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[280px_1fr] lg:gap-12">
-        {/* Left studio sidebar (VES-44) */}
-        <StudioSidebar
-          sidebar={sidebar}
-          allDone={allDone}
-          phases={progress?.phases}
-        />
+      {/* ── Mobile composition (VES-47): vertical-first cinematic spread.
+          A dedicated art direction, NOT the desktop stacked — render frame
+          dominant, declutter cards, generous rhythm, vertical timeline,
+          footer reassurance bar. ── */}
+      <MobileStudio
+        sidebar={sidebar}
+        allDone={allDone}
+        progress={progress}
+        sourceUrl={sourceUrl}
+        sceneName={sceneName}
+        count={count}
+        outputUrl={outputUrl}
+        emailToken={emailToken}
+        pickedScenes={pickedScenes}
+        onEmailCaptured={onEmailCaptured}
+      />
 
-        {/* Right column: render frame (VES-43) */}
-        <div className="min-w-0">
-          <RenderFrame
-            sourceUrl={sourceUrl}
-            sceneName={sceneName}
-            index={0}
-            total={count || 1}
-            outputUrl={outputUrl}
+      {/* ── Desktop spread (VES-43/44/45), gated at lg ── */}
+      <div className="hidden lg:block">
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[280px_1fr] lg:gap-12">
+          {/* Left studio sidebar (VES-44) */}
+          <StudioSidebar
+            sidebar={sidebar}
             allDone={allDone}
-            progress={progress}
+            phases={progress?.phases}
           />
+
+          {/* Right column: render frame (VES-43) */}
+          <div className="min-w-0">
+            <RenderFrame
+              sourceUrl={sourceUrl}
+              sceneName={sceneName}
+              index={0}
+              total={count || 1}
+              outputUrl={outputUrl}
+              allDone={allDone}
+              progress={progress}
+            />
+          </div>
+        </div>
+
+        {/* Bottom full-width strip: email module (VES-45) + 5-phase timeline.
+            The email-during-generation module mounts only when a batch token
+            exists (unauth flow). Authed visitors skip the email gate, so the
+            timeline spans the strip alone. */}
+        <div
+          className={`mt-6 grid grid-cols-1 gap-5 md:mt-8 lg:items-stretch lg:gap-6 ${
+            emailToken ? "lg:grid-cols-[1fr_minmax(420px,0.85fr)]" : ""
+          }`}
+        >
+          {emailToken ? (
+            <EmailContinuationModule
+              token={emailToken}
+              pickedScenes={pickedScenes}
+              sourceUrl={sourceUrl}
+              onCaptured={onEmailCaptured}
+            />
+          ) : null}
+          <PhaseTimeline phases={progress?.phases} />
         </div>
       </div>
+    </section>
+  );
+}
 
-      {/* Bottom full-width strip: email module (VES-45) + 5-phase timeline (VES-43).
-          The email-during-generation module is an unauth conversion surface —
-          it mounts only when a batch token exists (unauth flow). Authed
-          visitors receive HD output directly and skip the email gate, so the
-          timeline spans the strip alone. */}
-      <div
-        className={`mt-6 grid grid-cols-1 gap-5 md:mt-8 lg:items-stretch lg:gap-6 ${
-          emailToken ? "lg:grid-cols-[1fr_minmax(420px,0.85fr)]" : ""
-        }`}
-      >
-        {emailToken ? (
+/* ---------------------------------------------------------------------------
+ * Mobile composition (VES-47) — vertical-first cinematic Develop step.
+ *
+ * Hierarchy (top → bottom): editorial hero → massive render frame →
+ * email continuation CTA → compact product strip → vertical cinematic
+ * timeline → footer reassurance bar. The sticky minimal header is the
+ * global site nav. All progress state derives from `progress` (the same
+ * single source as desktop) — no second countdown.
+ * ------------------------------------------------------------------------- */
+
+function MobileStudio({
+  sidebar,
+  allDone,
+  progress,
+  sourceUrl,
+  sceneName,
+  count,
+  outputUrl,
+  emailToken,
+  pickedScenes,
+  onEmailCaptured,
+}: {
+  sidebar: StudioSidebarData;
+  allDone: boolean;
+  progress?: StudioProgress;
+  sourceUrl?: string;
+  sceneName: string;
+  count: number;
+  outputUrl?: string;
+  emailToken?: string;
+  pickedScenes?: string[];
+  onEmailCaptured?: () => void;
+}) {
+  return (
+    <div className="lg:hidden" data-testid="mobile-studio">
+      {/* 1 — Editorial hero. Offset/asymmetric: eyebrow + remaining pill
+          float, headline anchors left. Large margin after (rhythm §3). */}
+      <header className="px-1" data-testid="mobile-hero">
+        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-3">
+          Developing · N°03
+        </p>
+        <h2 className="mt-3 font-serif text-[clamp(2.5rem,12vw,3.5rem)] leading-[0.98] tracking-[-0.025em] text-ink">
+          In the{" "}
+          <em className="not-italic italic text-terracotta-dark">studio</em>.
+        </h2>
+        <p className="mt-3 text-[15px] leading-[1.5] text-ink-3">
+          Your campaign is being prepared.
+        </p>
+        <p className="mt-4 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-terracotta-dark">
+          <span aria-hidden className={allDone ? "" : "studio-pulse"}>
+            <SparkleIcon size={13} />
+          </span>
+          {allDone ? "Almost ready" : sidebar.remainingText.replace(/\.$/, "")}
+        </p>
+      </header>
+
+      {/* 2 — Massive cinematic render frame (~45-55% viewport height).
+          Near full-bleed (negative margins escape the container gutter),
+          taller aspect than desktop, larger corners. */}
+      <div className="-mx-5 mt-9 sm:-mx-3" data-testid="mobile-render-wrap">
+        <RenderFrame
+          sourceUrl={sourceUrl}
+          sceneName={sceneName}
+          index={0}
+          total={count || 1}
+          outputUrl={outputUrl}
+          allDone={allDone}
+          progress={progress}
+          aspectClassName="aspect-[5/6]"
+          frameClassName="rounded-[28px]"
+        />
+      </div>
+
+      {/* 3 — Email continuation CTA — prominent (mobile variant). */}
+      {emailToken ? (
+        <div className="mt-10">
           <EmailContinuationModule
             token={emailToken}
             pickedScenes={pickedScenes}
             sourceUrl={sourceUrl}
             onCaptured={onEmailCaptured}
+            variant="mobile"
+          />
+        </div>
+      ) : null}
+
+      {/* 4 — Compact product metadata strip (NOT the desktop card). */}
+      <MobileProductStrip sidebar={sidebar} allDone={allDone} />
+
+      {/* 5 — Cinematic vertical timeline. */}
+      <MobileTimeline phases={progress?.phases} />
+
+      {/* 6 — Footer reassurance bar (NEW, VES-47). */}
+      <MobileFooterBar />
+    </div>
+  );
+}
+
+function MobileProductStrip({
+  sidebar,
+  allDone,
+}: {
+  sidebar: StudioSidebarData;
+  allDone: boolean;
+}) {
+  const { sourceUrl, sourceName, sceneName, count, remainingLabel } = sidebar;
+  return (
+    <div
+      className="mt-9 flex items-center gap-3.5 px-1"
+      data-testid="mobile-product-strip"
+    >
+      <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-paper-soft">
+        {sourceUrl ? (
+          <img
+            src={sourceUrl}
+            alt={sourceName ?? "Your product"}
+            draggable={false}
+            className="h-full w-full object-cover"
           />
         ) : null}
-        <PhaseTimeline phases={progress?.phases} />
       </div>
-    </section>
+      <span
+        className="inline-flex items-center rounded-full border border-terracotta/30 bg-terracotta-wash px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-terracotta-dark"
+        data-testid="mobile-scene-chip"
+      >
+        {sceneName}
+      </span>
+      <span aria-hidden className="h-4 w-px bg-line" />
+      <span className="font-mono text-[12px] tabular-nums text-ink-2">
+        {allDone ? "00:00" : remainingLabel}
+      </span>
+      <span className="ml-auto text-right text-[12px] leading-tight text-ink-3">
+        {count} image{count === 1 ? "" : "s"} {allDone ? "ready" : "developing"}
+      </span>
+    </div>
+  );
+}
+
+function MobileTimeline({ phases }: { phases?: StudioProgress["phases"] }) {
+  const items =
+    phases ??
+    ([
+      { key: "mapping", label: "Mapping garment silhouette", description: "Understanding shape and proportions", state: "active" },
+      { key: "analyzing", label: "Analyzing lighting", description: "Setting the scene and pose", state: "upcoming" },
+      { key: "enhancing", label: "Enhancing textures", description: "Balancing tones and details", state: "upcoming" },
+      { key: "rendering", label: "Rendering high-res output", description: "Generating your campaign image", state: "upcoming" },
+      { key: "finalizing", label: "Finalizing export", description: "Preparing your files", state: "upcoming" },
+    ] as StudioProgress["phases"]);
+
+  // The mobile timeline shows the full editorial phase labels (mock) rather
+  // than the terse desktop labels. We map the 5 stable phase keys onto the
+  // longer mobile copy so state stays driven by the same real progress.
+  const COPY: Record<string, { label: string; description: string }> = {
+    mapping: { label: "Mapping garment silhouette", description: "Understanding shape and proportions" },
+    analyzing: { label: "Analyzing lighting", description: "Setting the scene and pose" },
+    enhancing: { label: "Enhancing textures", description: "Balancing tones and details" },
+    rendering: { label: "Rendering high-res output", description: "Generating your campaign image" },
+    finalizing: { label: "Finalizing export", description: "Preparing your files" },
+  };
+
+  return (
+    <div className="relative mt-12 px-1" data-testid="mobile-timeline">
+      {/* connecting line through the dot column */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute bottom-5 left-[7px] top-5 w-px bg-line"
+      />
+      <ul className="flex flex-col gap-7">
+        {items.map((p) => {
+          const copy = COPY[p.key] ?? { label: p.label, description: p.description };
+          return (
+            <li key={p.key} className="relative flex items-start gap-4">
+              <span className="relative z-10 mt-0.5 bg-paper">
+                <StepDot state={p.state} />
+              </span>
+              <div className="min-w-0">
+                <p
+                  className={`text-[15px] leading-tight ${
+                    p.state === "upcoming"
+                      ? "text-ink-4"
+                      : p.state === "active"
+                        ? "font-medium text-ink"
+                        : "text-ink-2"
+                  }`}
+                >
+                  {copy.label}
+                </p>
+                <p className="mt-1 text-[12.5px] leading-[1.45] text-ink-4">
+                  {copy.description}
+                </p>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function MobileFooterBar() {
+  return (
+    <div
+      className="mt-12 border-t border-line-soft pt-6"
+      data-testid="mobile-footer-bar"
+    >
+      <div className="flex items-start gap-3 px-1">
+        <span aria-hidden className="mt-0.5 shrink-0 text-terracotta-dark">
+          <ShieldIcon size={18} />
+        </span>
+        <p className="text-[13.5px] leading-[1.5] text-ink-2">
+          Your batch is saved automatically. You can safely leave this page.
+        </p>
+      </div>
+      <ul className="mt-4 flex items-center gap-4 px-1 font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-3">
+        <li>Secure</li>
+        <li aria-hidden className="text-ink-4">
+          ·
+        </li>
+        <li>Private</li>
+        <li aria-hidden className="text-ink-4">
+          ·
+        </li>
+        <li>High-res</li>
+      </ul>
+    </div>
+  );
+}
+
+function ShieldIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M12 3 4 6v6c0 5 3.5 7.5 8 9 4.5-1.5 8-4 8-9V6l-8-3Z" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
   );
 }
 
@@ -385,6 +651,8 @@ function RenderFrame({
   outputUrl,
   allDone,
   progress,
+  aspectClassName = "aspect-[16/10]",
+  frameClassName = "rounded-[32px]",
 }: {
   sourceUrl?: string;
   sceneName: string;
@@ -393,6 +661,11 @@ function RenderFrame({
   outputUrl?: string;
   allDone: boolean;
   progress?: StudioProgress;
+  /** Aspect ratio of the inner media area. Mobile uses a taller frame
+   *  (VES-47) so it occupies ~45-55% of the initial viewport height. */
+  aspectClassName?: string;
+  /** Corner radius / outer frame classes. Mobile uses larger corners. */
+  frameClassName?: string;
 }) {
   const pct = progress?.progress ?? 0;
   const isDone = allDone && Boolean(outputUrl);
@@ -410,14 +683,14 @@ function RenderFrame({
 
   return (
     <figure
-      className="relative w-full overflow-hidden rounded-[32px] bg-[#1f1c19] shadow-card"
+      className={`relative w-full overflow-hidden bg-[#1f1c19] shadow-card ${frameClassName}`}
       data-testid="studio-render-frame"
       style={{
         boxShadow:
           "0 24px 60px -24px rgba(31,28,25,0.45), inset 0 0 0 1px rgba(250,247,240,0.06), inset 0 2px 40px rgba(0,0,0,0.35)",
       }}
     >
-      <div className="relative aspect-[16/10] w-full">
+      <div className={`relative w-full ${aspectClassName}`}>
         {/* Progressively-clarifying preview (user's product) */}
         {sourceUrl ? (
           <img
