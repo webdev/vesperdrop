@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { pickLine, type PhaseId, type PresetMeta } from "@/lib/progress/strings";
 import type { ExtractedAttributes } from "@/lib/ai/extract-attributes";
 import type { TileResult } from "./develop-grid";
+import { failureBody, failureHeadline } from "./credit-error-copy";
 
 const MAX_VISIBLE_CARDS = 6;
 const TOTAL_EST_MS = 70_000;
@@ -86,10 +87,25 @@ export function StudioDevelopFrame({
   const visible = results.slice(0, MAX_VISIBLE_CARDS);
   const count = visible.length;
 
+  // Whole-batch failure: no tile succeeded AND at least one tile has
+  // explicitly failed. This is the all-failed case (most commonly an
+  // anonymous visitor hitting the free-render cap → 402
+  // `credit_limit_reached`). try-flow.tsx only calls onComplete() when a
+  // tile succeeds, so an all-failed batch never leaves this frame — without
+  // a dedicated error state the user just stares at a blurred/blank frame.
+  // A partial failure (≥1 succeeded) keeps rendering the grid so the
+  // succeeded result(s) stay visible; per-tile failures are handled by the
+  // StudioCard overlay.
+  const anySucceeded = visible.some((r) => r.status === "succeeded");
+  const firstFailed = visible.find((r) => r.status === "failed");
+  const batchFailed = count > 0 && !anySucceeded && firstFailed != null;
+  const allDoneOrFailed = allDone || batchFailed;
+
   return (
     <section
       data-testid="studio-frame"
       data-count={count}
+      data-batch-failed={batchFailed ? "true" : "false"}
       className="relative"
     >
       {/* Warm radial atmosphere behind the grid */}
@@ -108,11 +124,17 @@ export function StudioDevelopFrame({
           sourceName={sourceName}
           sceneNames={sceneNames}
           count={count}
-          allDone={allDone}
+          allDone={allDoneOrFailed}
+          failed={batchFailed}
         />
 
         <div className="min-w-0">
-          {renderGrid ? (
+          {batchFailed ? (
+            <StudioErrorPanel
+              errorCode={firstFailed?.errorCode}
+              errorMessage={firstFailed?.error}
+            />
+          ) : renderGrid ? (
             renderGrid({ results: visible, count })
           ) : (
             <StudioGrid results={visible} sourceUrl={sourceUrl} />
@@ -120,6 +142,96 @@ export function StudioDevelopFrame({
         </div>
       </div>
     </section>
+  );
+}
+
+/* ---------------------------------------------------------------------------
+ * Error panel — shown when the whole batch failed (no tile succeeded).
+ *
+ * Replaces the blurred render frame so the visitor sees a clear, on-brand
+ * message instead of an endless "developing" state. Keeps the cinematic
+ * aesthetic (ivory surface, serif headline, mono labels, terracotta accent)
+ * and renders identically across desktop and mobile — it lives in the same
+ * responsive `min-w-0` slot the grid would occupy, so no separate mobile
+ * tree is needed. No animation, so it is reduced-motion-safe by default.
+ * ------------------------------------------------------------------------- */
+
+function StudioErrorPanel({
+  errorCode,
+  errorMessage,
+}: {
+  errorCode?: string;
+  errorMessage?: string;
+}) {
+  const headline = failureHeadline(errorCode);
+  const body = failureBody(errorCode, errorMessage);
+  // `credit_limit_reached` is the unauth out-of-free-renders case — drive to
+  // plans (§15a-compliant: no "Try free"/"free trial"/time-bound copy). Other
+  // failures are transient; offer a refresh-to-retry affordance.
+  const isOutOfRenders = errorCode === "credit_limit_reached";
+  const isQuotaExhausted = errorCode === "quota_exhausted";
+  const showPlansCta = isOutOfRenders || isQuotaExhausted;
+
+  return (
+    <div
+      data-testid="studio-error-panel"
+      data-error-code={errorCode ?? ""}
+      role="alert"
+      className="flex min-h-[360px] flex-col items-center justify-center rounded-[20px] border border-line-soft bg-surface px-6 py-12 text-center shadow-card md:min-h-[440px]"
+    >
+      <span
+        aria-hidden
+        className="flex h-12 w-12 items-center justify-center rounded-full bg-terracotta-wash text-terracotta-dark"
+      >
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 8v4" />
+          <path d="M12 16h.01" />
+        </svg>
+      </span>
+
+      <p className="mt-5 font-mono text-[10px] uppercase tracking-[0.2em] text-terracotta-dark">
+        {showPlansCta ? "Out of renders" : "Generation failed"}
+      </p>
+
+      <h3 className="mt-2 font-serif text-[1.9rem] leading-[1.05] tracking-[-0.01em] text-ink">
+        {headline}
+      </h3>
+
+      <p className="mt-3 max-w-[34ch] text-[13.5px] leading-[1.5] text-ink-3">
+        {body}
+      </p>
+
+      <div className="mt-7">
+        {showPlansCta ? (
+          <a
+            href="/pricing"
+            className="inline-flex h-11 items-center justify-center rounded-full bg-ink px-6 font-mono text-[12px] uppercase tracking-[0.14em] text-cream transition-colors hover:bg-ink-2"
+          >
+            View plans →
+          </a>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== "undefined") window.location.reload();
+            }}
+            className="inline-flex h-11 items-center justify-center rounded-full bg-ink px-6 font-mono text-[12px] uppercase tracking-[0.14em] text-cream transition-colors hover:bg-ink-2"
+          >
+            Try again
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -133,12 +245,14 @@ function StudioLeftRail({
   sceneNames,
   count,
   allDone,
+  failed = false,
 }: {
   sourceUrl?: string;
   sourceName?: string;
   sceneNames: string[];
   count: number;
   allDone: boolean;
+  failed?: boolean;
 }) {
   return (
     <aside className="flex flex-col gap-7" data-testid="studio-left-rail">
@@ -178,12 +292,20 @@ function StudioLeftRail({
         </div>
       </div>
 
-      <StatusCard count={count} allDone={allDone} />
+      <StatusCard count={count} allDone={allDone} failed={failed} />
     </aside>
   );
 }
 
-function StatusCard({ count, allDone }: { count: number; allDone: boolean }) {
+function StatusCard({
+  count,
+  allDone,
+  failed = false,
+}: {
+  count: number;
+  allDone: boolean;
+  failed?: boolean;
+}) {
   const [elapsedMs, setElapsedMs] = useState(0);
 
   useEffect(() => {
@@ -224,23 +346,39 @@ function StatusCard({ count, allDone }: { count: number; allDone: boolean }) {
           </svg>
         </span>
         <p className="text-[13px] leading-[1.4] text-ink-2">
-          <span className="font-medium">{count} campaign image{count === 1 ? "" : "s"}</span>{" "}
-          {allDone ? "ready" : "developing"}
+          {failed ? (
+            <span className="font-medium">Generation paused</span>
+          ) : (
+            <>
+              <span className="font-medium">
+                {count} campaign image{count === 1 ? "" : "s"}
+              </span>{" "}
+              {allDone ? "ready" : "developing"}
+            </>
+          )}
         </p>
       </div>
 
-      <div className="mt-5 border-t border-line-soft pt-4">
-        <p className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-ink-4">
-          Est. time remaining
+      {failed ? (
+        <p className="mt-5 text-[12px] leading-[1.5] text-ink-3">
+          We hit a snag — see the details to keep going.
         </p>
-        <p className="mt-1.5 font-serif text-[1.65rem] leading-none tracking-[-0.01em] text-ink tabular-nums">
-          {remainingLabel}
-        </p>
-      </div>
+      ) : (
+        <>
+          <div className="mt-5 border-t border-line-soft pt-4">
+            <p className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-ink-4">
+              Est. time remaining
+            </p>
+            <p className="mt-1.5 font-serif text-[1.65rem] leading-none tracking-[-0.01em] text-ink tabular-nums">
+              {remainingLabel}
+            </p>
+          </div>
 
-      <p className="mt-5 text-[12px] leading-[1.5] text-ink-3">
-        You&apos;ll be notified when they&apos;re ready.
-      </p>
+          <p className="mt-5 text-[12px] leading-[1.5] text-ink-3">
+            You&apos;ll be notified when they&apos;re ready.
+          </p>
+        </>
+      )}
     </div>
   );
 }
@@ -412,26 +550,11 @@ function StudioCard({
   const baseProgress = Math.min(0.95, elapsed / TOTAL_EST_MS);
   const progress = isDone ? 1 : isFailed ? 0 : baseProgress;
 
-  // Map server error codes from /api/try/generate to readable copy.
-  // Mirrors `failureHeadline` / `failureBody` in develop-grid so the
-  // streaming and post-stream views speak the same language. The unauth
-  // funnel is 3 free renders per device — 1 with a free HD download
-  // (Hero shot) + 2 watermarked previews unlockable for $9.99.
-  // `credit_limit_reached` fires when all 3 are spent.
-  const failureTitle =
-    tile.errorCode === "credit_limit_reached"
-      ? "Out of free renders"
-      : tile.errorCode === "quota_exhausted"
-        ? "Out of credits"
-        : "Generation failed";
-  const failureSubtitle =
-    tile.errorCode === "credit_limit_reached"
-      ? "You've used your 3 free renders on this device. Sign up to keep generating."
-      : tile.errorCode === "quota_exhausted"
-        ? "You've used every credit on your plan. Upgrade to keep generating."
-        : tile.error
-          ? `${tile.error}. Try a different scene or refresh to retry.`
-          : "We couldn't develop this shot. Try a different scene or refresh to retry.";
+  // Map server error codes from /api/try/generate to readable copy via the
+  // shared `credit-error-copy` module so the streaming Studio card and the
+  // post-stream DevelopGrid speak the same language (§9, no duplication).
+  const failureTitle = failureHeadline(tile.errorCode);
+  const failureSubtitle = failureBody(tile.errorCode, tile.error);
 
   const title = isDone
     ? "Ready"

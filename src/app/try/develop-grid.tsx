@@ -36,37 +36,7 @@ import { pickLine, type PhaseId, type PresetMeta } from "@/lib/progress/strings"
 import type { ExtractedAttributes } from "@/lib/ai/extract-attributes";
 import type { FocalPoint, FaceBox } from "@/lib/ai/sceneify";
 
-// Map server error codes from /api/try/generate to user-facing copy.
-// The unauth funnel grants 3 free renders per device: 1 with a free HD
-// download (the "Hero shot") + 2 watermarked previews unlockable for
-// $9.99. `credit_limit_reached` (HTTP 402) fires when all 3 of those
-// renders are spent. `quota_exhausted` (HTTP 402) fires for authed
-// visitors who've burned through their plan's credits. Anything else
-// is a transient generation failure — surface the underlying message
-// verbatim so the user (and us) can tell signal from noise.
-function failureHeadline(code?: string): string {
-  switch (code) {
-    case "credit_limit_reached":
-      return "Out of free renders";
-    case "quota_exhausted":
-      return "Out of credits";
-    default:
-      return "Generation failed";
-  }
-}
-
-function failureBody(code: string | undefined, message?: string): string {
-  switch (code) {
-    case "credit_limit_reached":
-      return "You've used your 3 free renders on this device. Sign up to keep generating.";
-    case "quota_exhausted":
-      return "You've used every credit on your plan. Upgrade to keep generating.";
-    default:
-      return message
-        ? `${message}. Try a different scene or refresh to retry.`
-        : "We couldn't develop this shot. Try a different scene or refresh to retry.";
-  }
-}
+import { failureBody, failureHeadline } from "./credit-error-copy";
 
 export type TileResult = {
   sceneSlug: string;
