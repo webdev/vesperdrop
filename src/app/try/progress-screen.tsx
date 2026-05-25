@@ -51,6 +51,15 @@ type Props = {
    *  tiles share one model identity. Vesperdrop picks this once at
    *  DevelopStep mount; sceneify filters its reference pool by it. */
   castingRace?: string;
+  /**
+   * Client-minted batch token (`/try/b/<token>`), threaded to the studio
+   * frame's email-during-generation module (VES-45). Mid-generation the run
+   * isn't finalized, so this token is the durable key the server stashes a
+   * pending email against.
+   */
+  emailToken?: string;
+  /** Fired once when the mid-generation email module captures (VES-45). */
+  onEmailCaptured?: () => void;
 };
 
 export function ProgressScreen({
@@ -69,6 +78,8 @@ export function ProgressScreen({
   freePreviewUnlocked = false,
   studio,
   castingRace,
+  emailToken,
+  onEmailCaptured,
 }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const stableSlugs = useMemo(() => sceneSlugs, []); // contract: stable for lifetime
@@ -208,6 +219,9 @@ export function ProgressScreen({
           sceneNames={studio.sceneNames}
           allDone={allDone}
           progress={studioProgress}
+          emailToken={emailToken}
+          pickedScenes={stableSlugs}
+          onEmailCaptured={onEmailCaptured}
         />
       ) : (
         <DevelopGrid

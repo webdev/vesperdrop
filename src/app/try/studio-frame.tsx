@@ -4,6 +4,7 @@
 import { useMemo } from "react";
 import type { StudioProgress } from "@/lib/progress/studio-progress";
 import type { TileResult } from "./develop-grid";
+import { EmailContinuationModule } from "./email-continuation";
 
 const MAX_VISIBLE_CARDS = 6;
 
@@ -28,6 +29,18 @@ type Props = {
    * does NOT pass it.
    */
   renderGrid?: (args: { results: TileResult[]; count: number }) => React.ReactNode;
+  /**
+   * Email-during-generation wiring (VES-45). The client-minted batch token
+   * is the durable key the server stashes a mid-generation email against
+   * (run isn't finalized yet); `pickedScenes` (scene slugs) + `sourceUrl`
+   * are recorded on the try_intents ads record. When omitted (e.g. legacy
+   * grid path) the module still renders but the submit is disabled until a
+   * token/runId exists.
+   */
+  emailToken?: string;
+  pickedScenes?: string[];
+  /** Fired once when the mid-generation email module captures (VES-45). */
+  onEmailCaptured?: () => void;
 };
 
 /**
@@ -70,6 +83,9 @@ export function StudioDevelopFrame({
   allDone,
   progress,
   renderGrid,
+  emailToken,
+  pickedScenes,
+  onEmailCaptured,
 }: Props) {
   const visible = results.slice(0, MAX_VISIBLE_CARDS);
   const count = visible.length;
@@ -144,9 +160,24 @@ export function StudioDevelopFrame({
         </div>
       </div>
 
-      {/* Bottom full-width strip: email module slot (VES-45) + 5-phase timeline (VES-43) */}
-      <div className="mt-6 grid grid-cols-1 gap-5 md:mt-8 lg:grid-cols-[1fr_minmax(420px,0.85fr)] lg:items-stretch lg:gap-6">
-        <EmailModuleSlot />
+      {/* Bottom full-width strip: email module (VES-45) + 5-phase timeline (VES-43).
+          The email-during-generation module is an unauth conversion surface —
+          it mounts only when a batch token exists (unauth flow). Authed
+          visitors receive HD output directly and skip the email gate, so the
+          timeline spans the strip alone. */}
+      <div
+        className={`mt-6 grid grid-cols-1 gap-5 md:mt-8 lg:items-stretch lg:gap-6 ${
+          emailToken ? "lg:grid-cols-[1fr_minmax(420px,0.85fr)]" : ""
+        }`}
+      >
+        {emailToken ? (
+          <EmailContinuationModule
+            token={emailToken}
+            pickedScenes={pickedScenes}
+            sourceUrl={sourceUrl}
+            onCaptured={onEmailCaptured}
+          />
+        ) : null}
         <PhaseTimeline phases={progress?.phases} />
       </div>
     </section>
@@ -576,29 +607,6 @@ function PhaseTimeline({ phases }: { phases?: StudioProgress["phases"] }) {
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-/* ---------------------------------------------------------------------------
- * Email module slot — built in VES-45. Placeholder per the mock so the
- * bottom strip composition is correct now; the real form drops in here.
- * ------------------------------------------------------------------------- */
-
-function EmailModuleSlot() {
-  return (
-    <div
-      className="flex flex-col justify-center gap-2 rounded-2xl border border-dashed border-line bg-paper-soft px-5 py-5"
-      data-testid="email-module-slot"
-      data-slot="email-module"
-    >
-      <p className="font-serif text-[18px] leading-tight tracking-[-0.005em] text-ink">
-        Don&apos;t want to wait here?
-      </p>
-      <p className="text-[13px] leading-[1.45] text-ink-3">
-        We&apos;ll email your campaign image the moment it&apos;s ready. Email
-        capture module lands in VES-45.
-      </p>
     </div>
   );
 }

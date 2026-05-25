@@ -1,17 +1,122 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 export type EmailCapturePhoto = { presetId: string; url: string };
 
+/** Delivery state returned by /api/try/email-photo (VES-46). */
+export type EmailCaptureState = "sent" | "queued";
+
 export type EmailCaptureResponse = {
   ok: boolean;
+  state?: EmailCaptureState;
   emailed?: boolean;
   photos?: EmailCapturePhoto[];
   warning?: string;
   error?: string;
   message?: string;
 };
+
+/**
+ * Identifies the batch for /api/try/email-photo. Post-completion callers
+ * have a finalized `runId`; mid-generation callers (during the cinematic
+ * Develop step) only have the client-minted `token` since finalize-batch
+ * hasn't run yet. At least one is required by the server (VES-46). When a
+ * `token` is sent mid-generation the server stashes the email and defers
+ * the send until finalize-batch commits — so it works even if the tab is
+ * closed.
+ */
+export type EmailCaptureTarget = {
+  runId?: string;
+  token?: string;
+  /** Scene slugs previewed — recorded on try_intents (mid-generation). */
+  pickedScenes?: string[];
+  /** Source product URL — recorded on try_intents (mid-generation). */
+  sourceUrl?: string;
+};
+
+export type EmailSubmitResult =
+  | { ok: true; state: EmailCaptureState; emailed: boolean; photos: EmailCapturePhoto[] }
+  | { ok: false; message: string };
+
+/**
+ * Shared submit + Meta Pixel `Lead` logic for BOTH /try email captures —
+ * the post-completion reward (`EmailCapture`) and the mid-generation
+ * continuation module (`EmailContinuationModule`, VES-45). Centralising it
+ * here means the `Lead` pixel fires exactly once per server-confirmed
+ * success regardless of which surface submitted (CLAUDE.md §15a), and both
+ * surfaces stay copy/behaviour consistent (§9 — one capture system, not a
+ * parallel form).
+ */
+export function useEmailPhotoSubmit() {
+  const [status, setStatus] = useState<
+    "idle" | "submitting" | "success" | "error"
+  >("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const submit = useCallback(
+    async (
+      email: string,
+      target: EmailCaptureTarget,
+    ): Promise<EmailSubmitResult> => {
+      setStatus("submitting");
+      setErrorMessage(null);
+
+      const body: Record<string, unknown> = { email: email.trim() };
+      if (target.runId) body.runId = target.runId;
+      if (target.token) body.token = target.token;
+      if (target.pickedScenes?.length) body.pickedScenes = target.pickedScenes;
+      if (target.sourceUrl) body.sourceUrl = target.sourceUrl;
+
+      try {
+        const res = await fetch("/api/try/email-photo", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data: EmailCaptureResponse = await res.json();
+
+        if (!res.ok || !data.ok) {
+          const message =
+            data.message ??
+            (res.status === 429
+              ? "Too many emails right now. Try again in an hour."
+              : "Something went wrong. Try again in a moment.");
+          setStatus("error");
+          setErrorMessage(message);
+          return { ok: false, message };
+        }
+
+        // Server-confirmed success — fire Lead exactly once. Wrapped so a
+        // missing Pixel can't break the user-visible reveal.
+        try {
+          const fbq = (
+            window as unknown as { fbq?: (...args: unknown[]) => void }
+          ).fbq;
+          fbq?.("track", "Lead", { content_name: "try_email_photo" });
+        } catch {
+          // analytics swallow
+        }
+
+        setStatus("success");
+        return {
+          ok: true,
+          state: data.state ?? "sent",
+          emailed: data.emailed ?? false,
+          photos: data.photos ?? [],
+        };
+      } catch {
+        const message = "Couldn't reach the server. Check your connection.";
+        setStatus("error");
+        setErrorMessage(message);
+        return { ok: false, message };
+      }
+    },
+    [],
+  );
+
+  return { status, errorMessage, submit } as const;
+}
 
 type Props = {
   runId: string;
@@ -26,10 +131,7 @@ type Props = {
 // unlock for unauth visitors.
 export function EmailCapture({ runId, onSuccess }: Props) {
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">(
-    "idle",
-  );
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { status, errorMessage, submit } = useEmailPhotoSubmit();
 
   const submitting = status === "submitting";
   const disabled = submitting || !email.trim();
@@ -37,44 +139,8 @@ export function EmailCapture({ runId, onSuccess }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (disabled) return;
-    setStatus("submitting");
-    setErrorMessage(null);
-
-    try {
-      const res = await fetch("/api/try/email-photo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), runId }),
-      });
-      const data: EmailCaptureResponse = await res.json();
-
-      if (!res.ok || !data.ok) {
-        setStatus("error");
-        setErrorMessage(
-          data.message ??
-            (res.status === 429
-              ? "Too many emails right now. Try again in an hour."
-              : "Something went wrong. Try again in a moment."),
-        );
-        return;
-      }
-
-      // Server-confirmed success — fire Lead. Wrapping in try/catch so
-      // a missing Pixel doesn't break the user-visible reveal.
-      try {
-        const fbq = (window as unknown as { fbq?: (...args: unknown[]) => void })
-          .fbq;
-        fbq?.("track", "Lead", { content_name: "try_email_photo" });
-      } catch {
-        // analytics swallow
-      }
-
-      setStatus("success");
-      onSuccess(data.photos ?? [], data.emailed ?? false);
-    } catch {
-      setStatus("error");
-      setErrorMessage("Couldn't reach the server. Check your connection.");
-    }
+    const result = await submit(email, { runId });
+    if (result.ok) onSuccess(result.photos, result.emailed);
   }
 
   if (status === "success") {

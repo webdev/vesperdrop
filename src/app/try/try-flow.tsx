@@ -1263,6 +1263,7 @@ function DevelopStep({
           onClaimSuccess={handleClaimSuccess}
           onEmailClaim={() => setClaimed(true)}
           castingRace={batchCastingRace}
+          batchToken={batchToken}
         />
       )}
 
@@ -1311,6 +1312,7 @@ function UnauthEditorialStage({
   onClaimSuccess,
   onEmailClaim,
   castingRace,
+  batchToken,
 }: {
   photo: Photo | null;
   picked: string[];
@@ -1329,6 +1331,7 @@ function UnauthEditorialStage({
   onClaimSuccess: (args: { email: string; userId: string }) => void | Promise<void>;
   onEmailClaim: () => void;
   castingRace: string;
+  batchToken: string;
 }) {
   const anyPending = generationResults.some((r) => r.status === "pending");
   const allSucceeded =
@@ -1346,6 +1349,12 @@ function UnauthEditorialStage({
   const [lightboxSlug, setLightboxSlug] = useState<string | null>(null);
   const lightboxTile =
     lightboxSlug && generationResults.find((r) => r.sceneSlug === lightboxSlug);
+
+  // Set once the mid-generation "Don't want to wait here?" module (VES-45)
+  // has captured an email. Used to suppress the redundant post-completion
+  // EmailCapture so the visitor is never asked twice — one capture system
+  // (VES-42 decision #2), one server-confirmed Lead per submit (§15a).
+  const [midGenEmailCaptured, setMidGenEmailCaptured] = useState(false);
 
   // The claim + upsell rail only appears once the batch is persisted
   // (so we have a token to attach on OTP success). Before that, even
@@ -1386,6 +1395,8 @@ function UnauthEditorialStage({
           variant={variant}
           initialResults={generationResults}
           castingRace={castingRace}
+          emailToken={batchToken}
+          onEmailCaptured={() => setMidGenEmailCaptured(true)}
           onSourceUrl={(url) => setServerSourceUrl(url)}
           onUnlockClick={handleUnlockClick}
           studio={{
@@ -1457,7 +1468,7 @@ function UnauthEditorialStage({
         />
       )}
 
-      {allSucceeded && batchReady && !claimed && savedRunId ? (
+      {allSucceeded && batchReady && !claimed && savedRunId && !midGenEmailCaptured ? (
         <div className="mt-14 md:mt-12">
           <EmailCapture
             runId={savedRunId}
