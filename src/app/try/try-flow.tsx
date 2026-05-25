@@ -1203,22 +1203,31 @@ function DevelopStep({
     setAuthModal((s) => ({ ...s, open: false }));
   }, [handleClaimSuccess]);
 
+  // While generation is in flight, the cinematic studio sidebar
+  // (StudioDevelopFrame, VES-44) owns the "Developing · N°03 / In the
+  // studio." label + headline, so we suppress the duplicate page header
+  // here. Once the batch resolves the post-completion layouts (which have
+  // no sidebar) re-show it.
+  const developPending = generationResults.some((r) => r.status === "pending");
+
   return (
     <div className={`relative ${developDone && isAuthed ? "pb-40 md:pb-44" : ""}`}>
-      <div className="mb-4 flex flex-col items-start justify-between gap-4 md:mb-14 md:flex-row md:items-end">
-        <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
-            Developing · N°03
-          </p>
-          <h1 className="mt-2 font-serif text-[clamp(1.75rem,5.5vw,4rem)] leading-[1.05] tracking-[-0.02em] text-ink md:mt-6 md:leading-[1.04]">
-            In the{" "}
-            <em className="not-italic font-serif italic text-terracotta-dark">
-              studio
-            </em>
-            .
-          </h1>
+      {developPending ? null : (
+        <div className="mb-4 flex flex-col items-start justify-between gap-4 md:mb-14 md:flex-row md:items-end">
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3">
+              Developing · N°03
+            </p>
+            <h1 className="mt-2 font-serif text-[clamp(1.75rem,5.5vw,4rem)] leading-[1.05] tracking-[-0.02em] text-ink md:mt-6 md:leading-[1.04]">
+              In the{" "}
+              <em className="not-italic font-serif italic text-terracotta-dark">
+                studio
+              </em>
+              .
+            </h1>
+          </div>
         </div>
-      </div>
+      )}
 
       {isAuthed ? (
         <AuthedDevelopLayout
