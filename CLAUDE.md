@@ -511,7 +511,13 @@ Every PR description MUST cover:
 - Why
 - Linear issue link
 - Acceptance criteria checked (per §11 verification rule)
-- Screenshots, Loom, or preview URL when UI-visible
+- Screenshots, Loom, or preview URL when UI-visible. For any
+  UI-visible change this is MANDATORY and MUST be a **before/after
+  pair at BOTH desktop and mobile** widths, embedded in the PR so the
+  reviewer can compare and ship without checking out the branch.
+  Capture via Playwright against a local dev server; host the images
+  on a throwaway `pr-assets/<ticket>` branch and embed with
+  `blob/<branch>/<path>?raw=true` URLs so the merge diff stays clean.
 - Risk
 - How to test
 - What was intentionally NOT done (scope boundary)
