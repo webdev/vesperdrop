@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { runs, generations, unlockBatches } from "@/lib/db/schema";
 import { newToken } from "@/lib/db/unlock-batches";
+import { flushPendingBatchEmail } from "@/lib/email/deferred-send";
 import type { UnlockBatchGeneration } from "@/lib/db/schema";
 
 export const runtime = "nodejs";
@@ -175,14 +176,39 @@ export async function POST(req: Request) {
     );
 
     const t = clientToken ?? newToken();
-    await tx.insert(unlockBatches).values({
-      token: t,
-      generations: stored,
-      userId,
-      runId: runRow.id,
-    });
+    // Upsert (not plain insert): a visitor may have submitted their email
+    // mid-generation, in which case /api/try/email-photo already created
+    // a stub unlock_batches row keyed by this client-minted token (with
+    // pending_email set). On conflict we fill in the real generations +
+    // runId WITHOUT clobbering pending_email / email_sent_at / attempts,
+    // so the deferred send below can fire. (VES-46)
+    await tx
+      .insert(unlockBatches)
+      .values({
+        token: t,
+        generations: stored,
+        userId,
+        runId: runRow.id,
+      })
+      .onConflictDoUpdate({
+        target: unlockBatches.token,
+        set: { generations: stored, userId, runId: runRow.id },
+      });
     return { runId: runRow.id, token: t };
   });
+
+  // Deferred email-during-generation send (VES-46). If a pending_email
+  // was stashed mid-generation, deliver the watermark-free photos now
+  // that the run + succeeded generations exist. Idempotent (latched on
+  // email_sent_at) and best-effort: a send failure must NOT fail the
+  // finalize response — the batch is persisted and the URL has already
+  // flipped to /try/b/<token>. Errors are swallowed with a warning; a
+  // future flush (e.g. a post-completion email-photo call) can retry.
+  try {
+    await flushPendingBatchEmail(token);
+  } catch (err) {
+    console.warn("[finalize-batch] deferred email flush failed", { token, err });
+  }
 
   return NextResponse.json({ token, runId }, { status: 201 });
 }
