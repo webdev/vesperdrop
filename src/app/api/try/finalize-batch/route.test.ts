@@ -13,6 +13,16 @@ vi.mock("@/lib/db/unlock-batches", () => ({
   newToken: () => "fixed-test-token-32-hex-chars",
 }));
 
+// Deferred email-during-generation send (VES-46). Mocked so the
+// finalize transaction assertions stay focused on persistence; the
+// flush is invoked best-effort after commit and its own logic is
+// covered in src/lib/email/deferred-send.test.ts.
+const flushPendingBatchEmail = vi.fn();
+vi.mock("@/lib/email/deferred-send", () => ({
+  flushPendingBatchEmail: (...a: unknown[]) =>
+    (flushPendingBatchEmail as (...x: unknown[]) => unknown)(...a),
+}));
+
 // db.transaction takes a callback (tx) => Promise<T>. We hand it a fake tx
 // that records insert calls so the test can assert ordering + payloads
 // without spinning up a real database.
@@ -36,6 +46,10 @@ function fakeTx() {
           return {
             returning: async () =>
               tableName === "runs" ? [{ id: "run-xyz" }] : [],
+            // unlock_batches insert is now an upsert (VES-46) so a
+            // mid-generation email stub keyed by the token isn't
+            // clobbered. The test only needs the chain to resolve.
+            onConflictDoUpdate: async () => undefined,
           };
         },
       };
@@ -108,6 +122,7 @@ function validGenerations() {
 beforeEach(() => {
   inserts.length = 0;
   getUser.mockReset().mockResolvedValue({ data: { user: null } });
+  flushPendingBatchEmail.mockReset().mockResolvedValue({ status: "no_pending_email" });
 });
 
 describe("POST /api/try/finalize-batch", () => {
@@ -304,6 +319,34 @@ describe("POST /api/try/finalize-batch", () => {
     for (const g of gensValues) expect(g.userId).toBe("user-9");
     const batchValues = inserts[2].values as Record<string, unknown>;
     expect(batchValues.userId).toBe("user-9");
+  });
+
+  it("triggers the deferred email flush keyed on the batch token after commit", async () => {
+    const res = await POST(
+      jsonReq({
+        generations: validGenerations(),
+        sourceUrl: "https://blob.example/src.jpg",
+      }),
+    );
+    expect(res.status).toBe(201);
+    expect(flushPendingBatchEmail).toHaveBeenCalledTimes(1);
+    expect(flushPendingBatchEmail).toHaveBeenCalledWith(
+      "fixed-test-token-32-hex-chars",
+    );
+  });
+
+  it("does not fail finalize when the deferred email flush throws", async () => {
+    flushPendingBatchEmail.mockRejectedValueOnce(new Error("resend down"));
+    const res = await POST(
+      jsonReq({
+        generations: validGenerations(),
+        sourceUrl: "https://blob.example/src.jpg",
+      }),
+    );
+    // Batch is persisted; the flush failure is swallowed (best-effort).
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.token).toBe("fixed-test-token-32-hex-chars");
   });
 
   it("falls back sceneify_source_id to outputUrl[0] when sourceUrl is missing", async () => {

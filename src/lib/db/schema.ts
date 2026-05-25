@@ -505,6 +505,18 @@ export const unlockBatches = pgTable("unlock_batches", {
   // /api/try/finalize-batch writes the run + generation rows; nullable
   // for back-compat with batches created before the DB-row migration.
   runId: uuid("run_id").references(() => runs.id, { onDelete: "set null" }),
+  // Email-during-generation (VES-46). A visitor can submit their email
+  // WHILE generation is still in flight — before finalize-batch has
+  // written the run/generations. We stash the lowercased email here
+  // (upserting a stub batch row keyed by the client-minted token when
+  // none exists yet) and the deferred send fires once finalize-batch
+  // commits with all tiles succeeded. `emailSentAt` is the idempotency
+  // latch: a single atomic compare-and-set claims the send so retries
+  // and duplicate submits can never double-email. `emailSendAttempts`
+  // is observability only (how many times we tried to flush).
+  pendingEmail: text("pending_email"),
+  emailSentAt: timestamp("email_sent_at", { withTimezone: true }),
+  emailSendAttempts: integer("email_send_attempts").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
