@@ -113,7 +113,7 @@ export function EmailContinuationModule({
           }`}
         >
           {queued
-            ? "We've got your email — your watermark-free photos will be sent the moment they're ready."
+            ? "Generation continues in the background — you can safely leave this page. Check your inbox shortly."
             : "Your watermark-free photos are on their way. Check your inbox."}
         </p>
       </section>
@@ -166,8 +166,8 @@ export function EmailContinuationModule({
                 : "mt-1.5 max-w-[46ch] text-[13.5px] leading-[1.45]"
             }`}
           >
-            We&apos;ll email your watermark-free photos to your inbox the
-            moment they&apos;re ready.
+            Generation continues in the background. We&apos;ll send you an
+            email as soon as it&apos;s ready.
           </p>
         </div>
       </div>
