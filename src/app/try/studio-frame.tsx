@@ -179,15 +179,12 @@ export function StudioDevelopFrame({
           </div>
         </div>
 
-        {/* Bottom full-width strip: email module (VES-45) + 5-phase timeline.
-            The email-during-generation module mounts only when a batch token
-            exists (unauth flow). Authed visitors skip the email gate, so the
-            timeline spans the strip alone. */}
-        <div
-          className={`mt-6 grid grid-cols-1 gap-5 md:mt-8 lg:items-stretch lg:gap-6 ${
-            emailToken ? "lg:grid-cols-[1fr_minmax(420px,0.85fr)]" : ""
-          }`}
-        >
+        {/* Bottom: email module (VES-45) stacked above the full-width
+            5-phase timeline strip — matches the desktop mock (§3). The
+            email-during-generation module mounts only when a batch token
+            exists (unauth flow); authed visitors skip the email gate and
+            the timeline spans the strip alone. */}
+        <div className="mt-6 flex flex-col gap-5 md:mt-8 md:gap-6">
           {emailToken ? (
             <EmailContinuationModule
               token={emailToken}
@@ -672,7 +669,9 @@ function RenderFrame({
 
   // Progressive clarity tied to real progress: as the render advances the
   // blur/haze recede, sharpening creeps in. NOT a static blur, NOT a spinner.
-  const blurPx = isDone ? 0 : Math.max(2, 26 - pct * 24);
+  // Curve tuned so meaningful detail emerges by mid-progress (the spec
+  // forbids a fully-blurred preview) — starts soft, resolves to near-sharp.
+  const blurPx = isDone ? 0 : Math.max(0.5, 15 - pct * 16);
   const grainOpacity = isDone ? 0 : 0.16 - pct * 0.1;
   const overlayTitle = isDone
     ? "Ready"
@@ -700,8 +699,8 @@ function RenderFrame({
             draggable={false}
             className="absolute inset-0 h-full w-full object-cover"
             style={{
-              filter: `blur(${blurPx}px) saturate(${isDone ? 1 : 0.82}) brightness(${isDone ? 1 : 0.72})`,
-              transform: isDone ? "scale(1)" : "scale(1.06)",
+              filter: `blur(${blurPx}px) saturate(${isDone ? 1 : 0.9}) brightness(${isDone ? 1 : 0.84})`,
+              transform: isDone ? "scale(1)" : "scale(1.04)",
               opacity: isDone ? 0 : 0.92,
               transition:
                 "filter 700ms cubic-bezier(0.2,0.8,0.2,1), transform 700ms cubic-bezier(0.2,0.8,0.2,1), opacity 600ms ease-out",

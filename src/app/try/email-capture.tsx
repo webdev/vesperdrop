@@ -68,49 +68,62 @@ export function useEmailPhotoSubmit() {
       if (target.pickedScenes?.length) body.pickedScenes = target.pickedScenes;
       if (target.sourceUrl) body.sourceUrl = target.sourceUrl;
 
+      // Only a genuine transport failure (DNS/offline/CORS) rejects the
+      // fetch — that's the one case where "check your connection" is honest.
+      let res: Response;
       try {
-        const res = await fetch("/api/try/email-photo", {
+        res = await fetch("/api/try/email-photo", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
-        const data: EmailCaptureResponse = await res.json();
-
-        if (!res.ok || !data.ok) {
-          const message =
-            data.message ??
-            (res.status === 429
-              ? "Too many emails right now. Try again in an hour."
-              : "Something went wrong. Try again in a moment.");
-          setStatus("error");
-          setErrorMessage(message);
-          return { ok: false, message };
-        }
-
-        // Server-confirmed success — fire Lead exactly once. Wrapped so a
-        // missing Pixel can't break the user-visible reveal.
-        try {
-          const fbq = (
-            window as unknown as { fbq?: (...args: unknown[]) => void }
-          ).fbq;
-          fbq?.("track", "Lead", { content_name: "try_email_photo" });
-        } catch {
-          // analytics swallow
-        }
-
-        setStatus("success");
-        return {
-          ok: true,
-          state: data.state ?? "sent",
-          emailed: data.emailed ?? false,
-          photos: data.photos ?? [],
-        };
       } catch {
         const message = "Couldn't reach the server. Check your connection.";
         setStatus("error");
         setErrorMessage(message);
         return { ok: false, message };
       }
+
+      // A reached-but-failing server (5xx HTML/empty body) must NOT read as
+      // a connection problem — parse defensively and report a server error.
+      let data: Partial<EmailCaptureResponse> = {};
+      try {
+        data = (await res.json()) as EmailCaptureResponse;
+      } catch {
+        // non-JSON body (e.g. a 500 error page) — leave data empty.
+      }
+
+      if (!res.ok || !data.ok) {
+        const message =
+          data.message ??
+          (res.status === 429
+            ? "Too many emails right now. Try again in an hour."
+            : res.status >= 500
+              ? "Something went wrong on our end. Try again in a moment."
+              : "Something went wrong. Try again in a moment.");
+        setStatus("error");
+        setErrorMessage(message);
+        return { ok: false, message };
+      }
+
+      // Server-confirmed success — fire Lead exactly once. Wrapped so a
+      // missing Pixel can't break the user-visible reveal.
+      try {
+        const fbq = (
+          window as unknown as { fbq?: (...args: unknown[]) => void }
+        ).fbq;
+        fbq?.("track", "Lead", { content_name: "try_email_photo" });
+      } catch {
+        // analytics swallow
+      }
+
+      setStatus("success");
+      return {
+        ok: true,
+        state: data.state ?? "sent",
+        emailed: data.emailed ?? false,
+        photos: data.photos ?? [],
+      };
     },
     [],
   );

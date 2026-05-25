@@ -97,6 +97,7 @@ export async function POST(req: Request) {
   }
   const { email, runId, token, pickedScenes, sourceUrl } = parsed.data;
 
+  try {
   // Resolve the run. We prefer runId (post-completion path). When only a
   // token is supplied (mid-generation), look up the linked runId — it
   // may be null until finalize-batch lands.
@@ -239,4 +240,19 @@ export async function POST(req: Request) {
   });
 
   return NextResponse.json({ ok: true, state: "queued", emailed: false });
+  } catch (err) {
+    // DB/Resend failures land here instead of bubbling out as an opaque
+    // 500 with a non-JSON body (which the client mis-reported as a
+    // connection error). Always return JSON so the client can show a
+    // server-error message, not "check your connection".
+    console.error("[try/email-photo] unhandled error:", err);
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "server_error",
+        message: "Something went wrong on our end. Try again in a moment.",
+      },
+      { status: 500 },
+    );
+  }
 }
