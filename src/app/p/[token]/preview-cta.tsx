@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { track } from "@/lib/analytics";
-import { OtpAuthFlow } from "@/components/app/otp-auth-flow";
+import { EmailPasswordAuthFlow } from "@/components/app/email-password-auth-flow";
 import type { PreviewPageData } from "@/lib/preview-pages/loader";
 
 type Props = { data: PreviewPageData };
@@ -56,7 +56,7 @@ export function PreviewCta({ data }: Props) {
     });
   }
 
-  async function handleOtpSuccess() {
+  async function handleEmailSuccess() {
     track("preview_signup_start", { ...common, signup_method: "email" });
     void postEvent(data.token, { kind: "signup_start", label: "email" });
     track("user_signed_up", { method: "email" });
@@ -88,12 +88,13 @@ export function PreviewCta({ data }: Props) {
 
         <div className="w-full">
           <div onFocus={() => fireCtaOnce("start_trial", "/sign-up")}>
-            <OtpAuthFlow
+            <EmailPasswordAuthFlow
               surface="preview_cta"
-              onSuccess={handleOtpSuccess}
+              onSuccess={handleEmailSuccess}
               eyebrow={null}
               description={null}
               autoFocusEmail={false}
+              showGoogle={false}
             />
           </div>
 

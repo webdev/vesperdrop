@@ -32,7 +32,6 @@ import { ProgressScreen } from "./progress-screen";
 import { SavedBar } from "./saved-bar";
 import { AuthModal } from "./auth-modal";
 import { EmailCapture } from "./email-capture";
-import { OtpAuthFlow } from "@/components/app/otp-auth-flow";
 import { motion } from "framer-motion";
 import { EditorialClaimRail, TrustRow } from "./editorial-rail";
 import {
@@ -1164,8 +1163,9 @@ function DevelopStep({
     window.location.href = `/api/stripe/unlock-checkout?batchToken=${batchToken}`;
   }, [unlockSubmitting, batchToken, batchPersisted]);
 
-  // Called by OtpAuthFlow once verifyOtp resolves with a session. We
-  // attach the anonymous batch to the now-authenticated user so the
+  // Called by EmailPasswordAuthFlow once a Supabase session lands
+  // in-place. We attach the anonymous batch to the now-authenticated
+  // user so the
   // post-payment unlock page (and library) can find it by user_id.
   // Errors from attach-batch are swallowed — the visual unlock should
   // still proceed; the batch lookup falls back to token-based access.
@@ -1267,6 +1267,12 @@ function DevelopStep({
           onOpenChange={(open) => setAuthModal((s) => ({ ...s, open }))}
           intent={authModal.intent}
           onAuthSuccess={handleAuthSuccess}
+          // Google does a full-page redirect to /api/auth/callback, so
+          // the in-place onAuthSuccess (which POSTs attach-batch) never
+          // fires for that path. Route the OAuth return through
+          // /try/b/<batchToken>, whose server page auto-attaches the
+          // anonymous batch to the now-authed user on load.
+          googleNext={`/try/b/${batchToken}`}
         />
       )}
     </div>

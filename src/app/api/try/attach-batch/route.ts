@@ -8,10 +8,13 @@ import { getUnlockBatchByToken } from "@/lib/db/unlock-batches";
 
 export const runtime = "nodejs";
 
-// Called by the /try inline OTP flow once verifyOtp resolves. Re-
-// parents the anonymous batch + its run + its generations to the
-// now-authenticated user. The three updates run in a transaction so
-// a partial failure leaves no orphans.
+// Called by the /try inline claim flow once a Supabase session lands
+// in-place (email+password). Re-parents the anonymous batch + its run
+// + its generations to the now-authenticated user. The three updates
+// run in a transaction so a partial failure leaves no orphans.
+// (Google OAuth re-parents via the /try/b/<token> server page's
+// auto-claim path instead, since OAuth full-page-redirects away from
+// the in-place caller.)
 //
 // Idempotent: if the batch is already attached to this user, returns
 // ok:true. If it's attached to a different user (race / abuse),
