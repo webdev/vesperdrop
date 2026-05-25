@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import type { StudioProgress } from "@/lib/progress/studio-progress";
 import type { TileResult } from "./develop-grid";
 import { EmailContinuationModule } from "./email-continuation";
+import { failureHeadline, failureBody } from "./credit-error-copy";
 
 const MAX_VISIBLE_CARDS = 6;
 
@@ -90,6 +91,13 @@ export function StudioDevelopFrame({
   const visible = results.slice(0, MAX_VISIBLE_CARDS);
   const count = visible.length;
   const activeTile = visible[0];
+
+  // When every visible tile has failed (no success, none still streaming)
+  // the batch is a dead end — most commonly the anon free-render cap (402
+  // credit_limit_reached). Show a clear error instead of a blank/fake-ready
+  // frame (VES-43 error state).
+  const failedTile = visible.find((r) => r.status === "failed");
+  const batchFailed = count > 0 && visible.every((r) => r.status === "failed");
   const sceneName = sceneNames[0] ?? activeTile?.sceneName ?? "Your scene";
 
   // Output of the active tile once it lands — we cross-fade the
@@ -153,6 +161,8 @@ export function StudioDevelopFrame({
         emailToken={emailToken}
         pickedScenes={pickedScenes}
         onEmailCaptured={onEmailCaptured}
+        batchFailed={batchFailed}
+        failedTile={failedTile}
       />
 
       {/* ── Desktop spread (VES-43/44/45), gated at lg ── */}
@@ -165,17 +175,25 @@ export function StudioDevelopFrame({
             phases={progress?.phases}
           />
 
-          {/* Right column: render frame (VES-43) */}
+          {/* Right column: render frame (VES-43), or an error panel when
+              the whole batch failed (e.g. out of free renders). */}
           <div className="min-w-0">
-            <RenderFrame
-              sourceUrl={sourceUrl}
-              sceneName={sceneName}
-              index={0}
-              total={count || 1}
-              outputUrl={outputUrl}
-              allDone={allDone}
-              progress={progress}
-            />
+            {batchFailed ? (
+              <StudioErrorPanel
+                code={failedTile?.errorCode}
+                message={failedTile?.error}
+              />
+            ) : (
+              <RenderFrame
+                sourceUrl={sourceUrl}
+                sceneName={sceneName}
+                index={0}
+                total={count || 1}
+                outputUrl={outputUrl}
+                allDone={allDone}
+                progress={progress}
+              />
+            )}
           </div>
         </div>
 
@@ -221,6 +239,8 @@ function MobileStudio({
   emailToken,
   pickedScenes,
   onEmailCaptured,
+  batchFailed,
+  failedTile,
 }: {
   sidebar: StudioSidebarData;
   allDone: boolean;
@@ -232,6 +252,8 @@ function MobileStudio({
   emailToken?: string;
   pickedScenes?: string[];
   onEmailCaptured?: () => void;
+  batchFailed: boolean;
+  failedTile?: TileResult;
 }) {
   return (
     <div className="lg:hidden" data-testid="mobile-studio">
@@ -260,17 +282,26 @@ function MobileStudio({
           Near full-bleed (negative margins escape the container gutter),
           taller aspect than desktop, larger corners. */}
       <div className="-mx-5 mt-9 sm:-mx-3" data-testid="mobile-render-wrap">
-        <RenderFrame
-          sourceUrl={sourceUrl}
-          sceneName={sceneName}
-          index={0}
-          total={count || 1}
-          outputUrl={outputUrl}
-          allDone={allDone}
-          progress={progress}
-          aspectClassName="aspect-[5/6]"
-          frameClassName="rounded-[28px]"
-        />
+        {batchFailed ? (
+          <StudioErrorPanel
+            code={failedTile?.errorCode}
+            message={failedTile?.error}
+            aspectClassName="aspect-[5/6]"
+            frameClassName="rounded-[28px]"
+          />
+        ) : (
+          <RenderFrame
+            sourceUrl={sourceUrl}
+            sceneName={sceneName}
+            index={0}
+            total={count || 1}
+            outputUrl={outputUrl}
+            allDone={allDone}
+            progress={progress}
+            aspectClassName="aspect-[5/6]"
+            frameClassName="rounded-[28px]"
+          />
+        )}
       </div>
 
       {/* 3 — Email continuation CTA — prominent (mobile variant). */}
@@ -639,6 +670,86 @@ function StepDot({ state }: { state: "done" | "active" | "upcoming" }) {
 /* ---------------------------------------------------------------------------
  * Render frame (VES-43)
  * ------------------------------------------------------------------------- */
+
+function StudioErrorPanel({
+  code,
+  message,
+  aspectClassName = "aspect-[16/10]",
+  frameClassName = "rounded-[32px]",
+}: {
+  code?: string;
+  message?: string;
+  aspectClassName?: string;
+  frameClassName?: string;
+}) {
+  const actionable =
+    code === "credit_limit_reached" || code === "quota_exhausted";
+  return (
+    <figure
+      data-testid="studio-error-panel"
+      role="alert"
+      className={`relative w-full overflow-hidden border border-line-soft bg-surface shadow-card ${frameClassName}`}
+    >
+      <div
+        className={`relative flex w-full items-center justify-center ${aspectClassName}`}
+      >
+        <div className="flex max-w-[44ch] flex-col items-center gap-4 px-8 text-center">
+          <span
+            aria-hidden
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-terracotta/12 text-terracotta-dark"
+          >
+            <AlertIcon size={22} />
+          </span>
+          <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-terracotta-dark">
+            {actionable ? "Out of renders" : "Generation snag"}
+          </span>
+          <h3 className="font-serif text-[clamp(1.6rem,3.2vw,2.4rem)] leading-[1.05] tracking-[-0.01em] text-ink">
+            {failureHeadline(code)}
+          </h3>
+          <p className="max-w-[40ch] text-[14px] leading-[1.55] text-ink-3">
+            {failureBody(code, message)}
+          </p>
+          {actionable ? (
+            <a
+              href="/pricing"
+              className="mt-1 inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 font-mono text-[12px] uppercase tracking-[0.12em] text-cream transition-colors hover:bg-ink-2"
+            >
+              View plans <span aria-hidden>→</span>
+            </a>
+          ) : (
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-1 inline-flex items-center gap-2 rounded-full border border-line px-6 py-3 font-mono text-[12px] uppercase tracking-[0.12em] text-ink transition-colors hover:bg-paper-soft"
+            >
+              Try again
+            </button>
+          )}
+        </div>
+      </div>
+    </figure>
+  );
+}
+
+function AlertIcon({ size = 22 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  );
+}
 
 function RenderFrame({
   sourceUrl,
