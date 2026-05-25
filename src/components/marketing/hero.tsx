@@ -1,15 +1,5 @@
 import Link from "next/link";
-import {
-  BadgeCheck,
-  Clock,
-  CreditCard,
-  Crown,
-  Gift,
-  Layers,
-  ShieldCheck,
-  Sparkles,
-  type LucideIcon,
-} from "lucide-react";
+import { CreditCard, Gift, ShieldCheck } from "lucide-react";
 import { Container } from "@/components/ui/container";
 import { BeforeAfterCarousel } from "./before-after-carousel";
 
@@ -103,50 +93,7 @@ export function Hero() {
             <BeforeAfterCarousel />
           </div>
         </div>
-
-        <dl className="mx-auto mt-6 grid max-w-3xl grid-cols-2 gap-x-6 gap-y-5 border-t border-line-soft pt-6 sm:grid-cols-4 md:mt-16">
-          <Stat icon={Layers} label="Per batch" value="6 photos" />
-          <Stat icon={Clock} label="Time" value="~90 sec" />
-          <Stat icon={BadgeCheck} label="Marketplace" value="A+ ready" />
-          <Stat icon={Crown} label="Pro from" value="$39/mo" />
-        </dl>
-
-        {/* Mobile-only positioning statement — VES-35 (option b, no numeric claims). */}
-        <p className="mt-5 flex items-center justify-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-3 md:hidden">
-          <Sparkles aria-hidden="true" className="h-3.5 w-3.5 text-terracotta" />
-          Built for Etsy &amp; Shopify sellers
-        </p>
       </Container>
     </section>
-  );
-}
-
-function Stat({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-center gap-3 sm:block">
-      {/* Mobile-only icon circle — VES-34. Hidden at sm: so desktop is pixel-identical. */}
-      <span
-        aria-hidden="true"
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-paper-2 sm:hidden"
-      >
-        <Icon className="h-4 w-4 text-ink-3" />
-      </span>
-      <div>
-        <dt className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-4">
-          {label}
-        </dt>
-        <dd className="mt-1.5 font-serif text-[20px] leading-none tracking-[-0.01em] text-ink">
-          {value}
-        </dd>
-      </div>
-    </div>
   );
 }
