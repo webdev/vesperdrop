@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
-import { OtpAuthFlow } from "@/components/app/otp-auth-flow";
+import { EmailPasswordAuthFlow } from "@/components/app/email-password-auth-flow";
 import {
   Dialog,
   DialogContent,
@@ -10,8 +10,9 @@ import {
 } from "@/components/ui/dialog";
 
 // "download" and "unlock" are functionally identical now — both gate
-// on auth and resolve via inline OTP — but the eyebrow copy still
-// differs so the user understands what they're signing up *for*.
+// on auth and resolve via inline email+password / Google — but the
+// eyebrow copy still differs so the user understands what they're
+// signing up *for*.
 type Intent = "default" | "download" | "unlock";
 
 const eyebrow: Record<Intent, string> = {
@@ -53,9 +54,10 @@ export function AuthModal({
   onOpenChange,
   intent = "default",
   onAuthSuccess,
+  googleNext,
   // Magic-link era prop. Retained in the signature so existing callers
-  // don't break, but the OTP flow never enters a "pending" state — the
-  // session lands in-place once verifyOtp resolves.
+  // don't break, but the email+password flow never enters a "pending"
+  // state — the session lands in-place once the password call resolves.
   onConfirmationPending: _ignored,
 }: {
   open: boolean;
@@ -64,8 +66,16 @@ export function AuthModal({
   /** Legacy hook for the magic-link "check your inbox" path. Unused. */
   defaultTab?: "sign-up" | "sign-in";
   onAuthSuccess: () => void | Promise<void>;
+  /**
+   * Where Google OAuth returns to. Google does a full-page redirect, so
+   * the in-place `onAuthSuccess` never fires for that path — the batch
+   * must re-parent on the destination page instead. /try passes
+   * `/try/b/<batchToken>`, whose server page auto-attaches the
+   * anonymous batch to the now-authed user on load.
+   */
+  googleNext?: string;
   onConfirmationPending?: (email: string) => void | Promise<void>;
-  /** Magic-link redirect target. Unused by OTP. */
+  /** Magic-link redirect target. Unused. */
   next?: string;
 }) {
   return (
@@ -80,17 +90,18 @@ export function AuthModal({
               {headline[intent]}
             </DialogTitle>
             <DialogDescription className="text-[14px] leading-[1.55] text-ink-3">
-              Enter your email and we&apos;ll send a 6-digit code — no
-              passwords, no email links.
+              Continue with your email and a password, or use Google — no
+              emailed codes, no waiting.
             </DialogDescription>
           </div>
 
           <Suspense>
-            <OtpAuthFlow
+            <EmailPasswordAuthFlow
               surface={`auth_modal_${intent}`}
               onSuccess={async () => {
                 await onAuthSuccess();
               }}
+              googleNext={googleNext}
               eyebrow={null}
               description={null}
             />

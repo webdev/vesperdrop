@@ -46,9 +46,9 @@ export type AnalyticsEvent =
         location: "batch" | "try" | "pricing" | "account";
       };
     }
-  | { name: "auth_otp_send_requested"; props: { surface: string } }
-  | { name: "auth_otp_verified"; props: { surface: string } }
-  | { name: "auth_otp_resend"; props: { surface: string } }
+  | { name: "auth_password_signin"; props: { surface: string } }
+  | { name: "auth_signup"; props: { surface: string } }
+  | { name: "auth_google_start"; props: { surface: string } }
   | { name: "try_studio_claimed"; props?: never }
   | { name: "pricing_plan_clicked"; props: { plan: string; billing: "monthly" | "yearly" | "annual" } }
   | { name: "pricing_billing_toggled"; props: { interval: "monthly" | "annual" } }

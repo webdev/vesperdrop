@@ -130,10 +130,10 @@ export function BatchView({
         return;
       }
 
-      // Hero pre-claim: scroll the OTP form into view so the user
+      // Hero pre-claim: scroll the claim form into view so the user
       // knows what to do next.
       const el = document.querySelector(
-        '[data-testid="otp-email-input"]',
+        '[data-testid="auth-email-input"]',
       ) as HTMLElement | null;
       el?.scrollIntoView({ behavior: "smooth", block: "center" });
       el?.focus();
@@ -310,8 +310,9 @@ export function BatchView({
         onClose={() => setLightboxSlug(null)}
         onDownload={() => {
           if (!lightboxGen) return;
-          // Close the lightbox so the OTP-scroll behavior (pre-claim
-          // path) is visible behind it. Post-claim this is harmless;
+          // Close the lightbox so the claim-form scroll behavior
+          // (pre-claim path) is visible behind it. Post-claim this is
+          // harmless;
           // the actual download fires asynchronously via blob fetch.
           setLightboxSlug(null);
           handleDownload(lightboxGen.sceneSlug);

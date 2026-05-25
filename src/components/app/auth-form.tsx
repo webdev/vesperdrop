@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { track } from "@/lib/analytics";
-import { OtpAuthFlow } from "./otp-auth-flow";
+import { EmailPasswordAuthFlow } from "./email-password-auth-flow";
 
 type Mode = "sign-in" | "sign-up";
 type Variant = "stacked" | "split";
@@ -14,24 +14,25 @@ type Variant = "stacked" | "split";
 const SHOW_APPLE_FACEBOOK_OAUTH = false;
 
 /**
- * Email auth uses Supabase email OTP (6-digit code, no magic-link).
- * OAuth providers are retained as a parallel sign-in option and still
- * route through /api/auth/callback. MFA enforcement happens in
- * middleware (lib/supabase/middleware.ts) — users with TOTP enrolled
- * are redirected to /mfa-verify automatically after the OTP session
- * lands.
+ * Email auth uses Supabase email + password (signInWithPassword for
+ * returning users, signUp for new users — the shared
+ * EmailPasswordAuthFlow tries sign-in first, then falls back to
+ * sign-up). OAuth providers are a parallel sign-in option and route
+ * through /api/auth/callback. MFA enforcement happens in middleware
+ * (lib/supabase/middleware.ts) — users with TOTP enrolled are
+ * redirected to /mfa-verify automatically after the session lands.
  *
- * The `mode` prop is kept for analytics + button copy only; OTP doesn't
- * actually distinguish sign-in vs sign-up at the API layer
- * (shouldCreateUser:true creates if missing).
+ * The `mode` prop is kept for analytics + button copy only; the
+ * email+password flow auto-detects new vs returning at the API layer.
  */
 export function AuthForm({
   mode = "sign-in",
   variant = "stacked",
   onSuccess,
-  // Kept in the prop surface for callers that still pass it. The OTP
-  // flow has no separate "pending email confirmation" step, so this
-  // is never called.
+  // Kept in the prop surface for callers that still pass it. The
+  // email+password flow has no separate "pending email confirmation"
+  // step (Confirm email is disabled in Supabase), so this is never
+  // called.
   onConfirmationPending: _ignoredOnConfirmationPending,
   next: nextOverride,
 }: {
@@ -48,7 +49,7 @@ export function AuthForm({
 
   const [oauthError, setOauthError] = useState<string | null>(null);
 
-  const handleOtpSuccess = useCallback(async () => {
+  const handleEmailSuccess = useCallback(async () => {
     track(mode === "sign-up" ? "user_signed_up" : "user_signed_in", {
       method: "email",
     });
@@ -105,13 +106,14 @@ export function AuthForm({
     </div>
   );
 
-  const otpBlock = (
-    <OtpAuthFlow
+  const emailBlock = (
+    <EmailPasswordAuthFlow
       surface={`auth_form_${mode}`}
-      onSuccess={handleOtpSuccess}
+      onSuccess={handleEmailSuccess}
       eyebrow={null}
       description={null}
       successMessage={null}
+      showGoogle={false}
     />
   );
 
@@ -120,7 +122,7 @@ export function AuthForm({
     // visitor action), OAuth below the divider.
     return (
       <div className="flex flex-col gap-6">
-        {otpBlock}
+        {emailBlock}
         <Divider label="or continue with" />
         {oauthBlock}
       </div>
@@ -133,7 +135,7 @@ export function AuthForm({
     <div className="flex flex-col gap-5">
       {oauthBlock}
       <Divider label="or email" />
-      {otpBlock}
+      {emailBlock}
     </div>
   );
 }

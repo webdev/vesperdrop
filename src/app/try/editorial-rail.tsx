@@ -2,7 +2,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { OtpAuthFlow } from "@/components/app/otp-auth-flow";
+import { EmailPasswordAuthFlow } from "@/components/app/email-password-auth-flow";
 import type { TileResult } from "./develop-grid";
 
 /**
@@ -13,7 +13,7 @@ import type { TileResult } from "./develop-grid";
  *
  * Both visible simultaneously — the claim form on the left, the $9.99
  * upsell on the right. The user sees the full value/price ladder
- * before pressing either CTA. After OTP success the claim column
+ * before pressing either CTA. After auth success the claim column
  * collapses to a small confirmation badge; the upsell stays visible.
  */
 export function EditorialClaimRail({
@@ -31,7 +31,7 @@ export function EditorialClaimRail({
 }) {
   // Layout decision: pre-claim, the page is purely a free-preview
   // reveal + claim CTA. The $9.99 upsell appears once the visitor has
-  // authenticated via OTP AND the batch has at least one tile beyond
+  // authenticated AND the batch has at least one tile beyond
   // the free hero — index 0 is the free preview, everything past it is
   // unlockable. With only 1 tile total there's nothing to upsell, so
   // we drop the column and let ClaimColumn stand on its own.
@@ -67,8 +67,8 @@ export function EditorialClaimRail({
   );
 }
 
-// Left column: headline + subcopy + OTP form + microcopy. Collapses
-// to a confirmation badge after claim.
+// Left column: headline + subcopy + email/password + Google form +
+// microcopy. Collapses to a confirmation badge after claim.
 function ClaimColumn({
   claimed,
   onClaimSuccess,
@@ -117,7 +117,7 @@ function ClaimColumn({
         </motion.div>
       ) : (
         <>
-          <OtpAuthFlow
+          <EmailPasswordAuthFlow
             surface="try_inline_claim"
             onSuccess={onClaimSuccess}
             eyebrow={null}
@@ -137,7 +137,7 @@ function ClaimColumn({
 function ClaimMicrocopy() {
   const items: { label: string; icon: React.ReactNode }[] = [
     {
-      label: "No passwords",
+      label: "No card required",
       icon: (
         <svg
           width="13"
@@ -150,8 +150,8 @@ function ClaimMicrocopy() {
           strokeLinejoin="round"
           aria-hidden
         >
-          <rect x="4" y="11" width="16" height="10" rx="1.5" />
-          <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+          <rect x="2.5" y="6" width="19" height="13" rx="2" />
+          <path d="M2.5 10h19" />
         </svg>
       ),
     },
