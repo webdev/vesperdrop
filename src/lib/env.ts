@@ -54,7 +54,7 @@ const ServerOnlyEnv = z.object({
   // Transactional email (Resend). Optional during rollout so dev/preview
   // without keys still boot; /api/try/email-photo returns 503 if unset.
   RESEND_API_KEY: z.string().optional(),
-  RESEND_FROM_EMAIL: z.string().optional().default("Vesperdrop <hello@vesperdrop.com>"),
+  RESEND_FROM_EMAIL: z.string().optional().default("Vesperdrop <info@vesperdrop.com>"),
 });
 
 export const env = { ...ServerOnlyEnv.parse(process.env), ...clientEnv };
