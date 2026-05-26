@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { identify, track } from "@/lib/analytics";
+import { fireCompleteRegistration } from "@/lib/meta-pixel";
 
 type FlowState =
   | { kind: "idle" }
@@ -61,6 +62,19 @@ type Props = {
    * Google button.
    */
   showGoogle?: boolean;
+  /**
+   * Fire Meta's `CompleteRegistration` Pixel event when this flow creates
+   * a genuinely NEW account (the email+password `signUp` success branch
+   * only — NOT returning-user sign-in). Scoped opt-in so only the
+   * higher-intent Download HD signup surface (the /try AuthModal) reports
+   * the registration to Meta; other auth mounts stay silent (VES-58).
+   *
+   * Defaults to false. The Google OAuth path does a full-page redirect, so
+   * its CompleteRegistration is fired by the post-OAuth landing page
+   * (see /try/b/[token]), NOT here — this flag only governs the in-place
+   * email+password branch.
+   */
+  completeRegistration?: boolean;
 };
 
 const STATE_TRANSITION = {
@@ -78,6 +92,7 @@ export function EmailPasswordAuthFlow({
   autoFocusEmail = true,
   googleNext,
   showGoogle = true,
+  completeRegistration = false,
 }: Props) {
   const supabase = createSupabaseBrowserClient();
   const [state, setState] = useState<FlowState>({ kind: "idle" });
@@ -135,17 +150,34 @@ export function EmailPasswordAuthFlow({
         return;
       }
 
-      const userId = signUp.data.session.user.id;
+      const newUser = signUp.data.session.user;
+      const userId = newUser.id;
       identify(userId, { email });
       track("auth_signup", { surface });
       (window as unknown as { fbq?: (...args: unknown[]) => void }).fbq?.(
         "track",
         "Lead",
       );
+      // CompleteRegistration (VES-58): this branch is reached ONLY when
+      // `signUp` minted a new session, i.e. a genuinely new account —
+      // signInWithPassword for an existing user returns far above. Scoped
+      // to the Download HD surface via the `completeRegistration` opt-in.
+      // Seed the eventID with the account createdAt so a future CAPI fire
+      // can dedupe deterministically.
+      if (completeRegistration) {
+        const createdSeed = newUser.created_at
+          ? Date.parse(newUser.created_at)
+          : undefined;
+        fireCompleteRegistration({
+          userId,
+          method: "email_password",
+          seed: Number.isNaN(createdSeed) ? undefined : createdSeed,
+        });
+      }
       setState({ kind: "success", email });
       await onSuccess?.({ email, userId });
     },
-    [supabase, surface, onSuccess],
+    [supabase, surface, onSuccess, completeRegistration],
   );
 
   const continueWithGoogle = useCallback(async () => {

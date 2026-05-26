@@ -13,6 +13,7 @@ import {
   markBatchPaid,
 } from "@/lib/db/unlock-batches";
 import { BatchView } from "./batch-view";
+import { GoogleRegistrationPixel } from "./google-registration-pixel";
 
 // 32-hex token format. Anything else is clearly a malformed link and
 // can short-circuit to 404 before hitting the DB.
@@ -137,6 +138,10 @@ export default async function Page({
 
   return (
     <div className="flex min-h-screen flex-col bg-paper text-ink">
+      {/* Post-Google-OAuth landing: fires Meta CompleteRegistration for a
+          new account (VES-58). Mounted only when authed — anonymous
+          visitors who never signed up never reach the new-account check. */}
+      {user ? <GoogleRegistrationPixel /> : null}
       <Nav width="app" />
       <Container as="main" width="app" className="flex-1 pt-6 pb-8 md:pt-10 md:pb-12">
         <BatchView
