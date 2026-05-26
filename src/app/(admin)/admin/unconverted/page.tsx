@@ -8,6 +8,8 @@ const dtFmt = new Intl.DateTimeFormat("en-US", {
   day: "numeric",
   hour: "numeric",
   minute: "2-digit",
+  timeZone: "America/Los_Angeles",
+  timeZoneName: "short",
 });
 
 function fmtDateTime(iso: string | null) {

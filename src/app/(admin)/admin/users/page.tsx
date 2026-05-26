@@ -9,6 +9,7 @@ const dateFmt = new Intl.DateTimeFormat("en-US", {
   month: "short",
   day: "numeric",
   year: "numeric",
+  timeZone: "America/Los_Angeles",
 });
 
 function fmtDate(iso: string | null) {
