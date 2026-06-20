@@ -104,6 +104,7 @@ export function AuthModal({
               googleNext={googleNext}
               eyebrow={null}
               description={null}
+              completeRegistration
             />
           </Suspense>
 
